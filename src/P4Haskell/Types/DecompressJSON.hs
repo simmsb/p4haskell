@@ -1,15 +1,15 @@
-module P4Haskell.Types.P4AST
-    ( fixupTree ) where
+-- | P4 'compresses' it's json exported AST, this module decompresses it
+-- if you're interested, it makes use of the Löb function (Functor f => f (f a -> a) -> f a)
+module P4Haskell.Types.DecompressJSON
+    ( fixupTree
+    , isReference
+    , objects
+    , pattern NodeID ) where
 
 import           Data.Aeson
 import           Data.Aeson.Lens
 import qualified Data.HashMap.Lazy as H
 import           Data.Maybe
-
-jsonOptions :: Options
-jsonOptions = defaultOptions { sumEncoding        = TaggedObject "Node_Type" "Node_Type"
-                             , omitNothingFields  = True
-                             , fieldLabelModifier = filter (/= '_') }
 
 -- | the secret sauce
 loeb :: Functor f => f (f a -> a) -> f a
@@ -47,12 +47,15 @@ replaceWithThunks (Object o@(NodeID n))
   | isReference o = H.lookup n >>> fromJust >>> Object
 replaceWithThunks v = const v
 
+
 -- | replace all reference objects in a json value with their full versions
 fixupTree :: Value -> Value
 fixupTree v = let completeObjects = nonReferenceObjects v
                     & mapMaybe (\o -> do
                                   n <- fetchID o
-                                  pure (n, (\(Object o') -> o') . transformM replaceWithThunks (Object o)))
+                                  let o' = sequence $ fmap (transformM replaceWithThunks) o
+                                  pure (n, o'))
                     & H.fromList
                     & loeb
+                    -- & H.mapMaybe id
               in transform (`replaceNode` completeObjects) v

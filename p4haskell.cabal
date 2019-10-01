@@ -4,7 +4,7 @@ cabal-version: 1.18
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: bc7f3d5248bb28e9d1f10b236840baa2282281934f8c7e3ab295a95507fc486d
+-- hash: a561bc1b985af7f6c7254204de896bf87b54414acb6fd50aeaac4307648667b0
 
 name:           p4haskell
 version:        0.0.0
@@ -31,7 +31,8 @@ source-repository head
 library
   exposed-modules:
       P4Haskell
-      P4Haskell.Types.P4AST
+      P4Haskell.Types.AST
+      P4Haskell.Types.DecompressJSON
       Prelude
   other-modules:
       Paths_p4haskell
