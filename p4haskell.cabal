@@ -1,113 +1,125 @@
-cabal-version:       2.0
-name:                p4haskell
-version:             0.0.0
-synopsis:            P4 backend and midend in haskell
-description:         P4 backend and midend in haskell
-homepage:            https://github.com/nitros12/p4haskell
-bug-reports:         https://github.com/nitros12/p4haskell/issues
-license:             MIT
-license-file:        LICENSE
-author:              Ben Simms
-maintainer:          ben@bensimms.moe
-copyright:           2019 Ben Simms
-category:            Parsing Development Compilers/Interpreters Utility
-build-type:          Simple
-extra-doc-files:     README.md
-                   , CHANGELOG.md
-tested-with:         GHC == 8.6.4
+cabal-version: 1.18
+
+-- This file has been generated from package.yaml by hpack version 0.32.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: bc7f3d5248bb28e9d1f10b236840baa2282281934f8c7e3ab295a95507fc486d
+
+name:           p4haskell
+version:        0.0.0
+synopsis:       P4 backend in haskell
+description:    P4 backend in haskell
+category:       Parsing Development Compilers/Interpreters Utility
+homepage:       https://github.com/nitros12/p4haskell
+bug-reports:    https://github.com/nitros12/p4haskell/issues
+author:         Ben Simms
+maintainer:     ben@bensimms.moe
+copyright:      2019 Ben Simms
+license:        MIT
+license-file:   LICENSE
+tested-with:    GHC == 8.6.5
+build-type:     Simple
+extra-doc-files:
+    README.md
+    CHANGELOG.md
 
 source-repository head
-  type:                git
-  location:            https://github.com/nitros12/p4haskell.git
+  type: git
+  location: https://github.com/nitros12/p4haskell
 
 library
-  hs-source-dirs:      src
-  exposed-modules:     P4haskell
-                       Prelude
-
-  build-depends:       base-noprelude ^>= 4.12.0.0
-                     , relude
-
-  ghc-options:         -Wall
-                       -Wincomplete-uni-patterns
-                       -Wincomplete-record-updates
-                       -Wcompat
-                       -Widentities
-                       -Wredundant-constraints
-                       -fhide-source-paths
-                       -Wmissing-export-lists
-                       -Wpartial-fields
-
-  default-language:    Haskell2010
+  exposed-modules:
+      P4Haskell
+      P4Haskell.Types.P4AST
+      Prelude
+  other-modules:
+      Paths_p4haskell
+  hs-source-dirs:
+      src
+  default-extensions: CPP AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction AutoDeriveTypeable BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia DerivingStrategies GeneralizedNewtypeDeriving StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MonadFailDesugaring MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
+  ghc-options: -fplugin=Polysemy.Plugin -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
+  build-depends:
+      aeson >=1.4
+    , base-noprelude >=4.12
+    , co-log-core >=0.2
+    , co-log-polysemy >=0.0
+    , lens >=4.17
+    , lens-aeson >=1.0
+    , polysemy >=1.2
+    , polysemy-plugin >=0.2
+    , relude >=0.5
+    , text >=1.2
+    , unordered-containers >=0.2
+  default-language: Haskell2010
 
 executable p4haskell
-  hs-source-dirs:      app
-  main-is:             Main.hs
+  main-is: Main.hs
+  other-modules:
+      Paths_p4haskell
+  hs-source-dirs:
+      app
+  default-extensions: CPP AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction AutoDeriveTypeable BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia DerivingStrategies GeneralizedNewtypeDeriving StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MonadFailDesugaring MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
+  ghc-options: -fplugin=Polysemy.Plugin -Wall -threaded -rtsopts -with-rtsopts=-N -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
+  build-depends:
+      aeson >=1.4
+    , base-noprelude >=4.12
+    , co-log-core >=0.2
+    , co-log-polysemy >=0.0
+    , lens >=4.17
+    , lens-aeson >=1.0
+    , p4haskell
+    , polysemy >=1.2
+    , polysemy-plugin >=0.2
+    , relude >=0.5
+    , text >=1.2
+    , unordered-containers >=0.2
+  default-language: Haskell2010
 
-  build-depends:       base-noprelude ^>= 4.12.0.0
-                     , p4haskell
-                     , relude
-
-  ghc-options:         -Wall
-                       -threaded
-                       -rtsopts
-                       -with-rtsopts=-N
-                       -Wincomplete-uni-patterns
-                       -Wincomplete-record-updates
-                       -Wcompat
-                       -Widentities
-                       -Wredundant-constraints
-                       -fhide-source-paths
-                       -Wmissing-export-lists
-                       -Wpartial-fields
-
-  default-language:    Haskell2010
+executable p4haskell-bench
+  main-is: Main.hs
+  other-modules:
+      Paths_p4haskell
+  hs-source-dirs:
+      benchmark
+  default-extensions: CPP AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction AutoDeriveTypeable BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia DerivingStrategies GeneralizedNewtypeDeriving StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MonadFailDesugaring MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
+  ghc-options: -fplugin=Polysemy.Plugin -Wall -threaded -rtsopts -with-rtsopts=-N -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
+  build-depends:
+      aeson >=1.4
+    , base-noprelude >=4.12
+    , co-log-core >=0.2
+    , co-log-polysemy >=0.0
+    , gauge >=0.2
+    , lens >=4.17
+    , lens-aeson >=1.0
+    , p4haskell
+    , polysemy >=1.2
+    , polysemy-plugin >=0.2
+    , relude >=0.5
+    , text >=1.2
+    , unordered-containers >=0.2
+  default-language: Haskell2010
 
 test-suite p4haskell-test
-  type:                exitcode-stdio-1.0
-  hs-source-dirs:      test
-  main-is:             Spec.hs
-
-  build-depends:       base-noprelude ^>= 4.12.0.0
-                     , p4haskell
-                     , relude
-
-  ghc-options:         -Wall
-                       -threaded
-                       -rtsopts
-                       -with-rtsopts=-N
-                       -Wincomplete-uni-patterns
-                       -Wincomplete-record-updates
-                       -Wcompat
-                       -Widentities
-                       -Wredundant-constraints
-                       -fhide-source-paths
-                       -Wmissing-export-lists
-                       -Wpartial-fields
-
-  default-language:    Haskell2010
-
-benchmark p4haskell-benchmark
-  type:                exitcode-stdio-1.0
-  hs-source-dirs:      benchmark
-  main-is:             Main.hs
-
-  build-depends:       base-noprelude ^>= 4.12.0.0
-                     , gauge
-                     , p4haskell
-                     , relude
-
-  ghc-options:         -Wall
-                       -threaded
-                       -rtsopts
-                       -with-rtsopts=-N
-                       -Wincomplete-uni-patterns
-                       -Wincomplete-record-updates
-                       -Wcompat
-                       -Widentities
-                       -Wredundant-constraints
-                       -fhide-source-paths
-                       -Wmissing-export-lists
-                       -Wpartial-fields
-
-  default-language:    Haskell2010
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_p4haskell
+  hs-source-dirs:
+      test
+  default-extensions: CPP AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction AutoDeriveTypeable BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia DerivingStrategies GeneralizedNewtypeDeriving StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MonadFailDesugaring MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
+  ghc-options: -fplugin=Polysemy.Plugin -Wall -threaded -rtsopts -with-rtsopts=-N -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
+  build-depends:
+      aeson >=1.4
+    , base-noprelude >=4.12
+    , co-log-core >=0.2
+    , co-log-polysemy >=0.0
+    , lens >=4.17
+    , lens-aeson >=1.0
+    , p4haskell
+    , polysemy >=1.2
+    , polysemy-plugin >=0.2
+    , relude >=0.5
+    , text >=1.2
+    , unordered-containers >=0.2
+  default-language: Haskell2010

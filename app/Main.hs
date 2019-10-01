@@ -1,6 +1,6 @@
 module Main (main) where
 
-import P4haskell (someFunc)
+import P4Haskell (someFunc)
 
 
 main :: IO ()

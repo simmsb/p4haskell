@@ -1,6 +1,12 @@
-resolver: lts-13.16
+resolver: lts-14.7
 
-extra-deps: [base-noprelude-4.12.0.0]
+extra-deps:
+  - base-noprelude-4.12.0.0
+  - github: nitros12/co-log
+    commit: a026ea50698fb8f831cb77eedf1b6659695c2402
+    subdirs:
+      - co-log-polysemy
+  - polysemy-1.2.1.0@sha256:5b8cc3befbd10b8b05354a35dc71d24041c0dad15f28c9301f199b00916b69b6,5776
 
 ghc-options:
   "$locals": -fhide-source-paths

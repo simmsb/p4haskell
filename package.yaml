@@ -1,0 +1,165 @@
+name:                p4haskell
+version:             0.0.0
+github:              "nitros12/p4haskell"
+homepage:            https://github.com/nitros12/p4haskell
+bug-reports:         https://github.com/nitros12/p4haskell/issues
+license:             MIT
+license-file:        LICENSE
+author:              "Ben Simms"
+maintainer:          "ben@bensimms.moe"
+copyright:           2019 Ben Simms
+category:            Parsing Development Compilers/Interpreters Utility
+build-type:          Simple
+extra-doc-files:
+  - README.md
+  - CHANGELOG.md
+tested-with:         GHC == 8.6.5
+
+
+synopsis:            P4 backend in haskell
+description:         P4 backend in haskell
+
+
+dependencies:
+  - base-noprelude >= 4.12
+  - relude >= 0.5
+  - aeson >= 1.4
+  - lens-aeson >= 1.0
+  - lens >= 4.17
+  - unordered-containers >= 0.2
+  - co-log-core >= 0.2
+  - co-log-polysemy >= 0.0
+  - polysemy >= 1.2
+  - polysemy-plugin >= 0.2
+  - text >= 1.2
+
+executables:
+  p4haskell:
+    main: Main.hs
+    source-dirs: app
+    ghc-options:
+      - -fplugin=Polysemy.Plugin
+      - -Wall
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+      - -Wincomplete-uni-patterns
+      - -Wincomplete-record-updates
+      - -Wcompat
+      - -Widentities
+      - -Wredundant-constraints
+      - -fhide-source-paths
+      - -Wmissing-export-lists
+      - -Wpartial-fields
+    dependencies:
+      - p4haskell
+
+  p4haskell-bench:
+    main: Main.hs
+    source-dirs: benchmark
+    ghc-options:
+      - -fplugin=Polysemy.Plugin
+      - -Wall
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+      - -Wincomplete-uni-patterns
+      - -Wincomplete-record-updates
+      - -Wcompat
+      - -Widentities
+      - -Wredundant-constraints
+      - -fhide-source-paths
+      - -Wmissing-export-lists
+      - -Wpartial-fields
+    dependencies:
+      - p4haskell
+      - gauge >= 0.2
+
+library:
+    ghc-options:
+      - -fplugin=Polysemy.Plugin
+      - -Wall
+      - -Wincomplete-uni-patterns
+      - -Wincomplete-record-updates
+      - -Wcompat
+      - -Widentities
+      - -Wredundant-constraints
+      - -fhide-source-paths
+      - -Wmissing-export-lists
+      - -Wpartial-fields
+    source-dirs: src
+
+tests:
+  p4haskell-test:
+    main: Spec.hs
+    source-dirs: test
+    ghc-options:
+      - -fplugin=Polysemy.Plugin
+      - -Wall
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+      - -Wincomplete-uni-patterns
+      - -Wincomplete-record-updates
+      - -Wcompat
+      - -Widentities
+      - -Wredundant-constraints
+      - -fhide-source-paths
+      - -Wmissing-export-lists
+      - -Wpartial-fields
+    dependencies:
+      - p4haskell
+
+default-extensions:
+  - CPP
+  - AllowAmbiguousTypes
+  - BlockArguments
+  - NoMonomorphismRestriction
+  - AutoDeriveTypeable
+  - BangPatterns
+  - BinaryLiterals
+  - UndecidableInstances
+  - ConstraintKinds
+  - DataKinds
+  - DefaultSignatures
+  - DeriveDataTypeable
+  - DeriveFoldable
+  - DeriveFunctor
+  - DeriveGeneric
+  - DeriveTraversable
+  - DoAndIfThenElse
+  - EmptyDataDecls
+  - ExistentialQuantification
+  - FlexibleContexts
+  - FlexibleInstances
+  - FunctionalDependencies
+  - GADTs
+  - DerivingVia
+  - DerivingStrategies
+  - GeneralizedNewtypeDeriving
+  - StandaloneDeriving
+  - DeriveAnyClass
+  - InstanceSigs
+  - KindSignatures
+  - LambdaCase
+  - MonadFailDesugaring
+  - MultiParamTypeClasses
+  - MultiWayIf
+  - NamedFieldPuns
+  - OverloadedStrings
+  - OverloadedLabels
+  - PartialTypeSignatures
+  - PatternGuards
+  - PolyKinds
+  - RankNTypes
+  - RecordWildCards
+  - ScopedTypeVariables
+  - TupleSections
+  - TypeFamilies
+  - TypeSynonymInstances
+  - ViewPatterns
+  - DuplicateRecordFields
+  - TypeOperators
+  - TypeApplications
+  - RoleAnnotations
+  - PatternSynonyms

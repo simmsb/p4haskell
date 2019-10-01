@@ -6,4 +6,4 @@
 [![Stackage Nightly](http://stackage.org/package/p4haskell/badge/nightly)](http://stackage.org/nightly/package/p4haskell)
 [![Build status](https://secure.travis-ci.org/nitros12/p4haskell.svg)](https://travis-ci.org/nitros12/p4haskell)
 
-P4 backend and midend in haskell
+P4 backend in haskell
