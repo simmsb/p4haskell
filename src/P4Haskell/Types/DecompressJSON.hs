@@ -10,6 +10,7 @@ import           Data.Aeson
 import           Data.Aeson.Lens
 import qualified Data.HashMap.Lazy as H
 import           Data.Maybe
+import qualified Data.Text         as T
 
 -- | the secret sauce
 loeb :: Functor f => f (f a -> a) -> f a
@@ -47,15 +48,17 @@ replaceWithThunks (Object o@(NodeID n))
   | isReference o = H.lookup n >>> fromJust >>> Object
 replaceWithThunks v = const v
 
+-- | updates Node_Type values to be what we want
+replaceNodeTypes :: Value -> Value
+replaceNodeTypes = transform (key "Node_Type" . _String %~ T.filter (/= '_'))
 
 -- | replace all reference objects in a json value with their full versions
 fixupTree :: Value -> Value
 fixupTree v = let completeObjects = nonReferenceObjects v
                     & mapMaybe (\o -> do
                                   n <- fetchID o
-                                  let o' = sequence $ fmap (transformM replaceWithThunks) o
+                                  let o' = mapM (transformM replaceWithThunks) o
                                   pure (n, o'))
                     & H.fromList
                     & loeb
-                    -- & H.mapMaybe id
-              in transform (`replaceNode` completeObjects) v
+              in replaceNodeTypes $ transform (`replaceNode` completeObjects) v

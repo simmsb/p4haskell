@@ -7,6 +7,9 @@ extra-deps:
     subdirs:
       - co-log-polysemy
   - polysemy-1.2.1.0@sha256:5b8cc3befbd10b8b05354a35dc71d24041c0dad15f28c9301f199b00916b69b6,5776
+  - pretty-simple-3.1.0.0@sha256:d9d045de35be6a2d78a9b3b38d39b13caba96c0ef5ba9d4b44b9b7c2c50e7fa1,4129
+  - generic-lens-1.2.0.0@sha256:b19e7970c93743a46bc3702331512a96d163de4356472f2d51a2945887aefe8c,6524
+  - generic-aeson-0.2.0.10@sha256:9d151244afd715c4ad6ce7d3f24fb04e0110f32a825b0838e34cd96523f94622,1090
 
 ghc-options:
   "$locals": -fhide-source-paths

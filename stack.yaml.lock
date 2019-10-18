@@ -34,6 +34,27 @@ packages:
       sha256: ede1962350f5a77ccdeb0f194bca18b88fc1113dfa22bd3a6d3143851e222c15
   original:
     hackage: polysemy-1.2.1.0@sha256:5b8cc3befbd10b8b05354a35dc71d24041c0dad15f28c9301f199b00916b69b6,5776
+- completed:
+    hackage: pretty-simple-3.1.0.0@sha256:d9d045de35be6a2d78a9b3b38d39b13caba96c0ef5ba9d4b44b9b7c2c50e7fa1,4129
+    pantry-tree:
+      size: 1405
+      sha256: 897ea2ca3dcab20d4679671e4c0d6d2d9b71ff0978c9572296b4f9b6fdaf4a40
+  original:
+    hackage: pretty-simple-3.1.0.0@sha256:d9d045de35be6a2d78a9b3b38d39b13caba96c0ef5ba9d4b44b9b7c2c50e7fa1,4129
+- completed:
+    hackage: generic-lens-1.2.0.0@sha256:b19e7970c93743a46bc3702331512a96d163de4356472f2d51a2945887aefe8c,6524
+    pantry-tree:
+      size: 4315
+      sha256: 9ed161eadfda5b1eb36cfcf077146f7b66db1da69f1041fc720aea287ec021b0
+  original:
+    hackage: generic-lens-1.2.0.0@sha256:b19e7970c93743a46bc3702331512a96d163de4356472f2d51a2945887aefe8c,6524
+- completed:
+    hackage: generic-aeson-0.2.0.10@sha256:9d151244afd715c4ad6ce7d3f24fb04e0110f32a825b0838e34cd96523f94622,1090
+    pantry-tree:
+      size: 475
+      sha256: 85ec0612d5947744954c9f83d8debe0354feab3644abe8df455c9f6cb768cb5d
+  original:
+    hackage: generic-aeson-0.2.0.10@sha256:9d151244afd715c4ad6ce7d3f24fb04e0110f32a825b0838e34cd96523f94622,1090
 snapshots:
 - completed:
     size: 523700

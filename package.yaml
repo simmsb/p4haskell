@@ -26,12 +26,15 @@ dependencies:
   - aeson >= 1.4
   - lens-aeson >= 1.0
   - lens >= 4.17
+  - generic-lens >= 1.2
   - unordered-containers >= 0.2
   - co-log-core >= 0.2
   - co-log-polysemy >= 0.0
   - polysemy >= 1.2
   - polysemy-plugin >= 0.2
   - text >= 1.2
+  - pretty-simple >= 3.1
+  - bytestring >= 0.10
 
 executables:
   p4haskell:
@@ -53,6 +56,7 @@ executables:
       - -Wpartial-fields
     dependencies:
       - p4haskell
+      - optparse-applicative
 
   p4haskell-bench:
     main: Main.hs
