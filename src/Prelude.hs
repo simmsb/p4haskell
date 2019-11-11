@@ -11,7 +11,7 @@ module Prelude
 import           Colog.Core.Action  ( LogAction(..) )
 import           Colog.Polysemy
 
-import           Control.Lens
+import           Control.Lens       hiding ( rewrite, transform )
 
 import qualified Data.Text          as T
 import qualified Data.Text.IO       as TIO
@@ -19,7 +19,7 @@ import qualified Data.Text.Lazy.IO  as LTIO
 
 import           Polysemy
 
-import           Relude             hiding ( (??), uncons )
+import           Relude             hiding ( (??), State, evalState, gets, modify, uncons, trace )
 
 import           Text.Pretty.Simple
 

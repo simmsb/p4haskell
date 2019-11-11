@@ -1,4 +1,4 @@
-resolver: lts-14.7
+resolver: lts-14.10
 
 extra-deps:
   - base-noprelude-4.12.0.0
@@ -6,10 +6,19 @@ extra-deps:
     commit: a026ea50698fb8f831cb77eedf1b6659695c2402
     subdirs:
       - co-log-polysemy
-  - polysemy-1.2.1.0@sha256:5b8cc3befbd10b8b05354a35dc71d24041c0dad15f28c9301f199b00916b69b6,5776
+  - polysemy-1.2.3.0@sha256:d9cfa7942940c7c6d07d1f26ae70c4f1170f9bd6c331bdbe586e810fafc25f17,5878
+  - polysemy-plugin-0.2.4.0@sha256:b27f399946e90d480271d2b655b6172ed80f9d421f871c21a804511bc7b0f53c,2952
+  - polysemy-zoo-0.6.0.1@sha256:a1f545d34cb7cfa7c7b3511a1ff21843473d8b7d1f4d1570cda2cdc4616e5696,3852
+  - generic-lens-1.2.0.1@sha256:faecffd513340cd570866aa8f3e0e139d3f9240ecd3eb766357cdf47f550004c,6550
   - pretty-simple-3.1.0.0@sha256:d9d045de35be6a2d78a9b3b38d39b13caba96c0ef5ba9d4b44b9b7c2c50e7fa1,4129
-  - generic-lens-1.2.0.0@sha256:b19e7970c93743a46bc3702331512a96d163de4356472f2d51a2945887aefe8c,6524
-  - generic-aeson-0.2.0.10@sha256:9d151244afd715c4ad6ce7d3f24fb04e0110f32a825b0838e34cd96523f94622,1090
+  - waargonaut-0.8.0.1@sha256:9bdd5ffea19952d12890b9b9c4366fdd5cab7fad088531cf6be70b0e7e1b1a60,11560
+  - digit-0.8@sha256:55f600a13c13bfca24820b7556a404fef64ec043f9a4cf5f4586f17365d21c5e,3808
+  - hoist-error-0.2.1.0@sha256:f238a27a593ec0c9b4f5263adf917b7c3b76daffed2398d7520e43e6515169f2,1221
+  - hw-json-standard-cursor-0.2.1.2@sha256:f252f871029d5810e4632d37f447089c41b3666bb9df9353ee78cff36d8d7a77,8259
+  - natural-0.3.0.4@sha256:569e38fae5f57aa4f09ab7b3e29982988efe1585af58736688bc4d9bab2dc1ca,2116
+  - hw-balancedparens-0.3.0.2@sha256:c5c7ea6175c0f6f3c5cd89daa675d67646d4f52858e55aef9724860d73eba0ee,6041
+  - hw-rankselect-0.13.3.1@sha256:3dd19cdcce3d1539b0928ffa14811d075aa1cc9df8c06935a0da43add8132ec7,8826
+
 
 ghc-options:
   "$locals": -fhide-source-paths

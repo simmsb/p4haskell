@@ -23,18 +23,19 @@ description:         P4 backend in haskell
 dependencies:
   - base-noprelude >= 4.12
   - relude >= 0.5
-  - aeson >= 1.4
-  - lens-aeson >= 1.0
+  - waargonaut >= 0.8
   - lens >= 4.17
-  - generic-lens >= 1.2
+  - generic-lens >= 1.1
   - unordered-containers >= 0.2
   - co-log-core >= 0.2
   - co-log-polysemy >= 0.0
-  - polysemy >= 1.2
-  - polysemy-plugin >= 0.2
+  - polysemy >= 1.2.3
+  - polysemy-zoo >= 0.6
+  - polysemy-plugin >= 0.2.4
   - text >= 1.2
   - pretty-simple >= 3.1
   - bytestring >= 0.10
+  - attoparsec >= 0.13
 
 executables:
   p4haskell:
@@ -115,6 +116,8 @@ tests:
       - p4haskell
 
 default-extensions:
+  - TemplateHaskell
+  - RecursiveDo
   - CPP
   - AllowAmbiguousTypes
   - BlockArguments
