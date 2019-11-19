@@ -27,8 +27,8 @@ dependencies:
   - lens >= 4.17
   - generic-lens >= 1.1
   - unordered-containers >= 0.2
-  - co-log-core >= 0.2
-  - co-log-polysemy >= 0.0
+  - di-polysemy >= 0.0.1
+  - df1 >= 0.3.2
   - polysemy >= 1.2.3
   - polysemy-zoo >= 0.6
   - polysemy-plugin >= 0.2.4

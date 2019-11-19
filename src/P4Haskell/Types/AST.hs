@@ -1,7 +1,8 @@
 -- | Represents the P4 AST in haskell
-module P4Haskell.Types.AST where
+module P4Haskell.Types.AST
+  ( astDecoder
+  ) where
 
-import           Data.Generics.Sum.Constructors
 import qualified Data.HashMap.Lazy              as H
 
 import           P4Haskell.Types.DecompressJSON
@@ -9,45 +10,25 @@ import           P4Haskell.Types.DecompressJSON
 import           Waargonaut
 import qualified Waargonaut.Decode              as D
 
-type DecompressC' r = DecompressC TestNode r
+type DecompressC' r = DecompressC Node r
 
-data TestNode
-  = Test0Node Test0
-  | Test1Node Test1
-  deriving ( Show, Generic )
+nodeDecoder :: DecompressC' r => D.Decoder (Sem r) Node
+nodeDecoder = D.withCursor $ \curs -> do
+  pure Nope
 
-data Test0 = Test0
-  { x :: [Int]
-  , y :: [Test1]
-  }
-  deriving ( Show, Generic )
-
-test0Decoder :: DecompressC' r => D.Decoder (Sem r) Test0
-test0Decoder = D.withCursor . tryParseVal (_Ctor @"Test0Node") $ \curs -> mdo
-  o <- D.down curs
-  x <- D.fromKey "x" (D.list D.int) o
-  y <- D.fromKey "y" (D.list test1Decoder) o
-  pure $ Test0 x y
-
-data Test1 = Test1
-  { a :: Int
-  }
-  deriving ( Show, Generic )
-
-test1Decoder :: DecompressC' r => D.Decoder (Sem r) Test1
-test1Decoder = D.withCursor . tryParseVal (_Ctor @"Test1Node") $ \curs -> mdo
-  o <- D.down curs
-  a <- D.fromKey "a" D.int o
-  pure $ Test1 a
+astDecoder :: DecompressC' r => D.Decoder (Sem r) P4Program
+astDecoder = D.withCursor $ \curs -> do
+  pure $ P4Program { objects = [Nope] }
 
 newtype P4Program = P4Program
-  { objects :: Vector Node
+  { objects :: [Node]
   }
   deriving ( Show, Generic )
 
 data Node
-  = TypeError TypeError'
-  | TypeExtern TypeExtern'
+  = TypeError' TypeError
+  | TypeExtern' TypeExtern
+  | Nope
   deriving ( Show, Generic )
 
 newtype Annotation = Annotation
@@ -56,22 +37,7 @@ newtype Annotation = Annotation
   deriving ( Show, Generic )
 
 newtype Annotations = Annotations
-  { annotations :: Vector Annotation
-  }
-  deriving ( Show, Generic )
-
-newtype IndexedVector a = IndexedVector
-  { declarations :: H.HashMap Text a
-  }
-  deriving ( Show, Generic )
-
-newtype NameMap a = NameMap
-  { symbols :: H.HashMap Text a
-  }
-  deriving ( Show, Generic )
-
-newtype Vector a = Vector
-  { vec :: [a]
+  { annotations :: [Annotation]
   }
   deriving ( Show, Generic )
 
@@ -96,7 +62,7 @@ newtype TypeVar' = TypeVar'
   deriving ( Show, Generic )
 
 newtype TypeParameters = TypeParameters
-  { parameters :: IndexedVector TypeVar'
+  { parameters :: [TypeVar']
   }
   deriving ( Show, Generic )
 
@@ -120,7 +86,7 @@ data Parameter = Parameter
   deriving ( Show, Generic )
 
 newtype ParameterList = ParameterList
-  { parameters :: IndexedVector Parameter
+  { parameters :: [Parameter]
   }
   deriving ( Show, Generic )
 
@@ -141,17 +107,17 @@ data Method = Method
 newtype Attribute = Attribute Json
   deriving ( Show, Generic )
 
-data TypeExtern' = TypeExtern'
+data TypeExtern = TypeExtern
   { annotations    :: Annotations
   , typeParameters :: TypeParameters
-  , methods        :: Vector Method
+  , methods        :: [Method]
   , name           :: Text
-  , attributes     :: NameMap Attribute
+  , attributes     :: HashMap Text Attribute
   }
   deriving ( Show, Generic )
 
-data TypeError' = TypeError'
-  { members :: IndexedVector DeclarationID
+data TypeError = TypeError
+  { members :: [DeclarationID]
   , name    :: Text
   , declid  :: Integer
   }

@@ -4,7 +4,7 @@ cabal-version: 1.18
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7aed4e36c06d06aa6ab072f938760335fb84c2e36a14fedee41ffd1d337ec708
+-- hash: b1833c8632eba5abd7fe8169bc0cbd662bbfda2e5f769ae416a56a55e5fec82a
 
 name:           p4haskell
 version:        0.0.0
@@ -33,7 +33,6 @@ library
       P4Haskell
       P4Haskell.Types.AST
       P4Haskell.Types.DecompressJSON
-      Polysemy.Tardis
       Prelude
   other-modules:
       Paths_p4haskell
@@ -45,8 +44,8 @@ library
       attoparsec >=0.13
     , base-noprelude >=4.12
     , bytestring >=0.10
-    , co-log-core >=0.2
-    , co-log-polysemy >=0.0
+    , df1 >=0.3.2
+    , di-polysemy >=0.0.1
     , generic-lens >=1.1
     , lens >=4.17
     , polysemy >=1.2.3
@@ -71,8 +70,8 @@ executable p4haskell
       attoparsec >=0.13
     , base-noprelude >=4.12
     , bytestring >=0.10
-    , co-log-core >=0.2
-    , co-log-polysemy >=0.0
+    , df1 >=0.3.2
+    , di-polysemy >=0.0.1
     , generic-lens >=1.1
     , lens >=4.17
     , optparse-applicative
@@ -99,8 +98,8 @@ executable p4haskell-bench
       attoparsec >=0.13
     , base-noprelude >=4.12
     , bytestring >=0.10
-    , co-log-core >=0.2
-    , co-log-polysemy >=0.0
+    , df1 >=0.3.2
+    , di-polysemy >=0.0.1
     , gauge >=0.2
     , generic-lens >=1.1
     , lens >=4.17
@@ -128,8 +127,8 @@ test-suite p4haskell-test
       attoparsec >=0.13
     , base-noprelude >=4.12
     , bytestring >=0.10
-    , co-log-core >=0.2
-    , co-log-polysemy >=0.0
+    , df1 >=0.3.2
+    , di-polysemy >=0.0.1
     , generic-lens >=1.1
     , lens >=4.17
     , p4haskell

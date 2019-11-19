@@ -141,7 +141,7 @@
         "linebreaks": "before"
       },
       ". in expression": {
-        "force-linebreak": false,
+        "force-linebreak": true,
         "spaces": "both",
         "linebreaks": "before"
       },
@@ -210,8 +210,8 @@
       "overfull": 10,
       "indent": 1,
       "overfull-once": 200,
-      "max-line-length": 120,
-      "linebreak": 100
+      "max-line-length": 80,
+      "linebreak": 40
     },
     "indent": {
       "deriving": 2,
