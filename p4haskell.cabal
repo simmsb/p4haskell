@@ -4,7 +4,7 @@ cabal-version: 1.18
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b1833c8632eba5abd7fe8169bc0cbd662bbfda2e5f769ae416a56a55e5fec82a
+-- hash: 3f3098fa2e3cdc2163f23b93103e6710504a9f3601a969b47fe60759775f4aa6
 
 name:           p4haskell
 version:        0.0.0
@@ -48,6 +48,7 @@ library
     , di-polysemy >=0.0.1
     , generic-lens >=1.1
     , lens >=4.17
+    , mtl
     , polysemy >=1.2.3
     , polysemy-plugin >=0.2.4
     , polysemy-zoo >=0.6
@@ -74,6 +75,7 @@ executable p4haskell
     , di-polysemy >=0.0.1
     , generic-lens >=1.1
     , lens >=4.17
+    , mtl
     , optparse-applicative
     , p4haskell
     , polysemy >=1.2.3
@@ -103,6 +105,7 @@ executable p4haskell-bench
     , gauge >=0.2
     , generic-lens >=1.1
     , lens >=4.17
+    , mtl
     , p4haskell
     , polysemy >=1.2.3
     , polysemy-plugin >=0.2.4
@@ -131,6 +134,7 @@ test-suite p4haskell-test
     , di-polysemy >=0.0.1
     , generic-lens >=1.1
     , lens >=4.17
+    , mtl
     , p4haskell
     , polysemy >=1.2.3
     , polysemy-plugin >=0.2.4
