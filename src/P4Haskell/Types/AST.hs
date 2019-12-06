@@ -64,9 +64,11 @@ data Node
   | Parameters'Node [Parameter]
   | TypeMethod'Node TypeMethod
   | TypeBits'Node TypeBits
+  | TypeParser'Node TypeParser
   | P4Type'Node P4Type
   | Jsons'Node [Json]
   | TypeName'Node TypeName
+  | DeclarationMatchKind'Node DeclarationMatchKind
   | Path'Node Path
   | Nope
   deriving ( Show, Generic )
@@ -77,9 +79,11 @@ nodeDecoder = D.withCursor $ \c -> do
   nodeType <- D.fromKey "Node_Type" D.text o
 
   case nodeType of
-    "Type_Error"  -> (_Typed @TypeError #) <$> D.focus parseTypeError c
-    "Type_Extern" -> (_Typed @TypeExtern #) <$> D.focus parseTypeExtern c
-    "Method"      -> (_Typed @Method #) <$> D.focus parseMethod c
+    "Type_Error"            -> (_Typed @TypeError #) <$> D.focus parseTypeError c
+    "Type_Extern"           -> (_Typed @TypeExtern #) <$> D.focus parseTypeExtern c
+    "Type_Parser"           -> (_Typed @TypeParser #) <$> D.focus parseTypeParser c
+    "Method"                -> (_Typed @Method #) <$> D.focus parseMethod c
+    "Declaration_MatchKind" -> (_Typed @DeclarationMatchKind #) <$> D.focus parseDeclarationMatchKind c
     _ -> throwError . D.ParseFailed $ "invalid node type for Node: " <> nodeType
 
 data Annotation = Annotation
@@ -127,6 +131,7 @@ data P4Type
   | TypeBits'P4Type TypeBits
   | TypeName'P4Type TypeName
   | TypeBoolean'P4Type TypeBoolean
+  | TypeParser'P4Type TypeParser
   deriving ( Show, Generic )
 
 parseP4Type :: DecompressC' r => D.Decoder (Sem r) P4Type
@@ -140,6 +145,7 @@ parseP4Type = D.withCursor . tryParseVal' $ \c -> do
     "Type_Bits"    -> (_Typed @TypeBits #) <$> D.focus parseTypeBits c
     "Type_Name"    -> (_Typed @TypeName #) <$> D.focus parseTypeName c
     "Type_Boolean" -> (_Typed @TypeBoolean #) <$> D.focus parseTypeBoolean c
+    "Type_Parser"  -> (_Typed @TypeParser #) <$> D.focus parseTypeParser c
     _ -> throwError . D.ParseFailed $ "invalid node type for P4Type: " <> nodeType
 
 data TypeBoolean = TypeBoolean
@@ -224,7 +230,7 @@ parseParameter = D.withCursor . tryParseVal' $ \c -> do
 data TypeMethod = TypeMethod
   { typeParameters :: [TypeVar]
   , parameters     :: [Parameter]
-  , returnType     :: P4Type
+  , returnType     :: Maybe P4Type
   }
   deriving ( Show, Generic )
 
@@ -239,7 +245,7 @@ parseTypeMethod = D.withCursor . tryParseVal' $ \c -> do
     (parseNestedObject "parameters"
      (parseVector parseParameter)) o
 
-  returnType <- D.fromKey "returnType" parseP4Type o
+  returnType <- D.fromKeyOptional "returnType" parseP4Type o
   pure $ TypeMethod typeParameters parameters returnType
 
 data Method = Method
@@ -296,6 +302,27 @@ parseTypeError = D.withCursor . tryParseVal' $ \c -> do
   declID  <- D.fromKey "declid" D.int o
   pure $ TypeError members name declID
 
+data TypeParser = TypeParser
+  { name           :: Text
+  , annotations    :: [Annotation]
+  , typeParameters :: [TypeVar]
+  , applyParams    :: [Parameter]
+  }
+  deriving ( Show, Generic )
+
+parseTypeParser :: DecompressC' r => D.Decoder (Sem r) TypeParser
+parseTypeParser = D.withCursor . tryParseVal' $ \c -> do
+  o              <- D.down c
+  name           <- D.fromKey "name" D.text o
+  annotations    <- D.fromKey "annotations" parseAnnotations o
+  typeParameters <- D.fromKey "typeParameters"
+    (parseNestedObject "parameters"
+     (parseVector parseTypeVar)) o
+  applyParams    <- D.fromKey "applyParams"
+    (parseNestedObject "parameters"
+     (parseVector parseParameter)) o
+  pure $ TypeParser name annotations typeParameters applyParams
+
 data DeclarationID = DeclarationID
   { name   :: Text
   , declID :: Int
@@ -308,3 +335,14 @@ parseDeclarationID = D.withCursor . tryParseVal' $ \c -> do
   name   <- D.fromKey "name" D.text o
   declID <- D.fromKey "declid" D.int o
   pure $ DeclarationID name declID
+
+newtype DeclarationMatchKind = DeclarationMatchKind
+  { members :: [DeclarationID]
+  }
+  deriving ( Show, Generic )
+
+parseDeclarationMatchKind :: DecompressC' r => D.Decoder (Sem r) DeclarationMatchKind
+parseDeclarationMatchKind = D.withCursor . tryParseVal' $ \c -> do
+  o       <- D.down c
+  members <- D.fromKey "members" (parseVector parseDeclarationID) o
+  pure $ DeclarationMatchKind members

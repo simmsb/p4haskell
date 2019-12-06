@@ -54,4 +54,4 @@ main' = do
   -- log $ show parsed
   where failWithHistory (err, hist) = do
           print err
-          print (D.ppCursorHistory hist)
+          -- print (D.ppCursorHistory hist)
