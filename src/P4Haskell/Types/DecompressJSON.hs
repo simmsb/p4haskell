@@ -53,7 +53,7 @@ tryParseVal t f curs = do
       let ~(Just n') = n ^? t in pure n'
     else do
       b <- f curs
-      lift $ addNode id' (t # b) --b ^. re t)
+      lift $ addNode id' (t # b)
       pure b
 
 tryParseVal'
