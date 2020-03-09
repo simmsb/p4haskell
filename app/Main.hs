@@ -1,11 +1,10 @@
 module Main
     ( main ) where
 
-import qualified Data.ByteString.Lazy as LB
 import qualified Data.Text            as T
 import qualified Data.Text.IO         as TIO
 
-import qualified Df1                  as Df1
+import qualified Df1
 
 import           Options.Applicative
 
@@ -14,9 +13,8 @@ import           P4Haskell
 import qualified Polysemy.Error       as PE
 import qualified Polysemy.Reader      as PR
 
-import qualified Waargonaut.Decode    as D
 
-data Opts = Opts
+newtype Opts = Opts
   { input :: Text
   }
   deriving ( Generic )
@@ -33,25 +31,28 @@ opts = Options.Applicative.info (Opts <$> inputFile <**> helper)
 main :: IO ()
 main = do
   opts' <- execParser opts
-  file <- TIO.readFile
-    . T.unpack $ input opts'
+  main' $ T.unpack $ input opts'
+
+main' :: FilePath -> IO ()
+main' path = do
+  file <- TIO.readFile path
   r <- runM
     . PE.runError
     . runDiToStderrIO
-    . PR.runReader file $ main'
+    . PR.runReader file $ main''
   case r of
     Left e -> TIO.hPutStrLn stderr e
     _      -> pure ()
 
-main'
+main''
   :: Members '[Embed IO, PE.Error Text, Di Df1.Level Df1.Path Df1.Message,
   PR.Reader Text] r
   => Sem r ()
-main' = do
+main'' = do
   t <- PR.ask
   -- log . show $ toEncoding ast'
   either failWithHistory print (parseAST t)
   -- log $ show parsed
-  where failWithHistory (err, hist) = do
+  where failWithHistory (err, _hist) = do
           print err
           -- print (D.ppCursorHistory hist)

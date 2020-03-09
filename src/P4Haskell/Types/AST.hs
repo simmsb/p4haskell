@@ -8,6 +8,8 @@ import           Data.Generics.Sum.Typed
 
 import           P4Haskell.Types.DecompressJSON
 
+import           Prelude                        hiding ( Member )
+
 import           Waargonaut
 import qualified Waargonaut.Decode              as D
 import qualified Waargonaut.Decode.Error        as D
@@ -79,6 +81,27 @@ data Node
   | TypeName'Node TypeName
   | DeclarationMatchKind'Node DeclarationMatchKind
   | Path'Node Path
+  | PathExpression'Node PathExpression
+  | AssignmentStatement'Node AssignmentStatement
+  | P4Action'Node P4Action
+  | BlockStatement'Node BlockStatement
+  | StatOrDecl'Node StatOrDecl
+  | StatOrDecls'Node [StatOrDecl]
+  | P4Parser'Node P4Parser
+  | Declaration'Node Declaration
+  | Declarations'Node [Declaration]
+  | ParserState'Node ParserState
+  | ParserStates'Node [ParserState]
+  | Argument'Node Argument
+  | Arguments'Node [Argument]
+  | MethodCallExpression'Node MethodCallExpression
+  | MethodCallStatement'Node MethodCallStatement
+  | Member'Node Member
+  | P4Control'Node P4Control
+  | BoolLiteral'Node BoolLiteral
+  | Property'Node Property
+  | Properties'Node [Property]
+  | P4Table'Node P4Table
   | Nope
   deriving ( Show, Generic )
 
@@ -97,8 +120,157 @@ nodeDecoder = D.withCursor $ \c -> do
     "Type_Header"           -> (_Typed @TypeHeader #) <$> D.focus parseTypeHeader c
     "Type_Struct"           -> (_Typed @TypeStruct #) <$> D.focus parseTypeStruct c
     "Method"                -> (_Typed @Method #) <$> D.focus parseMethod c
+    "Member"                -> (_Typed @Member #) <$> D.focus parseMember c
     "Declaration_MatchKind" -> (_Typed @DeclarationMatchKind #) <$> D.focus parseDeclarationMatchKind c
+    "P4Parser"              -> (_Typed @P4Parser #) <$> D.focus parseP4Parser c
+    "PathExpression"        -> (_Typed @PathExpression #) <$> D.focus parsePathExpression c
+    "P4Control"             -> (_Typed @P4Control #) <$> D.focus parseP4Control c
+    "BoolLiteral"           -> (_Typed @BoolLiteral #) <$> D.focus parseBoolLiteral c
     _ -> throwError . D.ParseFailed $ "invalid node type for Node: " <> nodeType
+
+data Member = Member
+  { type_ :: P4Type
+  , expr  :: Node
+  , member :: Text
+  }
+  deriving ( Show, Generic )
+
+parseMember :: DecompressC' r => D.Decoder (Sem r) Member
+parseMember = D.withCursor . tryParseVal' $ \c -> do
+  o      <- D.down c
+  type_  <- D.fromKey "type" parseP4Type o
+  expr   <- D.fromKey "expr" nodeDecoder o
+  member <- D.fromKey "member" D.text o
+  pure $ Member type_ expr member
+
+data Argument = Argument
+  { name       :: Maybe Text
+  , expression :: Node
+  }
+  deriving ( Show, Generic )
+
+parseArgument :: DecompressC' r => D.Decoder (Sem r) Argument
+parseArgument = D.withCursor . tryParseVal' $ \c -> do
+  o          <- D.down c
+  name       <- D.fromKey "name" (D.maybeOrNull D.text) o
+  expression <- D.fromKey "expression" nodeDecoder o
+  pure $ Argument name expression
+
+data MethodCallExpression = MethodCallExpression
+  { type_         :: P4Type
+  , method        :: Node -- TODO: is this correct
+  , typeArguments :: [P4Type]
+  , arguments     :: [Argument]
+  }
+  deriving ( Show, Generic )
+
+parseMethodCallExpression :: DecompressC' r => D.Decoder (Sem r) MethodCallExpression
+parseMethodCallExpression = D.withCursor . tryParseVal' $ \c -> do
+  o             <- D.down c
+  type_         <- D.fromKey "type" parseP4Type o
+  method        <- D.fromKey "method" nodeDecoder o
+  typeArguments <- D.fromKey "typeArguments" (parseVector parseP4Type) o
+  arguments     <- D.fromKey "arguments" (parseVector parseArgument) o
+  pure $ MethodCallExpression type_ method typeArguments arguments
+
+data MethodCallStatement = MethodCallStatement
+  { methodCall :: MethodCallExpression
+  }
+  deriving ( Show, Generic )
+
+parseMethodCallStatement :: DecompressC' r => D.Decoder (Sem r) MethodCallStatement
+parseMethodCallStatement = D.withCursor . tryParseVal' $ \c -> do
+  o          <- D.down c
+  methodCall <- D.fromKey "methodCall" parseMethodCallExpression o
+  pure $ MethodCallStatement methodCall
+
+data AssignmentStatement = AssignmentStatement
+  { left  :: Node
+  , right :: Node
+  }
+  deriving ( Show, Generic )
+
+parseAssignmentStatement :: DecompressC' r => D.Decoder (Sem r) AssignmentStatement
+parseAssignmentStatement = D.withCursor . tryParseVal' $ \c -> do
+  o     <- D.down c
+  left  <- D.fromKey "left" nodeDecoder o
+  right <- D.fromKey "right" nodeDecoder o
+  pure $ AssignmentStatement left right
+
+data StatOrDecl
+  = AssignmentStatement'StatOrDecl AssignmentStatement
+  | MethodCallStatement'StatOrDecl MethodCallStatement
+  deriving ( Show, Generic )
+
+statOrDeclDecoder :: DecompressC' r => D.Decoder (Sem r) StatOrDecl
+statOrDeclDecoder = D.withCursor $ \c -> do
+  o <- D.down c
+  nodeType <- D.fromKey "Node_Type" D.text o
+
+  case nodeType of
+    "AssignmentStatement" -> (_Typed @AssignmentStatement #) <$> D.focus parseAssignmentStatement c
+    "MethodCallStatement" -> (_Typed @MethodCallStatement #) <$> D.focus parseMethodCallStatement c
+    _ -> throwError . D.ParseFailed $ "invalid node type for StatOrDecl: " <> nodeType
+
+data BlockStatement = BlockStatement
+  { annotations :: [Annotation]
+  , components  :: [StatOrDecl]
+  }
+  deriving ( Show, Generic )
+
+parseBlockStatement :: DecompressC' r => D.Decoder (Sem r) BlockStatement
+parseBlockStatement = D.withCursor . tryParseVal' $ \c -> do
+  o           <- D.down c
+  annotations <- D.fromKey "annotations" parseAnnotations o
+  components  <- D.fromKey "components" (parseVector statOrDeclDecoder) o
+  pure $ BlockStatement annotations components
+
+data P4Action = P4Action
+  { name        :: Text
+  , annotations :: [Annotation]
+  , parameters  :: [Parameter]
+  , body        :: BlockStatement
+  }
+  deriving ( Show, Generic )
+
+parseP4Action :: DecompressC' r => D.Decoder (Sem r) P4Action
+parseP4Action = D.withCursor . tryParseVal' $ \c -> do
+  o           <- D.down c
+  name        <- D.fromKey "name" D.text o
+  annotations <- D.fromKey "annotations" parseAnnotations o
+  parameters  <- D.fromKey "parameters"
+    (parseNestedObject "parameters"
+     (parseVector parseParameter)) o
+  body        <- D.fromKey "body" parseBlockStatement o
+  pure $ P4Action name annotations parameters body
+
+data Declaration
+  = P4Action'Declaration P4Action
+  | P4Table'Declaration P4Table
+  deriving ( Show, Generic )
+
+declarationDecoder :: DecompressC' r => D.Decoder (Sem r) Declaration
+declarationDecoder = D.withCursor $ \c -> do
+  o <- D.down c
+  nodeType <- D.fromKey "Node_Type" D.text o
+
+  case nodeType of
+    "P4Action" -> (_Typed @P4Action #) <$> D.focus parseP4Action c
+    "P4Table" -> (_Typed @P4Table #) <$> D.focus parseP4Table c
+    _ -> throwError . D.ParseFailed $ "invalid node type for Declaration: " <> nodeType
+
+data ParserState = ParserState
+  { annotations :: [Annotation]
+  , components  :: [StatOrDecl]
+  }
+  deriving ( Show, Generic )
+
+parseParserState :: DecompressC' r => D.Decoder (Sem r) ParserState
+parseParserState = D.withCursor . tryParseVal' $ \c -> do
+  o           <- D.down c
+  annotations <- D.fromKey "annotations" parseAnnotations o
+  components  <- D.fromKey "components" (parseVector statOrDeclDecoder) o
+  pure $ ParserState annotations components
 
 data P4Parser = P4Parser
   { name              :: Text
@@ -117,7 +289,7 @@ parseP4Parser = D.withCursor . tryParseVal' $ \c -> do
   constructorParams <- D.fromKey "constructorParams"
     (parseNestedObject "parameters"
      (parseVector parseParameter)) o
-  parserLocals      <- D.fromKey "parserLocals" (parseVector parseDeclaration) o
+  parserLocals      <- D.fromKey "parserLocals" (parseVector declarationDecoder) o
   states            <- D.fromKey "states" (parseVector parseParserState) o
   pure $ P4Parser name type_ constructorParams parserLocals states
 
@@ -163,6 +335,7 @@ parseNamedExpression = D.json
 data P4Type
   = TypeVar'P4Type TypeVar
   | TypeVoid'P4Type TypeVoid
+  | TypeUnknown'P4Type TypeUnknown
   | TypeBits'P4Type TypeBits
   | TypeName'P4Type TypeName
   | TypeBoolean'P4Type TypeBoolean
@@ -172,6 +345,9 @@ data P4Type
   | TypeSpecialized'P4Type TypeSpecialized
   | TypeTypedef'P4Type TypeTypedef
   | TypeHeader'P4Type TypeHeader
+  | TypeMethod'P4Type TypeMethod
+  | TypeExtern'P4Type TypeExtern
+  | TypeStruct'P4Type TypeStruct
   deriving ( Show, Generic )
 
 parseP4Type :: DecompressC' r => D.Decoder (Sem r) P4Type
@@ -182,6 +358,7 @@ parseP4Type = D.withCursor . tryParseVal' $ \c -> do
   case nodeType of
     "Type_Var"         -> (_Typed @TypeVar #) <$> D.focus parseTypeVar c
     "Type_Void"        -> (_Typed @TypeVoid #) <$> D.focus parseTypeVoid c
+    "Type_Unknown"     -> (_Typed @TypeUnknown #) <$> D.focus parseTypeUnknown c
     "Type_Bits"        -> (_Typed @TypeBits #) <$> D.focus parseTypeBits c
     "Type_Name"        -> (_Typed @TypeName #) <$> D.focus parseTypeName c
     "Type_Boolean"     -> (_Typed @TypeBoolean #) <$> D.focus parseTypeBoolean c
@@ -191,6 +368,9 @@ parseP4Type = D.withCursor . tryParseVal' $ \c -> do
     "Type_Specialized" -> (_Typed @TypeSpecialized #) <$> D.focus parseTypeSpecialized c
     "Type_Typedef"     -> (_Typed @TypeTypedef #) <$> D.focus parseTypeTypedef c
     "Type_Header"      -> (_Typed @TypeHeader #) <$> D.focus parseTypeHeader c
+    "Type_Method"      -> (_Typed @TypeMethod #) <$> D.focus parseTypeMethod c
+    "Type_Extern"      -> (_Typed @TypeExtern #) <$> D.focus parseTypeExtern c
+    "Type_Struct"      -> (_Typed @TypeStruct #) <$> D.focus parseTypeStruct c
     _ -> throwError . D.ParseFailed $ "invalid node type for P4Type: " <> nodeType
 
 data TypeStruct = TypeStruct
@@ -314,6 +494,12 @@ data TypeBoolean = TypeBoolean
 parseTypeBoolean :: Monad m => D.Decoder m TypeBoolean
 parseTypeBoolean = pure TypeBoolean
 
+data TypeUnknown = TypeUnknown
+  deriving ( Show, Generic )
+
+parseTypeUnknown :: Monad m => D.Decoder m TypeUnknown
+parseTypeUnknown = pure TypeUnknown
+
 data TypeVoid = TypeVoid
   deriving ( Show, Generic )
 
@@ -345,6 +531,19 @@ parseTypeVar = D.withCursor . tryParseVal' $ \c -> do
   name   <- D.fromKey "name" D.text o
   declID <- D.fromKey "declid" D.int o
   pure $ TypeVar name declID
+
+data PathExpression = PathExpression
+  { type_ :: P4Type
+  , path  :: Path
+  }
+  deriving ( Show, Generic )
+
+parsePathExpression :: DecompressC' r => D.Decoder (Sem r) PathExpression
+parsePathExpression = D.withCursor . tryParseVal' $ \c -> do
+  o     <- D.down c
+  type_ <- D.fromKey "type" parseP4Type o
+  path  <- D.fromKey "path" parsePath o
+  pure $ PathExpression type_ path
 
 data Path = Path
   { absolute :: Bool
@@ -506,3 +705,69 @@ parseDeclarationMatchKind = D.withCursor . tryParseVal' $ \c -> do
   o       <- D.down c
   members <- D.fromKey "members" (parseVector parseDeclarationID) o
   pure $ DeclarationMatchKind members
+
+data P4Control = P4Control
+  { name              :: Text
+  , type_             :: P4Type
+  , constructorParams :: [Parameter]
+  , controlLocals     :: [Declaration]
+  , body              :: BlockStatement
+  }
+  deriving ( Show, Generic )
+
+parseP4Control :: DecompressC' r => D.Decoder (Sem r) P4Control
+parseP4Control = D.withCursor . tryParseVal' $ \c -> do
+  o                 <- D.down c
+  name              <- D.fromKey "name" D.text o
+  type_             <- D.fromKey "type" parseP4Type o
+  constructorParams <- D.fromKey "constructorParams"
+    (parseNestedObject "parameters"
+     (parseVector parseParameter)) o
+  controlLocals      <- D.fromKey "controlLocals" (parseVector declarationDecoder) o
+  body              <- D.fromKey "body" parseBlockStatement o
+  pure $ P4Control name type_ constructorParams controlLocals body
+
+newtype BoolLiteral = BoolLiteral
+  { value :: Bool
+  }
+  deriving ( Show, Generic )
+
+parseBoolLiteral :: DecompressC' r => D.Decoder (Sem r) BoolLiteral
+parseBoolLiteral = D.withCursor . tryParseVal' $ \c -> do
+  o     <- D.down c
+  value <- D.fromKey "value" D.bool o
+  pure $ BoolLiteral value
+
+data P4Table = P4Table
+  { name        :: Text
+  , annotations :: [Annotation]
+  , properties  :: [Property]
+  }
+  deriving ( Show, Generic )
+
+parseP4Table :: DecompressC' r => D.Decoder (Sem r) P4Table
+parseP4Table = D.withCursor . tryParseVal' $ \c -> do
+  o           <- D.down c
+  name        <- D.fromKey "name" D.text o
+  annotations <- D.fromKey "annotations" parseAnnotations o
+  properties  <- D.fromKey "properties"
+    (parseNestedObject "properties"
+     (parseVector parseProperty)) o
+  pure $ P4Table name annotations properties
+
+data Property = Property
+  { name        :: Text
+  , annotations :: [Annotation]
+  , value       :: Node
+  , isConstant  :: Bool
+  }
+  deriving ( Show, Generic )
+
+parseProperty :: DecompressC' r => D.Decoder (Sem r) Property
+parseProperty = D.withCursor . tryParseVal' $ \c -> do
+  o           <- D.down c
+  name        <- D.fromKey "name" D.text o
+  annotations <- D.fromKey "annotations" parseAnnotations o
+  value       <- D.fromKey "value" nodeDecoder o
+  isConstant  <- D.fromKey "isConstant" D.bool o
+  pure $ Property name annotations value isConstant

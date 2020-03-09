@@ -13,7 +13,7 @@ build-type:          Simple
 extra-doc-files:
   - README.md
   - CHANGELOG.md
-tested-with:         GHC == 8.6.5
+tested-with:         GHC == 8.8.2
 
 
 synopsis:            P4 backend in haskell
@@ -22,10 +22,10 @@ description:         P4 backend in haskell
 
 dependencies:
   - base-noprelude >= 4.12
-  - relude >= 0.5
+  - relude >= 0.6
   - waargonaut >= 0.8
-  - lens >= 4.17
-  - generic-lens >= 1.1
+  - lens >= 4.18
+  - generic-lens >= 1.2
   - unordered-containers >= 0.2
   - di-polysemy >= 0.0.1
   - df1 >= 0.3.2

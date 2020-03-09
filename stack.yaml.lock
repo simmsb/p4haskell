@@ -137,6 +137,41 @@ packages:
       sha256: 3eb6a887effe2fc17e0cfddef6e75a8597a20b599ccddd677d9195d04e7357a7
   original:
     hackage: di-core-1.0.4@sha256:82d555c45564ef9252dd38a157030a0f10d8f9519b274bef6b16f90208eaebdf,987
+- completed:
+    hackage: dump-core-0.1.3.2@sha256:081d100880a12ba13fd7fc7741b457d5a8fc3b70ca6511ad4e4185746de59667,1293
+    pantry-tree:
+      size: 609
+      sha256: 87183cbeb4ae69b2253095a84f56454caffdc55434414ae253aeedbbf2f5676e
+  original:
+    hackage: dump-core-0.1.3.2@sha256:081d100880a12ba13fd7fc7741b457d5a8fc3b70ca6511ad4e4185746de59667,1293
+- completed:
+    hackage: monadLib-3.10@sha256:21dc120625bd612527b372e54251fd8358270effe263023d40d8e5892d24531c,653
+    pantry-tree:
+      size: 426
+      sha256: 6c713ce64f1979723a9c30804e0675d053196341d7f6a61cfaf82a8f91c8f690
+  original:
+    hackage: monadLib-3.10@sha256:21dc120625bd612527b372e54251fd8358270effe263023d40d8e5892d24531c,653
+- completed:
+    hackage: lens-4.18.1@sha256:5c21912d5af370ae608a7e010c8a705e987e42e89bbed306de73f87166251c27,15419
+    pantry-tree:
+      size: 8253
+      sha256: fa3064a40ece524cbb8af7d22caf3f9c662a1d9fb0cc860726658fc6625b452c
+  original:
+    hackage: lens-4.18.1@sha256:5c21912d5af370ae608a7e010c8a705e987e42e89bbed306de73f87166251c27,15419
+- completed:
+    hackage: relude-0.6.0.0@sha256:094ad587b28fa8dcc78fd0fba8927b970e5e4a9bb10a3126c0ca32a7ee61f3ca,8681
+    pantry-tree:
+      size: 4101
+      sha256: 79a99fd25ca55b12910780ed52fa60f3b19d97be03cb6ad5ad96abaf4f428478
+  original:
+    hackage: relude-0.6.0.0@sha256:094ad587b28fa8dcc78fd0fba8927b970e5e4a9bb10a3126c0ca32a7ee61f3ca,8681
+- completed:
+    hackage: type-equality-1@sha256:d36324583fbafc5698c3f898ccf7cf041cbf42435fc2559c28e8f77682739a8e,1517
+    pantry-tree:
+      size: 313
+      sha256: a28a53db7adaaf0d9b39d2b678f3c6d5c8b08e42cb2b5d37156ce5e568c98707
+  original:
+    hackage: type-equality-1@sha256:d36324583fbafc5698c3f898ccf7cf041cbf42435fc2559c28e8f77682739a8e,1517
 snapshots:
 - completed:
     size: 524130
