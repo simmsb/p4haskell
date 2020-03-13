@@ -10,8 +10,8 @@ import           Options.Applicative
 
 import           P4Haskell
 
-import qualified Polysemy.Error       as PE
-import qualified Polysemy.Reader      as PR
+import qualified Polysemy.Error       as P
+import qualified Polysemy.Reader      as P
 
 
 newtype Opts = Opts
@@ -37,19 +37,19 @@ main' :: FilePath -> IO ()
 main' path = do
   file <- TIO.readFile path
   r <- runM
-    . PE.runError
+    . P.runError
     . runDiToStderrIO
-    . PR.runReader file $ main''
+    . P.runReader file $ main''
   case r of
     Left e -> TIO.hPutStrLn stderr e
     _      -> pure ()
 
 main''
-  :: Members '[Embed IO, PE.Error Text, Di Df1.Level Df1.Path Df1.Message,
-  PR.Reader Text] r
+  :: Members '[Embed IO, P.Error Text, Di Df1.Level Df1.Path Df1.Message,
+  P.Reader Text] r
   => Sem r ()
 main'' = do
-  t <- PR.ask
+  t <- P.ask
   -- log . show $ toEncoding ast'
   either failWithHistory print (parseAST t)
   -- log $ show parsed

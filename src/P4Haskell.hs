@@ -5,7 +5,6 @@ module P4Haskell
 import qualified Data.Attoparsec.Text           as AT
 
 import           P4Haskell.Types.AST
-import           P4Haskell.Types.DecompressJSON
 
 import           Waargonaut.Decode.Runners
 

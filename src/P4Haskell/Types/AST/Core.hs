@@ -1,0 +1,35 @@
+-- | Core stuff for parsing the P4 AST
+module P4Haskell.Types.AST.Core
+    ( parseVectorPure
+    , parseVector
+    , parseNestedObject ) where
+
+import           P4Haskell.Types.AST.DecompressJSON
+
+import           Prelude                        hiding ( Member )
+
+import qualified Waargonaut.Decode              as D
+
+-- ^ Like 'parseVector' but doesn't perform lookups on the decompression state.
+parseVectorPure :: Monad m => D.Decoder m a -> D.Decoder m [a]
+parseVectorPure inner = D.withCursor $ \c -> do
+  o <- D.down c
+  D.fromKey "vec" (D.list inner) o
+
+parseVector :: (DecompressC r, Typeable a)
+            => D.Decoder (Sem r) a
+            -> D.Decoder (Sem r) [a]
+parseVector inner = D.withCursor . tryParseVal $ \c -> do
+    o <- D.down c
+    D.fromKey "vec" (D.list inner) o
+
+-- parseMap :: DecompressC' => D.decoder
+
+parseNestedObject
+  :: (DecompressC r, Typeable a)
+  => Text
+  -> D.Decoder (Sem r) a
+  -> D.Decoder (Sem r) a
+parseNestedObject key inner = D.withCursor . tryParseVal $ \c -> do
+    o <- D.down c
+    D.fromKey key inner o

@@ -37,6 +37,7 @@ dependencies:
   - bytestring >= 0.10
   - attoparsec >= 0.13
   - mtl
+  - semigroupoids
 
 executables:
   p4haskell:
@@ -117,6 +118,7 @@ tests:
       - p4haskell
 
 default-extensions:
+  - IncoherentInstances
   - TemplateHaskell
   - RecursiveDo
   - CPP

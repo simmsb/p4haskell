@@ -2,31 +2,31 @@
 
 -- | P4 'compresses' it's json exported AST, this module decompresses it
 -- if you're interested, it does some lazy magic to fetch the end state before the end
-module P4Haskell.Types.DecompressJSON
+module P4Haskell.Types.AST.DecompressJSON
     ( tryParseVal
-    , tryParseVal'
     , runDecompressor
     , type DecompressC ) where
 
-import           Data.Generics.Sum.Typed
 import qualified Data.HashMap.Lazy       as H
 
 import           Polysemy.EndState
+import           Polysemy.EndState
 import           Polysemy.Fixpoint
 import           Polysemy.State
+import           Data.Dynamic
 
 import qualified Waargonaut.Decode       as D
 
-type DecompressState s = HashMap Int s
+type DecompressState = HashMap Int Dynamic
 
-type DecompressC s r =
-  Members '[Fixpoint, State (DecompressState s),
-  EndState (DecompressState s), Final Identity] r
+type DecompressC r =
+  Members '[Fixpoint, State DecompressState,
+  EndState DecompressState, Final Identity] r
 
-addNode :: Member (State (DecompressState s)) r => Int -> s -> Sem r ()
+addNode :: Member (State DecompressState) r => Int -> Dynamic -> Sem r ()
 addNode k v = modify (H.insert k v)
 
-getNode :: Member (EndState (DecompressState s)) r => Int -> Sem r s
+getNode :: Member (EndState DecompressState) r => Int -> Sem r Dynamic
 getNode k = do
   es <- getEndState
   let ~(Just x) = H.lookup k es in pure x
@@ -38,39 +38,30 @@ isReferenceNode curs = do
   pure $ isNothing ty
 
 tryParseVal
-  :: DecompressC s r
-  => Prism' s b
-  -> (D.JCurs -> D.DecodeResult (Sem r) b)
+  :: forall r b. (Typeable b, DecompressC r)
+  => (D.JCurs -> D.DecodeResult (Sem r) b)
   -> D.JCurs
   -> D.DecodeResult (Sem r) b
-tryParseVal t f curs = do
+tryParseVal f curs = do
   ref <- isReferenceNode curs
   o <- D.down curs
   id' <- D.fromKey "Node_ID" D.int o
   if ref
     then lift $ do
       n <- getNode id'
-      let ~(Just n') = n ^? t in pure n'
+      let ~(Just n') = fromDynamic @b n in pure n'
     else do
       b <- f curs
-      lift $ addNode id' (t # b)
+      lift $ addNode id' (toDyn b)
       pure b
 
-tryParseVal'
-  :: forall s r b.
-  (DecompressC s r, AsType b s)
-  => (D.JCurs -> D.DecodeResult (Sem r) b)
-  -> D.JCurs
-  -> D.DecodeResult (Sem r) b
-tryParseVal' = tryParseVal (_Typed @b @s)
-
 runDecompressor
-  :: forall s a.
-  Sem '[EndState (DecompressState s), State (DecompressState s),
+  :: forall a.
+  Sem '[EndState DecompressState, State DecompressState,
   Fixpoint, Final Identity] a
   -> a
 runDecompressor = runIdentity
   . runFinal
   . fixpointToFinal @Identity
-  . evalState @(DecompressState s) H.empty
-  . runEndState @(DecompressState s)
+  . evalState @DecompressState H.empty
+  . runEndState @DecompressState
