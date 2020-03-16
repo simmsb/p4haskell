@@ -16,6 +16,6 @@ import           DiPolysemy
 import           Polysemy
 
 import           Relude             hiding ( (??), State, error, evalState, gets
-                                           , modify, trace, uncons )
+                                           , modify, trace, uncons, get )
 
 import           Text.Pretty.Simple

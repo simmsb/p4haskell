@@ -1,4 +1,4 @@
-resolver: lts-14.10
+resolver: lts-14.27
 
 extra-deps:
   - base-noprelude-4.12.0.0
@@ -25,6 +25,8 @@ extra-deps:
   - lens-4.18.1@sha256:5c21912d5af370ae608a7e010c8a705e987e42e89bbed306de73f87166251c27,15419
   - relude-0.6.0.0@sha256:094ad587b28fa8dcc78fd0fba8927b970e5e4a9bb10a3126c0ca32a7ee61f3ca,8681
   - type-equality-1@sha256:d36324583fbafc5698c3f898ccf7cf041cbf42435fc2559c28e8f77682739a8e,1517
+  - witherable-0.3.5@sha256:6590a15735b50ac14dcc138d4265ff1585d5f3e9d3047d5ebc5abf4cd5f50084,1476
+  - witherable-class-0@sha256:91f05518f9f4af5b02424f13ee7dcdab5d6618e01346aa2f388a72ff93e2e501,775
 
 ghc-options:
   "$locals": -fhide-source-paths

@@ -61,27 +61,6 @@ executables:
       - p4haskell
       - optparse-applicative
 
-  p4haskell-bench:
-    main: Main.hs
-    source-dirs: benchmark
-    ghc-options:
-      - -fplugin=Polysemy.Plugin
-      - -Wall
-      - -threaded
-      - -rtsopts
-      - -with-rtsopts=-N
-      - -Wincomplete-uni-patterns
-      - -Wincomplete-record-updates
-      - -Wcompat
-      - -Widentities
-      - -Wredundant-constraints
-      - -fhide-source-paths
-      - -Wmissing-export-lists
-      - -Wpartial-fields
-    dependencies:
-      - p4haskell
-      - gauge >= 0.2
-
 library:
     ghc-options:
       - -fplugin=Polysemy.Plugin

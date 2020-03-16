@@ -1,5 +1,5 @@
 module P4Haskell.Types.AST.Method
-    ( Method(..)
+    ( Method
     , parseMethod ) where
 
 import           P4Haskell.Types.AST.DecompressJSON

@@ -15,6 +15,7 @@ import           P4Haskell.Types.AST.Statement
 import           P4Haskell.Types.AST.Method
 import           P4Haskell.Types.AST.Parameter
 import           P4Haskell.Types.AST.Types
+import           P4Haskell.Types.AST.ActionList
 
 import           Prelude                            hiding ( Member )
 
@@ -56,6 +57,7 @@ data Node
   | ExpressionValue'Node ExpressionValue
   | ConstructorCallExpression'Node ConstructorCallExpression
   | Constant'Node Constant
+  | DeclarationInstance'Node DeclarationInstance
   deriving ( Show, Generic )
 
 nodeDecoder :: DecompressC r => D.Decoder (Sem r) Node
@@ -85,6 +87,7 @@ nodeDecoder = D.withCursor $ \c -> do
     "ExpressionValue"           -> (_Typed @ExpressionValue #) <$> D.focus parseExpressionValue c
     "ConstructorCallExpression" -> (_Typed @ConstructorCallExpression #) <$> D.focus parseConstructorCallExpression c
     "Constant"                  -> (_Typed @Constant #) <$> D.focus parseConstant c
+    "Declaration_Instance"      -> (_Typed @DeclarationInstance #) <$> D.focus parseDeclarationInstance c
     _ -> throwError . D.ParseFailed $ "invalid node type for Node: " <> nodeType
 
 data P4Action = P4Action
@@ -237,7 +240,7 @@ parseKey = D.withCursor . tryParseVal $ \c -> do
 
 data KeyElement = KeyElement
   { annotations :: [Annotation]
-  , expression  :: Node
+  , expression  :: Expression
   , matchType   :: Node
   }
   deriving ( Show, Generic )
@@ -246,33 +249,9 @@ parseKeyElement :: DecompressC r => D.Decoder (Sem r) KeyElement
 parseKeyElement = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   annotations <- D.fromKey "annotations" parseAnnotations o
-  expression  <- D.fromKey "expression" nodeDecoder o -- TODO: constrain
+  expression  <- D.fromKey "expression" expressionDecoder o -- TODO: constrain
   matchType   <- D.fromKey "expression" nodeDecoder o -- TODO: constrain
   pure $ KeyElement annotations expression matchType
-
-newtype ActionList = ActionList
-  { actions :: [ActionListElement]
-  }
-  deriving ( Show, Generic )
-
-parseActionList :: DecompressC r => D.Decoder (Sem r) ActionList
-parseActionList = D.withCursor . tryParseVal $ \c -> do
-  o        <- D.down c
-  elems   <- D.fromKey "actionList" (parseVector parseActionListElement) o
-  pure $ ActionList elems
-
-data ActionListElement = ActionListElement
-  { annotations :: [Annotation]
-  , expression  :: Node
-  }
-  deriving ( Show, Generic )
-
-parseActionListElement :: DecompressC r => D.Decoder (Sem r) ActionListElement
-parseActionListElement = D.withCursor . tryParseVal $ \c -> do
-  o           <- D.down c
-  annotations <- D.fromKey "annotations" parseAnnotations o
-  expression  <- D.fromKey "expression" nodeDecoder o -- TODO: constrain
-  pure $ ActionListElement annotations expression
 
 newtype ExpressionValue = ExpressionValue
   { value :: Node
@@ -285,4 +264,19 @@ parseExpressionValue = D.withCursor . tryParseVal $ \c -> do
   value <- D.fromKey "expression" nodeDecoder o
   pure $ ExpressionValue value
 
+data DeclarationInstance = DeclarationInstance
+  { name        :: Text
+  , annotations :: [Annotation]
+  , type_       :: P4Type
+  , arguments   :: [Argument]
+  }
+  deriving ( Show, Generic )
 
+parseDeclarationInstance :: DecompressC r => D.Decoder (Sem r) DeclarationInstance
+parseDeclarationInstance = D.withCursor . tryParseVal $ \c -> do
+  o           <- D.down c
+  name        <- D.fromKey "name" D.text o
+  annotations <- D.fromKey "annotations" parseAnnotations o
+  type_       <- D.fromKey "type" parseP4Type o
+  arguments   <- D.fromKey "arguments" (parseVector parseArgument) o
+  pure $ DeclarationInstance name annotations type_ arguments

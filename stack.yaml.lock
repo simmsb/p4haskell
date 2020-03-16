@@ -14,9 +14,6 @@ packages:
 - completed:
     size: 7818
     url: https://github.com/nitros12/di-polysemy/archive/6355b7998ebab46c4794ff27a92078abda60e9b1.tar.gz
-    cabal-file:
-      size: 2170
-      sha256: f75444163e033d932a12327faabf94fe9a50d40aa71fc101ea272585a1350e65
     name: di-polysemy
     version: 0.0.1
     sha256: 6fa706f6f7250bc82c617e6e10927a12d34fcaac237582e4048f64c38d71c3e4
@@ -172,9 +169,23 @@ packages:
       sha256: a28a53db7adaaf0d9b39d2b678f3c6d5c8b08e42cb2b5d37156ce5e568c98707
   original:
     hackage: type-equality-1@sha256:d36324583fbafc5698c3f898ccf7cf041cbf42435fc2559c28e8f77682739a8e,1517
+- completed:
+    hackage: witherable-0.3.5@sha256:6590a15735b50ac14dcc138d4265ff1585d5f3e9d3047d5ebc5abf4cd5f50084,1476
+    pantry-tree:
+      size: 271
+      sha256: b99f21dbac28da031eb7c787fbffbe5e77e0aee42b64b5dda082470e907d5ab5
+  original:
+    hackage: witherable-0.3.5@sha256:6590a15735b50ac14dcc138d4265ff1585d5f3e9d3047d5ebc5abf4cd5f50084,1476
+- completed:
+    hackage: witherable-class-0@sha256:91f05518f9f4af5b02424f13ee7dcdab5d6618e01346aa2f388a72ff93e2e501,775
+    pantry-tree:
+      size: 277
+      sha256: e99696bf95da593a3892c7b9a28db09ffd139b4b1b313f32cec9d26979aa7ce2
+  original:
+    hackage: witherable-class-0@sha256:91f05518f9f4af5b02424f13ee7dcdab5d6618e01346aa2f388a72ff93e2e501,775
 snapshots:
 - completed:
-    size: 524130
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/14/10.yaml
-    sha256: 04841e0397d7ce6364f19359fce89aa45ca8684609d665845db80d398002baa9
-  original: lts-14.10
+    size: 524996
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/14/27.yaml
+    sha256: 7ea31a280c56bf36ff591a7397cc384d0dff622e7f9e4225b47d8980f019a0f0
+  original: lts-14.27

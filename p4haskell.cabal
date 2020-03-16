@@ -4,7 +4,7 @@ cabal-version: 1.18
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4a77492829f33e279ddef7ab25e3a40a83acb481422273222978d594cc855926
+-- hash: f15593dc29bc4d58369d81215c567e2e319b72c720cdda8183e6301d76afdc3f
 
 name:           p4haskell
 version:        0.0.0
@@ -32,6 +32,7 @@ library
   exposed-modules:
       P4Haskell
       P4Haskell.Types.AST
+      P4Haskell.Types.AST.ActionList
       P4Haskell.Types.AST.Annotation
       P4Haskell.Types.AST.AST
       P4Haskell.Types.AST.Core
@@ -88,36 +89,6 @@ executable p4haskell
     , lens >=4.18
     , mtl
     , optparse-applicative
-    , p4haskell
-    , polysemy >=1.2.3
-    , polysemy-plugin >=0.2.4
-    , polysemy-zoo >=0.6
-    , pretty-simple >=3.1
-    , relude >=0.6
-    , semigroupoids
-    , text >=1.2
-    , unordered-containers >=0.2
-    , waargonaut >=0.8
-  default-language: Haskell2010
-
-executable p4haskell-bench
-  main-is: Main.hs
-  other-modules:
-      Paths_p4haskell
-  hs-source-dirs:
-      benchmark
-  default-extensions: IncoherentInstances TemplateHaskell RecursiveDo CPP AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction AutoDeriveTypeable BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia DerivingStrategies GeneralizedNewtypeDeriving StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MonadFailDesugaring MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
-  ghc-options: -fplugin=Polysemy.Plugin -Wall -threaded -rtsopts -with-rtsopts=-N -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
-  build-depends:
-      attoparsec >=0.13
-    , base-noprelude >=4.12
-    , bytestring >=0.10
-    , df1 >=0.3.2
-    , di-polysemy >=0.0.1
-    , gauge >=0.2
-    , generic-lens >=1.2
-    , lens >=4.18
-    , mtl
     , p4haskell
     , polysemy >=1.2.3
     , polysemy-plugin >=0.2.4

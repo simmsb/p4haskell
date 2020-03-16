@@ -13,6 +13,10 @@ import           P4Haskell
 import qualified Polysemy.Error       as P
 import qualified Polysemy.Reader      as P
 
+import Text.Pretty.Simple (pPrint)
+
+-- import qualified Waargonaut.Decode    as D
+
 
 newtype Opts = Opts
   { input :: Text
@@ -22,6 +26,7 @@ newtype Opts = Opts
 inputFile :: Parser Text
 inputFile = strOption
   (long "input" <> short 'i' <> metavar "FILE" <> help "Input FILE")
+
 
 opts :: ParserInfo Opts
 opts = Options.Applicative.info (Opts <$> inputFile <**> helper)
@@ -51,8 +56,10 @@ main''
 main'' = do
   t <- P.ask
   -- log . show $ toEncoding ast'
-  either failWithHistory print (parseAST t)
+  let (parseLog, parsed) = (parseAST t)
+  putStrLn $ intercalate "\n" parseLog
+  either failWithHistory pPrint parsed
   -- log $ show parsed
-  where failWithHistory (err, _hist) = do
+  where failWithHistory (err, hist) = do
           print err
           -- print (D.ppCursorHistory hist)

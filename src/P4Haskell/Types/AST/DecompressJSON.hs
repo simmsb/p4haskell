@@ -7,29 +7,33 @@ module P4Haskell.Types.AST.DecompressJSON
     , runDecompressor
     , type DecompressC ) where
 
-import qualified Data.HashMap.Lazy       as H
+import qualified Data.HashMap.Lazy as H
 
-import           Polysemy.EndState
 import           Polysemy.EndState
 import           Polysemy.Fixpoint
 import           Polysemy.State
-import           Data.Dynamic
+import           Polysemy.Trace
 
-import qualified Waargonaut.Decode       as D
+import qualified Waargonaut.Decode as D
 
-type DecompressState = HashMap Int Dynamic
+
+type DecompressState = HashMap Int D.JCurs
 
 type DecompressC r =
   Members '[Fixpoint, State DecompressState,
-  EndState DecompressState, Final Identity] r
+  EndState DecompressState, Trace, Final Identity] r
 
-addNode :: Member (State DecompressState) r => Int -> Dynamic -> Sem r ()
+addNode :: Member (State DecompressState) r => Int -> D.JCurs -> Sem r ()
 addNode k v = modify (H.insert k v)
 
-getNode :: Member (EndState DecompressState) r => Int -> Sem r Dynamic
+getNode :: Members '[State DecompressState, EndState DecompressState] r => Int -> Sem r D.JCurs
 getNode k = do
-  es <- getEndState
-  let ~(Just x) = H.lookup k es in pure x
+  s <- get
+  case H.lookup k s of
+    Just x  -> pure x
+    Nothing -> do
+      es <- getEndState
+      let Just x = H.lookup k es in pure x
 
 isReferenceNode :: Monad m => D.JCurs -> D.DecodeResult m Bool
 isReferenceNode curs = do
@@ -38,7 +42,7 @@ isReferenceNode curs = do
   pure $ isNothing ty
 
 tryParseVal
-  :: forall r b. (Typeable b, DecompressC r)
+  :: forall r b. DecompressC r
   => (D.JCurs -> D.DecodeResult (Sem r) b)
   -> D.JCurs
   -> D.DecodeResult (Sem r) b
@@ -46,22 +50,31 @@ tryParseVal f curs = do
   ref <- isReferenceNode curs
   o <- D.down curs
   id' <- D.fromKey "Node_ID" D.int o
-  if ref
-    then lift $ do
-      n <- getNode id'
-      let ~(Just n') = fromDynamic @b n in pure n'
-    else do
-      b <- f curs
-      lift $ addNode id' (toDyn b)
-      pure b
+  curs' <- if ref
+    then lift $ getNode id'
+    else lift $ do
+      addNode id' curs
+      pure curs
+  f curs'
+  -- parsed <- f curs
+  -- if ref
+  --   then lift $ do
+  --     n <- getNode id'
+  --     let Just n' = fromDynamic @b n in pure n'
+  --   else do
+  --     b <- f curs
+  --     lift $ addNode id' (toDyn b)
+  --     pure b
 
 runDecompressor
   :: forall a.
   Sem '[EndState DecompressState, State DecompressState,
-  Fixpoint, Final Identity] a
-  -> a
-runDecompressor = runIdentity
+  Fixpoint, Trace, Final Identity] a
+  -> ([String], a)
+runDecompressor =
+    runIdentity
   . runFinal
+  . runTraceList
   . fixpointToFinal @Identity
-  . evalState @DecompressState H.empty
+  . evalLazyState @DecompressState H.empty
   . runEndState @DecompressState

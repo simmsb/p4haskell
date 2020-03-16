@@ -11,6 +11,7 @@ import           P4Haskell.Types.AST.DeclarationID
 import           P4Haskell.Types.AST.DecompressJSON
 import {-# SOURCE #-} P4Haskell.Types.AST.Method
 import {-# SOURCE #-} P4Haskell.Types.AST.Parameter
+import {-# SOURCE #-} P4Haskell.Types.AST.ActionList
 import           P4Haskell.Types.AST.Path
 
 import           Prelude                            hiding ( Member )
@@ -36,6 +37,7 @@ data P4Type
   | TypeStruct'P4Type TypeStruct
   | TypeAction'P4Type TypeAction
   | TypeError'P4Type TypeError
+  | TypeActionEnum'P4Type TypeActionEnum
   deriving ( Show, Generic )
 
 parseP4Type :: DecompressC r => D.Decoder (Sem r) P4Type
@@ -60,7 +62,8 @@ parseP4Type = D.withCursor . tryParseVal $ \c -> do
     "Type_Extern"      -> (_Typed @TypeExtern #) <$> D.focus parseTypeExtern c
     "Type_Struct"      -> (_Typed @TypeStruct #) <$> D.focus parseTypeStruct c
     "Type_Action"      -> (_Typed @TypeAction #) <$> D.focus parseTypeAction c
-    "Type_Error"      -> (_Typed @TypeError #) <$> D.focus parseTypeError c
+    "Type_Error"       -> (_Typed @TypeError #) <$> D.focus parseTypeError c
+    "Type_ActionEnum"  -> (_Typed @TypeActionEnum #) <$> D.focus parseTypeActionEnum c
     _ -> throwError . D.ParseFailed $ "invalid node type for P4Type: " <> nodeType
 
 data TypeStruct = TypeStruct
@@ -326,3 +329,15 @@ parseTypeError = D.withCursor . tryParseVal $ \c -> do
   name    <- D.fromKey "name" D.text o
   declID  <- D.fromKey "declid" D.int o
   pure $ TypeError members name declID
+
+data TypeActionEnum = TypeActionEnum
+  { actionList :: [ActionListElement]
+  }
+  deriving ( Show, Generic )
+
+parseTypeActionEnum :: DecompressC r => D.Decoder (Sem r) TypeActionEnum
+parseTypeActionEnum = D.withCursor . tryParseVal $ \c -> do
+  o       <- D.down c
+  actionList <- D.fromKey "actionList" (parseNestedObject "actionList"
+                                          (parseVector parseActionListElement)) o
+  pure $ TypeActionEnum actionList
