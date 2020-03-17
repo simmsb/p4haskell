@@ -16,12 +16,12 @@ import           Polysemy.EndState
 import           Polysemy.Fixpoint
 import           Polysemy.State
 
-import Text.Pretty.Simple (pShow)
+-- import Text.Pretty.Simple (pShow)
 
 import qualified Waargonaut.Decode as D
 
 -- import qualified Debug.Trace as T
-import qualified Data.Text.Lazy as T
+-- import qualified Data.Text.Lazy as T
 
 type DecompressState = HashMap Int (Dynamic, Text)
 

@@ -4,7 +4,7 @@ cabal-version: 1.18
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 347d4b5d2fcf776e4fe751eab471118c0227e32f18dddea4a97d6f86c6a68a6f
+-- hash: 0439dfd607c2b33134fab1078971caed26503e28e3fce54c8b2cfe31213e2dce
 
 name:           p4haskell
 version:        0.0.0
@@ -50,7 +50,7 @@ library
   hs-source-dirs:
       src
   default-extensions: IncoherentInstances TemplateHaskell RecursiveDo CPP AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction AutoDeriveTypeable BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia DerivingStrategies GeneralizedNewtypeDeriving StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MonadFailDesugaring MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
-  ghc-options: -fplugin=Polysemy.Plugin -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
+  ghc-options: -fplugin=Polysemy.Plugin -O2 -fexpose-all-unfoldings -fspecialise-aggressively -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
   build-depends:
       attoparsec >=0.13
     , base-noprelude >=4.12
@@ -78,7 +78,7 @@ executable p4haskell
   hs-source-dirs:
       app
   default-extensions: IncoherentInstances TemplateHaskell RecursiveDo CPP AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction AutoDeriveTypeable BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia DerivingStrategies GeneralizedNewtypeDeriving StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MonadFailDesugaring MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
-  ghc-options: -fplugin=Polysemy.Plugin -O2 -Wall -threaded -rtsopts -with-rtsopts=-N -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
+  ghc-options: -fplugin=Polysemy.Plugin -O2 -fexpose-all-unfoldings -fspecialise-aggressively -Wall -threaded -rtsopts -with-rtsopts=-N -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
   build-depends:
       attoparsec >=0.13
     , base-noprelude >=4.12

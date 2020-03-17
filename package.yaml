@@ -46,6 +46,8 @@ executables:
     ghc-options:
       - -fplugin=Polysemy.Plugin
       - -O2
+      - -fexpose-all-unfoldings
+      - -fspecialise-aggressively
       - -Wall
       - -threaded
       - -rtsopts
@@ -65,6 +67,9 @@ executables:
 library:
     ghc-options:
       - -fplugin=Polysemy.Plugin
+      - -O2
+      - -fexpose-all-unfoldings
+      - -fspecialise-aggressively
       - -Wall
       - -Wincomplete-uni-patterns
       - -Wincomplete-record-updates
