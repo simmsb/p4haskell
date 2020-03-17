@@ -15,8 +15,10 @@ import           P4Haskell.Types.AST.DecompressJSON
 
 import           Prelude                            hiding ( Member )
 
-import           Waargonaut
+import qualified Data.Text.Lazy                     as T
+
 import qualified Waargonaut.Decode                  as D
+import qualified Waargonaut.Encode                  as E
 
 data Annotation = Annotation
   { name         :: Text
@@ -42,17 +44,17 @@ parseAnnotation = D.withCursor . tryParseVal $ \c -> do
   kv           <- D.fromKey "kv" (parseVector parseNamedExpression) o
   pure $ Annotation name body needsParsing expr kv
 
-type AnnotatedToken = Json
+type AnnotatedToken = Text
 
-parseAnnotatedToken :: Monad m => D.Decoder m Json
-parseAnnotatedToken = D.json
+parseAnnotatedToken :: Monad m => D.Decoder m AnnotatedToken
+parseAnnotatedToken = T.toStrict . E.simplePureEncodeTextNoSpaces E.json' <$> D.json
 
-type AnnotationExpression = Json
+type AnnotationExpression = Text
 
-parseExpression :: Monad m => D.Decoder m Json
-parseExpression = D.json
+parseExpression :: Monad m => D.Decoder m AnnotationExpression
+parseExpression = T.toStrict . E.simplePureEncodeTextNoSpaces E.json' <$> D.json
 
-type NamedExpression = Json
+type NamedExpression = Text
 
-parseNamedExpression :: Monad m => D.Decoder m Json
-parseNamedExpression = D.json
+parseNamedExpression :: Monad m => D.Decoder m NamedExpression
+parseNamedExpression = T.toStrict . E.simplePureEncodeTextNoSpaces E.json' <$> D.json

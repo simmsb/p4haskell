@@ -45,6 +45,7 @@ executables:
     source-dirs: app
     ghc-options:
       - -fplugin=Polysemy.Plugin
+      - -O2
       - -Wall
       - -threaded
       - -rtsopts

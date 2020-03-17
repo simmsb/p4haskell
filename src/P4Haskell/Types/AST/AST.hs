@@ -111,6 +111,7 @@ parseP4Action = D.withCursor . tryParseVal $ \c -> do
 data Declaration
   = P4Action'Declaration P4Action
   | P4Table'Declaration P4Table
+  | DeclarationInstance'Declaration DeclarationInstance
   deriving ( Show, Generic )
 
 declarationDecoder :: DecompressC r => D.Decoder (Sem r) Declaration
@@ -118,8 +119,9 @@ declarationDecoder = D.withCursor $ \c -> do
   nodeType <- currentNodeType c
 
   case nodeType of
-    "P4Action" -> (_Typed @P4Action #) <$> tryDecoder parseP4Action c
-    "P4Table"  -> (_Typed @P4Table #)  <$> tryDecoder parseP4Table c
+    "P4Action"             -> (_Typed @P4Action #)            <$> tryDecoder parseP4Action c
+    "P4Table"              -> (_Typed @P4Table #)             <$> tryDecoder parseP4Table c
+    "Declaration_Instance" -> (_Typed @DeclarationInstance #) <$> tryDecoder parseDeclarationInstance c
     _ -> throwError . D.ParseFailed $ "invalid node type for Declaration: " <> nodeType
 
 data ParserState = ParserState
@@ -247,8 +249,8 @@ parseKeyElement :: DecompressC r => D.Decoder (Sem r) KeyElement
 parseKeyElement = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   annotations <- D.fromKey "annotations" parseAnnotations o
-  expression  <- D.fromKey "expression" expressionDecoder o -- TODO: constrain
-  matchType   <- D.fromKey "expression" nodeDecoder o -- TODO: constrain
+  expression  <- D.fromKey "expression" expressionDecoder o
+  matchType   <- D.fromKey "expression" nodeDecoder o
   pure $ KeyElement annotations expression matchType
 
 newtype ExpressionValue = ExpressionValue

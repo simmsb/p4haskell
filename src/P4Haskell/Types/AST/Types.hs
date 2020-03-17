@@ -183,20 +183,23 @@ parseTypeControl = D.withCursor . tryParseVal $ \c -> do
 data TypeBoolean = TypeBoolean
   deriving ( Show, Generic )
 
-parseTypeBoolean :: Monad m => D.Decoder m TypeBoolean
-parseTypeBoolean = pure TypeBoolean
+-- NOTE: these can't just be `pure TypeX` because that won't insert it into the parse cache
+--       which will mean when we have a reference node it will never resolve
+
+parseTypeBoolean :: DecompressC r => D.Decoder (Sem r) TypeBoolean
+parseTypeBoolean = D.withCursor . tryParseVal $ \_c -> pure TypeBoolean
 
 data TypeUnknown = TypeUnknown
   deriving ( Show, Generic )
 
-parseTypeUnknown :: Monad m => D.Decoder m TypeUnknown
-parseTypeUnknown = pure TypeUnknown
+parseTypeUnknown :: DecompressC r => D.Decoder (Sem r) TypeUnknown
+parseTypeUnknown = D.withCursor . tryParseVal $ \_c -> pure TypeUnknown
 
 data TypeVoid = TypeVoid
   deriving ( Show, Generic )
 
-parseTypeVoid :: Monad m => D.Decoder m TypeVoid
-parseTypeVoid = pure TypeVoid
+parseTypeVoid :: DecompressC r => D.Decoder (Sem r) TypeVoid
+parseTypeVoid = D.withCursor . tryParseVal $ \_c -> pure TypeVoid
 
 data TypeBits = TypeBits
   { size     :: Int

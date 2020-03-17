@@ -16,13 +16,18 @@ import           Polysemy.EndState
 import           Polysemy.Fixpoint
 import           Polysemy.State
 
+import Text.Pretty.Simple (pShow)
+
 import qualified Waargonaut.Decode as D
+
+import qualified Debug.Trace as T
+import qualified Data.Text.Lazy as T
 
 type DecompressState = HashMap Int (Dynamic, Text)
 
 type DecompressC r =
   (Members '[Fixpoint, State DecompressState,
-  EndState DecompressState, Final Identity] r)
+  EndState DecompressState, Final Identity] r, HasCallStack)
 
 addNode :: Member (State DecompressState) r => Int -> (Dynamic, Text) -> Sem r ()
 addNode k v = modify $ H.insert k v
@@ -47,6 +52,9 @@ currentNodeType curs = do
   o   <- D.down curs
   ref <- isReferenceNode o
   id' <- D.fromKey "Node_ID" D.int o
+  s <- lift $ get
+  T.traceM $ "state: " <> T.unpack (pShow s)
+  T.traceM $ "getting node type of: " <> show id' <> ", cs: " <> prettyCallStack callStack
   if ref
     then lift $ do
       ~(_, ty) <- getNode id'
@@ -62,6 +70,7 @@ tryParseVal f curs = do
   o   <- D.down curs
   ref <- isReferenceNode o
   id' <- D.fromKey "Node_ID" D.int o
+  T.traceM $ "parsing node: " <> show id' <> ", cs: " <> prettyCallStack callStack
   if ref
     then lift $ do
       ~(n, _) <- getNode id'
