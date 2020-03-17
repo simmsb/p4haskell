@@ -16,7 +16,7 @@ parseVectorPure inner = D.withCursor $ \c -> do
   o <- D.down c
   D.fromKey "vec" (D.list inner) o
 
-parseVector :: DecompressC r
+parseVector :: (Typeable a, DecompressC r)
             => D.Decoder (Sem r) a
             -> D.Decoder (Sem r) [a]
 parseVector inner = D.withCursor . tryParseVal $ \c -> do
@@ -24,7 +24,7 @@ parseVector inner = D.withCursor . tryParseVal $ \c -> do
     D.fromKey "vec" (D.list inner) o
 
 parseNestedObject
-  :: DecompressC r
+  :: (Typeable a, DecompressC r)
   => Text
   -> D.Decoder (Sem r) a
   -> D.Decoder (Sem r) a

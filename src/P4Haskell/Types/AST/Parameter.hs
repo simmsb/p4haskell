@@ -22,8 +22,8 @@ data Parameter = Parameter
 parseParameter :: DecompressC r => D.Decoder (Sem r) Parameter
 parseParameter = D.withCursor . tryParseVal $ \c -> do
   o <- D.down c
-  annotations <- D.fromKey "annotations" parseAnnotations o
+  let annotations = []
   direction   <- D.fromKey "direction" D.text o
   name        <- D.fromKey "name" D.text o
-  type_       <- D.fromKey "type" parseP4Type o
+  type_       <- D.fromKey "type" p4TypeDecoder o
   pure $ Parameter annotations direction name type_

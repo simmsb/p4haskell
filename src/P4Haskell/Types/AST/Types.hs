@@ -40,30 +40,29 @@ data P4Type
   | TypeActionEnum'P4Type TypeActionEnum
   deriving ( Show, Generic )
 
-parseP4Type :: DecompressC r => D.Decoder (Sem r) P4Type
-parseP4Type = D.withCursor . tryParseVal $ \c -> do
-  o <- D.down c
-  nodeType <- D.fromKey "Node_Type" D.text o
+p4TypeDecoder :: DecompressC r => D.Decoder (Sem r) P4Type
+p4TypeDecoder = D.withCursor $ \c -> do
+  nodeType <- currentNodeType c
 
   case nodeType of
-    "Type_Var"         -> (_Typed @TypeVar #) <$> D.focus parseTypeVar c
-    "Type_Void"        -> (_Typed @TypeVoid #) <$> D.focus parseTypeVoid c
-    "Type_Unknown"     -> (_Typed @TypeUnknown #) <$> D.focus parseTypeUnknown c
-    "Type_Bits"        -> (_Typed @TypeBits #) <$> D.focus parseTypeBits c
-    "Type_Name"        -> (_Typed @TypeName #) <$> D.focus parseTypeName c
-    "Type_Boolean"     -> (_Typed @TypeBoolean #) <$> D.focus parseTypeBoolean c
-    "Type_Parser"      -> (_Typed @TypeParser #) <$> D.focus parseTypeParser c
-    "Type_Control"     -> (_Typed @TypeControl #) <$> D.focus parseTypeControl c
-    "Type_Package"     -> (_Typed @TypePackage #) <$> D.focus parseTypePackage c
-    "Type_Specialized" -> (_Typed @TypeSpecialized #) <$> D.focus parseTypeSpecialized c
-    "Type_Typedef"     -> (_Typed @TypeTypedef #) <$> D.focus parseTypeTypedef c
-    "Type_Header"      -> (_Typed @TypeHeader #) <$> D.focus parseTypeHeader c
-    "Type_Method"      -> (_Typed @TypeMethod #) <$> D.focus parseTypeMethod c
-    "Type_Extern"      -> (_Typed @TypeExtern #) <$> D.focus parseTypeExtern c
-    "Type_Struct"      -> (_Typed @TypeStruct #) <$> D.focus parseTypeStruct c
-    "Type_Action"      -> (_Typed @TypeAction #) <$> D.focus parseTypeAction c
-    "Type_Error"       -> (_Typed @TypeError #) <$> D.focus parseTypeError c
-    "Type_ActionEnum"  -> (_Typed @TypeActionEnum #) <$> D.focus parseTypeActionEnum c
+    "Type_Var"         -> (_Typed @TypeVar #)         <$> tryDecoder parseTypeVar c
+    "Type_Void"        -> (_Typed @TypeVoid #)        <$> tryDecoder parseTypeVoid c
+    "Type_Unknown"     -> (_Typed @TypeUnknown #)     <$> tryDecoder parseTypeUnknown c
+    "Type_Bits"        -> (_Typed @TypeBits #)        <$> tryDecoder parseTypeBits c
+    "Type_Name"        -> (_Typed @TypeName #)        <$> tryDecoder parseTypeName c
+    "Type_Boolean"     -> (_Typed @TypeBoolean #)     <$> tryDecoder parseTypeBoolean c
+    "Type_Parser"      -> (_Typed @TypeParser #)      <$> tryDecoder parseTypeParser c
+    "Type_Control"     -> (_Typed @TypeControl #)     <$> tryDecoder parseTypeControl c
+    "Type_Package"     -> (_Typed @TypePackage #)     <$> tryDecoder parseTypePackage c
+    "Type_Specialized" -> (_Typed @TypeSpecialized #) <$> tryDecoder parseTypeSpecialized c
+    "Type_Typedef"     -> (_Typed @TypeTypedef #)     <$> tryDecoder parseTypeTypedef c
+    "Type_Header"      -> (_Typed @TypeHeader #)      <$> tryDecoder parseTypeHeader c
+    "Type_Method"      -> (_Typed @TypeMethod #)      <$> tryDecoder parseTypeMethod c
+    "Type_Extern"      -> (_Typed @TypeExtern #)      <$> tryDecoder parseTypeExtern c
+    "Type_Struct"      -> (_Typed @TypeStruct #)      <$> tryDecoder parseTypeStruct c
+    "Type_Action"      -> (_Typed @TypeAction #)      <$> tryDecoder parseTypeAction c
+    "Type_Error"       -> (_Typed @TypeError #)       <$> tryDecoder parseTypeError c
+    "Type_ActionEnum"  -> (_Typed @TypeActionEnum #)  <$> tryDecoder parseTypeActionEnum c
     _ -> throwError . D.ParseFailed $ "invalid node type for P4Type: " <> nodeType
 
 data TypeStruct = TypeStruct
@@ -77,7 +76,7 @@ parseTypeStruct :: DecompressC r => D.Decoder (Sem r) TypeStruct
 parseTypeStruct = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   name        <- D.fromKey "name" D.text o
-  annotations <- D.fromKey "annotations" parseAnnotations o
+  let annotations = []
   fields      <- D.fromKey "fields" (parseVector parseStructField) o
   pure $ TypeStruct name annotations fields
 
@@ -92,8 +91,8 @@ parseStructField :: DecompressC r => D.Decoder (Sem r) StructField
 parseStructField = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   name        <- D.fromKey "name" D.text o
-  annotations <- D.fromKey "annotations" parseAnnotations o
-  type_       <- D.fromKey "type" parseP4Type o
+  let annotations = []
+  type_       <- D.fromKey "type" p4TypeDecoder o
   pure $ StructField name annotations type_
 
 data TypeHeader = TypeHeader
@@ -107,7 +106,7 @@ parseTypeHeader :: DecompressC r => D.Decoder (Sem r) TypeHeader
 parseTypeHeader = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   name        <- D.fromKey "name" D.text o
-  annotations <- D.fromKey "annotations" parseAnnotations o
+  let annotations = []
   fields      <- D.fromKey "fields" (parseVector parseStructField) o
   pure $ TypeHeader name annotations fields
 
@@ -122,8 +121,8 @@ parseTypeTypedef :: DecompressC r => D.Decoder (Sem r) TypeTypedef
 parseTypeTypedef = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   name        <- D.fromKey "name" D.text o
-  annotations <- D.fromKey "annotations" parseAnnotations o
-  type_       <- D.fromKey "type" parseP4Type o
+  let annotations = []
+  type_       <- D.fromKey "type" p4TypeDecoder o
   pure $ TypeTypedef name annotations type_
 
 data TypeSpecialized = TypeSpecialized
@@ -135,8 +134,8 @@ data TypeSpecialized = TypeSpecialized
 parseTypeSpecialized :: DecompressC r => D.Decoder (Sem r) TypeSpecialized
 parseTypeSpecialized = D.withCursor . tryParseVal $ \c -> do
   o              <- D.down c
-  baseType       <- D.fromKey "baseType" parseP4Type o
-  arguments      <- D.fromKey "arguments" (parseVector parseP4Type) o
+  baseType       <- D.fromKey "baseType" p4TypeDecoder o
+  arguments      <- D.fromKey "arguments" (parseVector p4TypeDecoder) o
   pure $ TypeSpecialized baseType arguments
 
 data TypePackage = TypePackage
@@ -151,7 +150,7 @@ parseTypePackage :: DecompressC r => D.Decoder (Sem r) TypePackage
 parseTypePackage = D.withCursor . tryParseVal $ \c -> do
   o              <- D.down c
   name           <- D.fromKey "name" D.text o
-  annotations    <- D.fromKey "annotations" parseAnnotations o
+  let annotations = []
   typeParameters <- D.fromKey "typeParameters"
     (parseNestedObject "parameters"
      (parseVector parseTypeVar)) o
@@ -172,7 +171,7 @@ parseTypeControl :: DecompressC r => D.Decoder (Sem r) TypeControl
 parseTypeControl = D.withCursor . tryParseVal $ \c -> do
   o              <- D.down c
   name           <- D.fromKey "name" D.text o
-  annotations    <- D.fromKey "annotations" parseAnnotations o
+  let annotations = []
   typeParameters <- D.fromKey "typeParameters"
     (parseNestedObject "parameters"
      (parseVector parseTypeVar)) o
@@ -264,7 +263,7 @@ parseTypeParser :: DecompressC r => D.Decoder (Sem r) TypeParser
 parseTypeParser = D.withCursor . tryParseVal $ \c -> do
   o              <- D.down c
   name           <- D.fromKey "name" D.text o
-  annotations    <- D.fromKey "annotations" parseAnnotations o
+  let annotations = []
   typeParameters <- D.fromKey "typeParameters"
     (parseNestedObject "parameters"
      (parseVector parseTypeVar)) o
@@ -291,7 +290,7 @@ parseTypeMethod = D.withCursor . tryParseVal $ \c -> do
     (parseNestedObject "parameters"
      (parseVector parseParameter)) o
 
-  returnType <- D.fromKeyOptional "returnType" parseP4Type o
+  returnType <- D.fromKeyOptional "returnType" p4TypeDecoder o
   pure $ TypeMethod typeParameters parameters returnType
 
 data TypeExtern = TypeExtern
@@ -306,7 +305,7 @@ data TypeExtern = TypeExtern
 parseTypeExtern :: DecompressC r => D.Decoder (Sem r) TypeExtern
 parseTypeExtern = D.withCursor . tryParseVal $ \c -> do
   o              <- D.down c
-  annotations    <- D.fromKey "annotations" parseAnnotations o
+  let annotations = []
   typeParameters <- D.fromKey "typeParameters"
     (parseNestedObject "parameters"
      (parseVector parseTypeVar)) o

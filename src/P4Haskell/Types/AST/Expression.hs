@@ -26,20 +26,23 @@ data Expression
   | LNot'Expression LNot
   deriving ( Show, Generic )
 
+-- TODO: we need to rewrite all our decoder functions
+--       into ones that retrieve the type of the node
+--       and then parse based off of that
+--       maybe use a typeclass for node parse methods
 expressionDecoder :: DecompressC r => D.Decoder (Sem r) Expression
 expressionDecoder = D.withCursor $ \c -> do
-  o <- D.down c
-  nodeType <- D.fromKey "Node_Type" D.text o
+  nodeType <- currentNodeType c
 
   case nodeType of
-    "MethodCallExpression"      -> (_Typed @MethodCallExpression #) <$> D.focus parseMethodCallExpression c
-    "Member"                    -> (_Typed @Member #) <$> D.focus parseMember c
-    "Argument"                  -> (_Typed @Argument #) <$> D.focus parseArgument c
-    "ConstructorCallExpression" -> (_Typed @ConstructorCallExpression #) <$> D.focus parseConstructorCallExpression c
-    "Constant"                  -> (_Typed @Constant #) <$> D.focus parseConstant c
-    "PathExpression"            -> (_Typed @PathExpression #) <$> D.focus parsePathExpression c
-    "BoolLiteral"               -> (_Typed @BoolLiteral #) <$> D.focus parseBoolLiteral c
-    "LNot"                      -> (_Typed @LNot #) <$> D.focus parseLNot c
+    "MethodCallExpression"      -> (_Typed @MethodCallExpression #)      <$> tryDecoder parseMethodCallExpression c
+    "Member"                    -> (_Typed @Member #)                    <$> tryDecoder parseMember c
+    "Argument"                  -> (_Typed @Argument #)                  <$> tryDecoder parseArgument c
+    "ConstructorCallExpression" -> (_Typed @ConstructorCallExpression #) <$> tryDecoder parseConstructorCallExpression c
+    "Constant"                  -> (_Typed @Constant #)                  <$> tryDecoder parseConstant c
+    "PathExpression"            -> (_Typed @PathExpression #)            <$> tryDecoder parsePathExpression c
+    "BoolLiteral"               -> (_Typed @BoolLiteral #)               <$> tryDecoder parseBoolLiteral c
+    "LNot"                      -> (_Typed @LNot #)                      <$> tryDecoder parseLNot c
     _ -> throwError . D.ParseFailed $ "invalid node type for Expression: " <> nodeType
 
 
@@ -54,9 +57,9 @@ data MethodCallExpression = MethodCallExpression
 parseMethodCallExpression :: DecompressC r => D.Decoder (Sem r) MethodCallExpression
 parseMethodCallExpression = D.withCursor . tryParseVal $ \c -> do
   o             <- D.down c
-  type_         <- D.fromKey "type" parseP4Type o
+  type_         <- D.fromKey "type" p4TypeDecoder o
   method        <- D.fromKey "method" expressionDecoder o
-  typeArguments <- D.fromKey "typeArguments" (parseVector parseP4Type) o
+  typeArguments <- D.fromKey "typeArguments" (parseVector p4TypeDecoder) o
   arguments     <- D.fromKey "arguments" (parseVector parseArgument) o
   pure $ MethodCallExpression type_ method typeArguments arguments
 
@@ -70,7 +73,7 @@ data Member = Member
 parseMember :: DecompressC r => D.Decoder (Sem r) Member
 parseMember = D.withCursor . tryParseVal $ \c -> do
   o      <- D.down c
-  type_  <- D.fromKey "type" parseP4Type o
+  type_  <- D.fromKey "type" p4TypeDecoder o
   expr   <- D.fromKey "expr" expressionDecoder o
   member <- D.fromKey "member" D.text o
   pure $ Member type_ expr member
@@ -98,8 +101,8 @@ data ConstructorCallExpression = ConstructorCallExpression
 parseConstructorCallExpression :: DecompressC r => D.Decoder (Sem r) ConstructorCallExpression
 parseConstructorCallExpression = D.withCursor . tryParseVal $ \c -> do
   o               <- D.down c
-  type_           <- D.fromKey "type" parseP4Type o
-  constructedType <- D.fromKey "constructedType" parseP4Type o
+  type_           <- D.fromKey "type" p4TypeDecoder o
+  constructedType <- D.fromKey "constructedType" p4TypeDecoder o
   arguments       <- D.fromKey "arguments" (parseVector parseArgument) o
   pure $ ConstructorCallExpression type_ constructedType arguments
 
@@ -113,7 +116,7 @@ data Constant = Constant
 parseConstant :: DecompressC r => D.Decoder (Sem r) Constant
 parseConstant = D.withCursor . tryParseVal $ \c -> do
   o     <- D.down c
-  type_ <- D.fromKey "type" parseP4Type o
+  type_ <- D.fromKey "type" p4TypeDecoder o
   value <- D.fromKey "value" D.int o
   base  <- D.fromKey "base" D.int o
   pure $ Constant type_ value base
@@ -127,7 +130,7 @@ data PathExpression = PathExpression
 parsePathExpression :: DecompressC r => D.Decoder (Sem r) PathExpression
 parsePathExpression = D.withCursor . tryParseVal $ \c -> do
   o     <- D.down c
-  type_ <- D.fromKey "type" parseP4Type o
+  type_ <- D.fromKey "type" p4TypeDecoder o
   path  <- D.fromKey "path" parsePath o
   pure $ PathExpression type_ path
 
@@ -151,6 +154,6 @@ data LNot = LNot
 parseLNot :: DecompressC r => D.Decoder (Sem r) LNot
 parseLNot = D.withCursor . tryParseVal $ \c -> do
   o     <- D.down c
-  type_ <- D.fromKey "type" parseP4Type o
+  type_ <- D.fromKey "type" p4TypeDecoder o
   expr  <- D.fromKey "expr" expressionDecoder o
   pure $ LNot type_ expr

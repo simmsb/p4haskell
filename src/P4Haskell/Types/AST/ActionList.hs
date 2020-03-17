@@ -20,7 +20,7 @@ newtype ActionList = ActionList
 
 parseActionList :: DecompressC r => D.Decoder (Sem r) ActionList
 parseActionList = D.withCursor . tryParseVal $ \c -> do
-  o        <- D.down c
+  o       <- D.down c
   elems   <- D.fromKey "actionList" (parseVector parseActionListElement) o
   pure $ ActionList elems
 
@@ -33,6 +33,6 @@ data ActionListElement = ActionListElement
 parseActionListElement :: DecompressC r => D.Decoder (Sem r) ActionListElement
 parseActionListElement = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
-  annotations <- D.fromKey "annotations" parseAnnotations o
+  let annotations = []
   expression  <- D.fromKey "expression" expressionDecoder o
   pure $ ActionListElement annotations expression

@@ -3,6 +3,8 @@ resolver: lts-14.27
 extra-deps:
   - base-noprelude-4.12.0.0
   - github: nitros12/di-polysemy
+    sha256: 6fa706f6f7250bc82c617e6e10927a12d34fcaac237582e4048f64c38d71c3e4
+    size: 7818
     commit: 6355b7998ebab46c4794ff27a92078abda60e9b1
   - polysemy-1.2.3.0@sha256:d9cfa7942940c7c6d07d1f26ae70c4f1170f9bd6c331bdbe586e810fafc25f17,5878
   - polysemy-plugin-0.2.4.0@sha256:b27f399946e90d480271d2b655b6172ed80f9d421f871c21a804511bc7b0f53c,2952
@@ -27,6 +29,3 @@ extra-deps:
   - type-equality-1@sha256:d36324583fbafc5698c3f898ccf7cf041cbf42435fc2559c28e8f77682739a8e,1517
   - witherable-0.3.5@sha256:6590a15735b50ac14dcc138d4265ff1585d5f3e9d3047d5ebc5abf4cd5f50084,1476
   - witherable-class-0@sha256:91f05518f9f4af5b02424f13ee7dcdab5d6618e01346aa2f388a72ff93e2e501,775
-
-ghc-options:
-  "$locals": -fhide-source-paths

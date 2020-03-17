@@ -4,14 +4,9 @@ module Main
 import qualified Data.Text            as T
 import qualified Data.Text.IO         as TIO
 
-import qualified Df1
-
 import           Options.Applicative
 
 import           P4Haskell
-
-import qualified Polysemy.Error       as P
-import qualified Polysemy.Reader      as P
 
 import Text.Pretty.Simple (pPrint)
 
@@ -41,22 +36,13 @@ main = do
 main' :: FilePath -> IO ()
 main' path = do
   file <- TIO.readFile path
-  r <- runM
-    . P.runError
-    . runDiToStderrIO
-    . P.runReader file $ main''
-  case r of
-    Left e -> TIO.hPutStrLn stderr e
-    _      -> pure ()
+  main'' file
 
-main''
-  :: Members '[Embed IO, P.Error Text, Di Df1.Level Df1.Path Df1.Message,
-  P.Reader Text] r
-  => Sem r ()
-main'' = do
-  t <- P.ask
+main'' :: Text -> IO ()
+main'' t = do
   -- log . show $ toEncoding ast'
   let (parseLog, parsed) = (parseAST t)
+  putStrLn "hi"
   putStrLn $ intercalate "\n" parseLog
   either failWithHistory pPrint parsed
   -- log $ show parsed

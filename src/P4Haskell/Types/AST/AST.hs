@@ -62,32 +62,31 @@ data Node
 
 nodeDecoder :: DecompressC r => D.Decoder (Sem r) Node
 nodeDecoder = D.withCursor $ \c -> do
-  o <- D.down c
-  nodeType <- D.fromKey "Node_Type" D.text o
+  nodeType <- currentNodeType c
 
   case nodeType of
-    "Type_Error"                -> (_Typed @TypeError #) <$> D.focus parseTypeError c
-    "Type_Extern"               -> (_Typed @TypeExtern #) <$> D.focus parseTypeExtern c
-    "Type_Parser"               -> (_Typed @TypeParser #) <$> D.focus parseTypeParser c
-    "Type_Control"              -> (_Typed @TypeControl #) <$> D.focus parseTypeControl c
-    "Type_Package"              -> (_Typed @TypePackage #) <$> D.focus parseTypePackage c
-    "Type_Typedef"              -> (_Typed @TypeTypedef #) <$> D.focus parseTypeTypedef c
-    "Type_Header"               -> (_Typed @TypeHeader #) <$> D.focus parseTypeHeader c
-    "Type_Struct"               -> (_Typed @TypeStruct #) <$> D.focus parseTypeStruct c
-    "Method"                    -> (_Typed @Method #) <$> D.focus parseMethod c
-    "Member"                    -> (_Typed @Member #) <$> D.focus parseMember c
-    "Declaration_MatchKind"     -> (_Typed @DeclarationMatchKind #) <$> D.focus parseDeclarationMatchKind c
-    "P4Parser"                  -> (_Typed @P4Parser #) <$> D.focus parseP4Parser c
-    "PathExpression"            -> (_Typed @PathExpression #) <$> D.focus parsePathExpression c
-    "P4Control"                 -> (_Typed @P4Control #) <$> D.focus parseP4Control c
-    "BoolLiteral"               -> (_Typed @BoolLiteral #) <$> D.focus parseBoolLiteral c
-    "Key"                       -> (_Typed @Key #) <$> D.focus parseKey c
-    "ActionList"                -> (_Typed @ActionList #) <$> D.focus parseActionList c
-    "MethodCallExpression"      -> (_Typed @MethodCallExpression #) <$> D.focus parseMethodCallExpression c
-    "ExpressionValue"           -> (_Typed @ExpressionValue #) <$> D.focus parseExpressionValue c
-    "ConstructorCallExpression" -> (_Typed @ConstructorCallExpression #) <$> D.focus parseConstructorCallExpression c
-    "Constant"                  -> (_Typed @Constant #) <$> D.focus parseConstant c
-    "Declaration_Instance"      -> (_Typed @DeclarationInstance #) <$> D.focus parseDeclarationInstance c
+    "Type_Error"                -> (_Typed @TypeError #)                 <$> tryDecoder parseTypeError c
+    "Type_Extern"               -> (_Typed @TypeExtern #)                <$> tryDecoder parseTypeExtern c
+    "Type_Parser"               -> (_Typed @TypeParser #)                <$> tryDecoder parseTypeParser c
+    "Type_Control"              -> (_Typed @TypeControl #)               <$> tryDecoder parseTypeControl c
+    "Type_Package"              -> (_Typed @TypePackage #)               <$> tryDecoder parseTypePackage c
+    "Type_Typedef"              -> (_Typed @TypeTypedef #)               <$> tryDecoder parseTypeTypedef c
+    "Type_Header"               -> (_Typed @TypeHeader #)                <$> tryDecoder parseTypeHeader c
+    "Type_Struct"               -> (_Typed @TypeStruct #)                <$> tryDecoder parseTypeStruct c
+    "Method"                    -> (_Typed @Method #)                    <$> tryDecoder parseMethod c
+    "Member"                    -> (_Typed @Member #)                    <$> tryDecoder parseMember c
+    "Declaration_MatchKind"     -> (_Typed @DeclarationMatchKind #)      <$> tryDecoder parseDeclarationMatchKind c
+    "P4Parser"                  -> (_Typed @P4Parser #)                  <$> tryDecoder parseP4Parser c
+    "PathExpression"            -> (_Typed @PathExpression #)            <$> tryDecoder parsePathExpression c
+    "P4Control"                 -> (_Typed @P4Control #)                 <$> tryDecoder parseP4Control c
+    "BoolLiteral"               -> (_Typed @BoolLiteral #)               <$> tryDecoder parseBoolLiteral c
+    "Key"                       -> (_Typed @Key #)                       <$> tryDecoder parseKey c
+    "ActionList"                -> (_Typed @ActionList #)                <$> tryDecoder parseActionList c
+    "MethodCallExpression"      -> (_Typed @MethodCallExpression #)      <$> tryDecoder parseMethodCallExpression c
+    "ExpressionValue"           -> (_Typed @ExpressionValue #)           <$> tryDecoder parseExpressionValue c
+    "ConstructorCallExpression" -> (_Typed @ConstructorCallExpression #) <$> tryDecoder parseConstructorCallExpression c
+    "Constant"                  -> (_Typed @Constant #)                  <$> tryDecoder parseConstant c
+    "Declaration_Instance"      -> (_Typed @DeclarationInstance #)       <$> tryDecoder parseDeclarationInstance c
     _ -> throwError . D.ParseFailed $ "invalid node type for Node: " <> nodeType
 
 data P4Action = P4Action
@@ -102,7 +101,7 @@ parseP4Action :: DecompressC r => D.Decoder (Sem r) P4Action
 parseP4Action = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   name        <- D.fromKey "name" D.text o
-  annotations <- D.fromKey "annotations" parseAnnotations o
+  let annotations = []
   parameters  <- D.fromKey "parameters"
     (parseNestedObject "parameters"
      (parseVector parseParameter)) o
@@ -116,12 +115,11 @@ data Declaration
 
 declarationDecoder :: DecompressC r => D.Decoder (Sem r) Declaration
 declarationDecoder = D.withCursor $ \c -> do
-  o <- D.down c
-  nodeType <- D.fromKey "Node_Type" D.text o
+  nodeType <- currentNodeType c
 
   case nodeType of
-    "P4Action" -> (_Typed @P4Action #) <$> D.focus parseP4Action c
-    "P4Table"  -> (_Typed @P4Table #) <$> D.focus parseP4Table c
+    "P4Action" -> (_Typed @P4Action #) <$> tryDecoder parseP4Action c
+    "P4Table"  -> (_Typed @P4Table #)  <$> tryDecoder parseP4Table c
     _ -> throwError . D.ParseFailed $ "invalid node type for Declaration: " <> nodeType
 
 data ParserState = ParserState
@@ -133,7 +131,7 @@ data ParserState = ParserState
 parseParserState :: DecompressC r => D.Decoder (Sem r) ParserState
 parseParserState = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
-  annotations <- D.fromKey "annotations" parseAnnotations o
+  let annotations = []
   components  <- D.fromKey "components" (parseVector statOrDeclDecoder) o
   pure $ ParserState annotations components
 
@@ -150,7 +148,7 @@ parseP4Parser :: DecompressC r => D.Decoder (Sem r) P4Parser
 parseP4Parser = D.withCursor . tryParseVal $ \c -> do
   o                 <- D.down c
   name              <- D.fromKey "name" D.text o
-  type_             <- D.fromKey "type" parseP4Type o
+  type_             <- D.fromKey "type" p4TypeDecoder o
   constructorParams <- D.fromKey "constructorParams"
     (parseNestedObject "parameters"
      (parseVector parseParameter)) o
@@ -185,7 +183,7 @@ parseP4Control :: DecompressC r => D.Decoder (Sem r) P4Control
 parseP4Control = D.withCursor . tryParseVal $ \c -> do
   o                 <- D.down c
   name              <- D.fromKey "name" D.text o
-  type_             <- D.fromKey "type" parseP4Type o
+  type_             <- D.fromKey "type" p4TypeDecoder o
   constructorParams <- D.fromKey "constructorParams"
     (parseNestedObject "parameters"
      (parseVector parseParameter)) o
@@ -204,7 +202,7 @@ parseP4Table :: DecompressC r => D.Decoder (Sem r) P4Table
 parseP4Table = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   name        <- D.fromKey "name" D.text o
-  annotations <- D.fromKey "annotations" parseAnnotations o
+  let annotations = []
   properties  <- D.fromKey "properties"
     (parseNestedObject "properties"
      (parseVector parseProperty)) o
@@ -222,7 +220,7 @@ parseProperty :: DecompressC r => D.Decoder (Sem r) Property
 parseProperty = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   name        <- D.fromKey "name" D.text o
-  annotations <- D.fromKey "annotations" parseAnnotations o
+  let annotations = []
   value       <- D.fromKey "value" nodeDecoder o
   isConstant  <- D.fromKey "isConstant" D.bool o
   pure $ Property name annotations value isConstant
@@ -248,7 +246,7 @@ data KeyElement = KeyElement
 parseKeyElement :: DecompressC r => D.Decoder (Sem r) KeyElement
 parseKeyElement = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
-  annotations <- D.fromKey "annotations" parseAnnotations o
+  let annotations = []
   expression  <- D.fromKey "expression" expressionDecoder o -- TODO: constrain
   matchType   <- D.fromKey "expression" nodeDecoder o -- TODO: constrain
   pure $ KeyElement annotations expression matchType
@@ -276,7 +274,7 @@ parseDeclarationInstance :: DecompressC r => D.Decoder (Sem r) DeclarationInstan
 parseDeclarationInstance = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   name        <- D.fromKey "name" D.text o
-  annotations <- D.fromKey "annotations" parseAnnotations o
-  type_       <- D.fromKey "type" parseP4Type o
+  let annotations = []
+  type_       <- D.fromKey "type" p4TypeDecoder o
   arguments   <- D.fromKey "arguments" (parseVector parseArgument) o
   pure $ DeclarationInstance name annotations type_ arguments
