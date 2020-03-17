@@ -18,7 +18,7 @@ data Method = Method
 parseMethod :: DecompressC r => D.Decoder (Sem r) Method
 parseMethod = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
-  let annotations = []
+  annotations <- D.fromKey "annotations" parseAnnotations o
   name        <- D.fromKey "name" D.text o
   type_       <- D.fromKey "type" parseTypeMethod o
   pure $ Method annotations name type_

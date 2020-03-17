@@ -7,15 +7,9 @@ module Prelude
 
 import           Control.Lens       hiding ( rewrite, transform )
 
-import qualified Data.Text          as T
-import qualified Data.Text.IO       as TIO
-import qualified Data.Text.Lazy.IO  as LTIO
-
 import           DiPolysemy
 
 import           Polysemy
 
-import           Relude             hiding ( (??), State, error, evalState, gets
+import           Relude             hiding ( (??), State, runState, error, evalState, gets
                                            , modify, trace, uncons, get )
-
-import           Text.Pretty.Simple

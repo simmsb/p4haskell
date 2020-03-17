@@ -26,10 +26,6 @@ data Expression
   | LNot'Expression LNot
   deriving ( Show, Generic )
 
--- TODO: we need to rewrite all our decoder functions
---       into ones that retrieve the type of the node
---       and then parse based off of that
---       maybe use a typeclass for node parse methods
 expressionDecoder :: DecompressC r => D.Decoder (Sem r) Expression
 expressionDecoder = D.withCursor $ \c -> do
   nodeType <- currentNodeType c

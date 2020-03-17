@@ -76,7 +76,7 @@ parseTypeStruct :: DecompressC r => D.Decoder (Sem r) TypeStruct
 parseTypeStruct = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   name        <- D.fromKey "name" D.text o
-  let annotations = []
+  annotations <- D.fromKey "annotations" parseAnnotations o
   fields      <- D.fromKey "fields" (parseVector parseStructField) o
   pure $ TypeStruct name annotations fields
 
@@ -91,7 +91,7 @@ parseStructField :: DecompressC r => D.Decoder (Sem r) StructField
 parseStructField = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   name        <- D.fromKey "name" D.text o
-  let annotations = []
+  annotations <- D.fromKey "annotations" parseAnnotations o
   type_       <- D.fromKey "type" p4TypeDecoder o
   pure $ StructField name annotations type_
 
@@ -106,7 +106,7 @@ parseTypeHeader :: DecompressC r => D.Decoder (Sem r) TypeHeader
 parseTypeHeader = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   name        <- D.fromKey "name" D.text o
-  let annotations = []
+  annotations <- D.fromKey "annotations" parseAnnotations o
   fields      <- D.fromKey "fields" (parseVector parseStructField) o
   pure $ TypeHeader name annotations fields
 
@@ -121,7 +121,7 @@ parseTypeTypedef :: DecompressC r => D.Decoder (Sem r) TypeTypedef
 parseTypeTypedef = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   name        <- D.fromKey "name" D.text o
-  let annotations = []
+  annotations <- D.fromKey "annotations" parseAnnotations o
   type_       <- D.fromKey "type" p4TypeDecoder o
   pure $ TypeTypedef name annotations type_
 
@@ -150,7 +150,7 @@ parseTypePackage :: DecompressC r => D.Decoder (Sem r) TypePackage
 parseTypePackage = D.withCursor . tryParseVal $ \c -> do
   o              <- D.down c
   name           <- D.fromKey "name" D.text o
-  let annotations = []
+  annotations <- D.fromKey "annotations" parseAnnotations o
   typeParameters <- D.fromKey "typeParameters"
     (parseNestedObject "parameters"
      (parseVector parseTypeVar)) o
@@ -171,7 +171,7 @@ parseTypeControl :: DecompressC r => D.Decoder (Sem r) TypeControl
 parseTypeControl = D.withCursor . tryParseVal $ \c -> do
   o              <- D.down c
   name           <- D.fromKey "name" D.text o
-  let annotations = []
+  annotations <- D.fromKey "annotations" parseAnnotations o
   typeParameters <- D.fromKey "typeParameters"
     (parseNestedObject "parameters"
      (parseVector parseTypeVar)) o
@@ -263,7 +263,7 @@ parseTypeParser :: DecompressC r => D.Decoder (Sem r) TypeParser
 parseTypeParser = D.withCursor . tryParseVal $ \c -> do
   o              <- D.down c
   name           <- D.fromKey "name" D.text o
-  let annotations = []
+  annotations <- D.fromKey "annotations" parseAnnotations o
   typeParameters <- D.fromKey "typeParameters"
     (parseNestedObject "parameters"
      (parseVector parseTypeVar)) o
@@ -305,7 +305,7 @@ data TypeExtern = TypeExtern
 parseTypeExtern :: DecompressC r => D.Decoder (Sem r) TypeExtern
 parseTypeExtern = D.withCursor . tryParseVal $ \c -> do
   o              <- D.down c
-  let annotations = []
+  annotations <- D.fromKey "annotations" parseAnnotations o
   typeParameters <- D.fromKey "typeParameters"
     (parseNestedObject "parameters"
      (parseVector parseTypeVar)) o
@@ -329,7 +329,7 @@ parseTypeError = D.withCursor . tryParseVal $ \c -> do
   declID  <- D.fromKey "declid" D.int o
   pure $ TypeError members name declID
 
-data TypeActionEnum = TypeActionEnum
+newtype TypeActionEnum = TypeActionEnum
   { actionList :: [ActionListElement]
   }
   deriving ( Show, Generic )

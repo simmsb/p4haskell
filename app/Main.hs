@@ -41,11 +41,9 @@ main' path = do
 main'' :: Text -> IO ()
 main'' t = do
   -- log . show $ toEncoding ast'
-  let (parseLog, parsed) = (parseAST t)
-  putStrLn "hi"
-  putStrLn $ intercalate "\n" parseLog
+  let parsed = parseAST t
   either failWithHistory pPrint parsed
   -- log $ show parsed
-  where failWithHistory (err, hist) = do
+  where failWithHistory (err, _hist) = do
           print err
           -- print (D.ppCursorHistory hist)

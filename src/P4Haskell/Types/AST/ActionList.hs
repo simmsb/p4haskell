@@ -33,6 +33,6 @@ data ActionListElement = ActionListElement
 parseActionListElement :: DecompressC r => D.Decoder (Sem r) ActionListElement
 parseActionListElement = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
-  let annotations = []
+  annotations <- D.fromKey "annotations" parseAnnotations o
   expression  <- D.fromKey "expression" expressionDecoder o
   pure $ ActionListElement annotations expression

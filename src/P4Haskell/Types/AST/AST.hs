@@ -101,7 +101,7 @@ parseP4Action :: DecompressC r => D.Decoder (Sem r) P4Action
 parseP4Action = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   name        <- D.fromKey "name" D.text o
-  let annotations = []
+  annotations <- D.fromKey "annotations" parseAnnotations o
   parameters  <- D.fromKey "parameters"
     (parseNestedObject "parameters"
      (parseVector parseParameter)) o
@@ -131,7 +131,7 @@ data ParserState = ParserState
 parseParserState :: DecompressC r => D.Decoder (Sem r) ParserState
 parseParserState = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
-  let annotations = []
+  annotations <- D.fromKey "annotations" parseAnnotations o
   components  <- D.fromKey "components" (parseVector statOrDeclDecoder) o
   pure $ ParserState annotations components
 
@@ -202,7 +202,7 @@ parseP4Table :: DecompressC r => D.Decoder (Sem r) P4Table
 parseP4Table = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   name        <- D.fromKey "name" D.text o
-  let annotations = []
+  annotations <- D.fromKey "annotations" parseAnnotations o
   properties  <- D.fromKey "properties"
     (parseNestedObject "properties"
      (parseVector parseProperty)) o
@@ -220,7 +220,7 @@ parseProperty :: DecompressC r => D.Decoder (Sem r) Property
 parseProperty = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   name        <- D.fromKey "name" D.text o
-  let annotations = []
+  annotations <- D.fromKey "annotations" parseAnnotations o
   value       <- D.fromKey "value" nodeDecoder o
   isConstant  <- D.fromKey "isConstant" D.bool o
   pure $ Property name annotations value isConstant
@@ -246,7 +246,7 @@ data KeyElement = KeyElement
 parseKeyElement :: DecompressC r => D.Decoder (Sem r) KeyElement
 parseKeyElement = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
-  let annotations = []
+  annotations <- D.fromKey "annotations" parseAnnotations o
   expression  <- D.fromKey "expression" expressionDecoder o -- TODO: constrain
   matchType   <- D.fromKey "expression" nodeDecoder o -- TODO: constrain
   pure $ KeyElement annotations expression matchType
@@ -274,7 +274,7 @@ parseDeclarationInstance :: DecompressC r => D.Decoder (Sem r) DeclarationInstan
 parseDeclarationInstance = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   name        <- D.fromKey "name" D.text o
-  let annotations = []
+  annotations <- D.fromKey "annotations" parseAnnotations o
   type_       <- D.fromKey "type" p4TypeDecoder o
   arguments   <- D.fromKey "arguments" (parseVector parseArgument) o
   pure $ DeclarationInstance name annotations type_ arguments

@@ -15,31 +15,27 @@ import qualified Data.HashMap.Lazy as H
 import           Polysemy.EndState
 import           Polysemy.Fixpoint
 import           Polysemy.State
-import           Polysemy.Trace
 
 import qualified Waargonaut.Decode as D
 
-import qualified Debug.Trace as T
-
-import Type.Reflection
-import qualified Relude
-
-type StoredData = (Dynamic, Text)
-
-type DecompressState = HashMap Int StoredData
+type DecompressState = HashMap Int (Dynamic, Text)
 
 type DecompressC r =
   (Members '[Fixpoint, State DecompressState,
-  EndState DecompressState, Trace, Final Identity] r, HasCallStack)
+  EndState DecompressState, Final Identity] r)
 
-addNode :: Member (State DecompressState) r => Int -> StoredData -> Sem r ()
-addNode k v = modify (H.insert k v)
+addNode :: Member (State DecompressState) r => Int -> (Dynamic, Text) -> Sem r ()
+addNode k v = modify $ H.insert k v
 
-getNode :: Members '[EndState DecompressState] r => Int -> Sem r StoredData
+getNode :: Members '[State DecompressState, EndState DecompressState] r => Int -> Sem r (Dynamic, Text)
 getNode k = do
-  es <- getEndState
-  let Just x = H.lookup k es
-    in pure x
+  s <- get
+  case H.lookup k s of
+    Just x -> pure x
+    _      -> do
+      es <- getEndState
+      let Just x = H.lookup k es
+        in pure x
 
 isReferenceNode :: Monad m => D.JCurs -> D.DecodeResult m Bool
 isReferenceNode curs = do
@@ -47,35 +43,31 @@ isReferenceNode curs = do
   pure $ isNothing ty
 
 currentNodeType :: DecompressC r => D.JCurs -> D.DecodeResult (Sem r) Text
-currentNodeType o = do
+currentNodeType curs = do
+  o   <- D.down curs
   ref <- isReferenceNode o
   id' <- D.fromKey "Node_ID" D.int o
-  obj <- D.focus D.json o
   if ref
     then lift $ do
-      T.traceM $ show obj
-      T.traceM $ "getting type of unvisited node: " <> show id' <> ", cs: " <> prettyCallStack callStack
       ~(_, ty) <- getNode id'
       pure ty
     else D.fromKey "Node_Type" D.text o
 
 tryParseVal
-  :: forall r b. (HasCallStack, Typeable b, DecompressC r)
+  :: forall r b. (Typeable b, DecompressC r)
   => (D.JCurs -> D.DecodeResult (Sem r) b)
   -> D.JCurs
   -> D.DecodeResult (Sem r) b
-tryParseVal f o = do
+tryParseVal f curs = do
+  o   <- D.down curs
   ref <- isReferenceNode o
   id' <- D.fromKey "Node_ID" D.int o
-  T.traceM $ "working with node: " <> show id' <> ", dest type: " <> show (someTypeRep $ Proxy @b) <> ", cs: " <> prettyCallStack callStack
   if ref
     then lift $ do
-      Relude.error "fuck"
-      -- ~(n, _) <- getNode id'
-      -- trace $ "my type: " <> show (dynTypeRep n) <> ", wanted type: " <> show (someTypeRep $ Proxy @b) <> ", same? " <> show (dynTypeRep n == someTypeRep (Proxy @b))
-      -- let Just n' = fromDynamic @b n in pure n'
+      ~(n, _) <- getNode id'
+      let Just n' = fromDynamic @b n in pure n'
     else do
-      b <- f o
+      b <- f curs
       ty <- D.fromKey "Node_Type" D.text o
       lift $ addNode id' (toDyn b, ty)
       pure b
@@ -89,13 +81,12 @@ tryDecoder = tryParseVal . D.focus
 
 runDecompressor
   :: forall a.
-  Sem '[Trace, EndState DecompressState, State DecompressState,
+  Sem '[EndState DecompressState, State DecompressState,
   Fixpoint, Final Identity] a
-  -> ([String], a)
+  -> a
 runDecompressor =
     runIdentity
   . runFinal
   . fixpointToFinal @Identity
-  . evalState @DecompressState H.empty
+  . evalLazyState @DecompressState H.empty
   . runEndState @DecompressState
-  . runTraceList

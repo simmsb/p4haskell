@@ -80,7 +80,7 @@ parseDeclarationVariable :: DecompressC r => D.Decoder (Sem r) DeclarationVariab
 parseDeclarationVariable = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   name        <- D.fromKey "name" D.text o
-  let annotations = []
+  annotations <- D.fromKey "annotations" parseAnnotations o
   type_       <- D.fromKey "type" p4TypeDecoder o
   initializer <- D.fromKey "initializer" expressionDecoder o
   pure $ DeclarationVariable name annotations type_ initializer
@@ -109,7 +109,7 @@ data BlockStatement = BlockStatement
 parseBlockStatement :: DecompressC r => D.Decoder (Sem r) BlockStatement
 parseBlockStatement = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
-  let annotations = []
+  annotations <- D.fromKey "annotations" parseAnnotations o
   components  <- D.fromKey "components" (parseVector statOrDeclDecoder) o
   pure $ BlockStatement annotations components
 
@@ -124,7 +124,6 @@ statOrDeclDecoder = D.withCursor $ \c -> do
   case res of
     Just x  -> pure $ (_Typed @Statement #) x
     Nothing -> do
-      o <- D.down c
       nodeType <- currentNodeType c
 
       case nodeType of
