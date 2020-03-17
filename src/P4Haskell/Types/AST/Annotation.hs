@@ -4,13 +4,12 @@ module P4Haskell.Types.AST.Annotation
     , parseAnnotations
     , parseAnnotation
     , AnnotatedToken
-    , AnnotationExpression
     , NamedExpression
     , parseAnnotatedToken
-    , parseExpression
     , parseNamedExpression ) where
 
 import           P4Haskell.Types.AST.Core
+import           P4Haskell.Types.AST.Expression
 import           P4Haskell.Types.AST.DecompressJSON
 
 import           Prelude                            hiding ( Member )
@@ -24,7 +23,7 @@ data Annotation = Annotation
   { name         :: Text
   , body         :: [AnnotatedToken]
   , needsParsing :: Bool
-  , expr         :: [AnnotationExpression]
+  , expr         :: [Expression]
   , kv           :: [NamedExpression]
   }
   deriving ( Show, Generic )
@@ -40,7 +39,7 @@ parseAnnotation = D.withCursor . tryParseVal $ \c -> do
   name         <- D.fromKey "name" D.text o
   body         <- D.fromKey "body" (parseVector parseAnnotatedToken) o
   needsParsing <- D.fromKey "needsParsing" D.bool o
-  expr         <- D.fromKey "expr" (parseVector parseExpression) o
+  expr         <- D.fromKey "expr" (parseVector expressionDecoder) o
   kv           <- D.fromKey "kv" (parseVector parseNamedExpression) o
   pure $ Annotation name body needsParsing expr kv
 
@@ -48,11 +47,6 @@ type AnnotatedToken = Text
 
 parseAnnotatedToken :: Monad m => D.Decoder m AnnotatedToken
 parseAnnotatedToken = T.toStrict . E.simplePureEncodeTextNoSpaces E.json' <$> D.json
-
-type AnnotationExpression = Text
-
-parseExpression :: Monad m => D.Decoder m AnnotationExpression
-parseExpression = T.toStrict . E.simplePureEncodeTextNoSpaces E.json' <$> D.json
 
 type NamedExpression = Text
 

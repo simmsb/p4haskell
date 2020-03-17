@@ -5,7 +5,7 @@ import           Control.Monad.Error.Class          ( throwError )
 
 import           Data.Generics.Sum.Typed
 
-import P4Haskell.Types.AST.Annotation
+import {-# SOURCE #-} P4Haskell.Types.AST.Annotation
 import           P4Haskell.Types.AST.Core
 import           P4Haskell.Types.AST.DeclarationID
 import           P4Haskell.Types.AST.DecompressJSON

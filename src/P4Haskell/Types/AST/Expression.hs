@@ -23,6 +23,7 @@ data Expression
   | Constant'Expression Constant
   | PathExpression'Expression PathExpression
   | BoolLiteral'Expression BoolLiteral
+  | StringLiteral'Expression StringLiteral
   | LNot'Expression LNot
   deriving ( Show, Generic )
 
@@ -38,6 +39,7 @@ expressionDecoder = D.withCursor $ \c -> do
     "Constant"                  -> (_Typed @Constant #)                  <$> tryDecoder parseConstant c
     "PathExpression"            -> (_Typed @PathExpression #)            <$> tryDecoder parsePathExpression c
     "BoolLiteral"               -> (_Typed @BoolLiteral #)               <$> tryDecoder parseBoolLiteral c
+    "StringLiteral"             -> (_Typed @StringLiteral #)             <$> tryDecoder parseStringLiteral c
     "LNot"                      -> (_Typed @LNot #)                      <$> tryDecoder parseLNot c
     _ -> throwError . D.ParseFailed $ "invalid node type for Expression: " <> nodeType
 
@@ -153,3 +155,16 @@ parseLNot = D.withCursor . tryParseVal $ \c -> do
   type_ <- D.fromKey "type" p4TypeDecoder o
   expr  <- D.fromKey "expr" expressionDecoder o
   pure $ LNot type_ expr
+
+data StringLiteral = StringLiteral
+  { type_ :: P4Type
+  , value :: Text
+  }
+  deriving ( Show, Generic )
+
+parseStringLiteral :: DecompressC r => D.Decoder (Sem r) StringLiteral
+parseStringLiteral = D.withCursor . tryParseVal $ \c -> do
+  o     <- D.down c
+  type_ <- D.fromKey "type" p4TypeDecoder o
+  value <- D.fromKey "value" D.text o
+  pure $ StringLiteral type_ value
