@@ -12,7 +12,9 @@ import           P4Haskell.Types.AST.Core
 import           P4Haskell.Types.AST.Expression
 import           P4Haskell.Types.AST.DecompressJSON
 
-import           Prelude                            hiding ( Member )
+import           Prelude
+
+import           Polysemy
 
 import qualified Data.Text.Lazy                     as T
 

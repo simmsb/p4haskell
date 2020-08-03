@@ -14,7 +14,9 @@ import {-# SOURCE #-} P4Haskell.Types.AST.Parameter
 import {-# SOURCE #-} P4Haskell.Types.AST.ActionList
 import           P4Haskell.Types.AST.Path
 
-import           Prelude                            hiding ( Member )
+import           Prelude
+
+import           Polysemy
 
 import qualified Waargonaut.Decode                  as D
 import qualified Waargonaut.Decode.Error            as D

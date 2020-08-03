@@ -12,6 +12,7 @@ module P4Haskell.Types.AST.DecompressJSON
 import           Data.Dynamic
 import qualified Data.HashMap.Lazy as H
 
+import           Polysemy
 import           Polysemy.EndState
 import           Polysemy.Fixpoint
 import           Polysemy.State

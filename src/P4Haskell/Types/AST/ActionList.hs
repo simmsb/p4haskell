@@ -9,7 +9,9 @@ import           P4Haskell.Types.AST.Core
 import           P4Haskell.Types.AST.DecompressJSON
 import           P4Haskell.Types.AST.Expression
 
-import           Prelude                            hiding ( Member )
+import           Prelude
+
+import           Polysemy
 
 import qualified Waargonaut.Decode                  as D
 

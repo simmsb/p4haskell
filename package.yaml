@@ -21,21 +21,20 @@ description:         P4 backend in haskell
 
 
 dependencies:
-  - base-noprelude >= 4.12
-  - relude >= 0.6
-  - waargonaut >= 0.8
-  - lens >= 4.18
-  - generic-lens >= 1.2
-  - unordered-containers >= 0.2
-  - di-polysemy >= 0.0.1
-  - df1 >= 0.3.2
-  - polysemy >= 1.2.3
-  - polysemy-zoo >= 0.6
-  - polysemy-plugin >= 0.2.4
-  - text >= 1.2
-  - pretty-simple >= 3.1
-  - bytestring >= 0.10
-  - attoparsec >= 0.13
+  - base-noprelude >= 4.12 && < 5
+  - relude ^>= 0.7
+  - waargonaut ^>= 0.8
+  - lens >= 4.18 && < 4.20
+  - generic-lens ^>= 2
+  - unordered-containers ^>= 0.2
+  - di-polysemy ^>= 0.1
+  - df1 >= 0.3 && < 0.5
+  - polysemy ^>= 1.3
+  - polysemy-plugin ^>= 0.2
+  - text ^>= 1.2
+  - pretty-simple ^>= 3.3
+  - bytestring ^>= 0.10
+  - attoparsec ^>= 0.13
   - mtl
   - semigroupoids
 
@@ -110,7 +109,6 @@ default-extensions:
   - AllowAmbiguousTypes
   - BlockArguments
   - NoMonomorphismRestriction
-  - AutoDeriveTypeable
   - BangPatterns
   - BinaryLiterals
   - UndecidableInstances
@@ -137,7 +135,6 @@ default-extensions:
   - InstanceSigs
   - KindSignatures
   - LambdaCase
-  - MonadFailDesugaring
   - MultiParamTypeClasses
   - MultiWayIf
   - NamedFieldPuns

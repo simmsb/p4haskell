@@ -8,6 +8,8 @@ import           P4Haskell.Types.AST.DecompressJSON
 
 import           Prelude                        hiding ( Member )
 
+import           Polysemy
+
 import qualified Waargonaut.Decode              as D
 
 -- ^ Like 'parseVector' but doesn't perform lookups on the decompression state.

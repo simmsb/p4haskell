@@ -17,7 +17,9 @@ import           P4Haskell.Types.AST.Parameter
 import           P4Haskell.Types.AST.Types
 import           P4Haskell.Types.AST.ActionList
 
-import           Prelude                            hiding ( Member )
+import           Prelude
+
+import           Polysemy                           hiding ( Member )
 
 import           Waargonaut
 import qualified Waargonaut.Decode                  as D

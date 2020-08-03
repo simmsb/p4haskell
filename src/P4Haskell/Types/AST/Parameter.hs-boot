@@ -4,6 +4,8 @@ module P4Haskell.Types.AST.Parameter
 
 import           P4Haskell.Types.AST.DecompressJSON
 
+import           Polysemy
+
 import qualified Waargonaut.Decode                  as D
 
 data Parameter

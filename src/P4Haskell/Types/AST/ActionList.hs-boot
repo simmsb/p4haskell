@@ -6,6 +6,8 @@ module P4Haskell.Types.AST.ActionList
 
 import           P4Haskell.Types.AST.DecompressJSON
 
+import           Polysemy
+
 import qualified Waargonaut.Decode                  as D
 
 data ActionList
