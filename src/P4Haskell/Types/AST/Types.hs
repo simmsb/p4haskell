@@ -39,6 +39,7 @@ data P4Type
   | TypeStruct'P4Type TypeStruct
   | TypeAction'P4Type TypeAction
   | TypeError'P4Type TypeError
+  | TypeString'P4Type TypeString
   | TypeActionEnum'P4Type TypeActionEnum
   deriving ( Show, Generic )
 
@@ -65,6 +66,7 @@ p4TypeDecoder = D.withCursor $ \c -> do
     "Type_Action"      -> (_Typed @TypeAction #)      <$> tryDecoder parseTypeAction c
     "Type_Error"       -> (_Typed @TypeError #)       <$> tryDecoder parseTypeError c
     "Type_ActionEnum"  -> (_Typed @TypeActionEnum #)  <$> tryDecoder parseTypeActionEnum c
+    "Type_String"      -> (_Typed @TypeString #)      <$> tryDecoder parseTypeString c
     _ -> throwError . D.ParseFailed $ "invalid node type for P4Type: " <> nodeType
 
 data TypeStruct = TypeStruct
@@ -187,6 +189,12 @@ data TypeBoolean = TypeBoolean
 
 -- NOTE: these can't just be `pure TypeX` because that won't insert it into the parse cache
 --       which will mean when we have a reference node it will never resolve
+
+data TypeString = TypeString
+  deriving ( Show, Generic )
+
+parseTypeString :: DecompressC r => D.Decoder (Sem r) TypeString
+parseTypeString = D.withCursor . tryParseVal $ \_c -> pure TypeString
 
 parseTypeBoolean :: DecompressC r => D.Decoder (Sem r) TypeBoolean
 parseTypeBoolean = D.withCursor . tryParseVal $ \_c -> pure TypeBoolean
