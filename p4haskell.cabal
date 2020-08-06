@@ -4,7 +4,7 @@ cabal-version: 1.18
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 9da0a19f7bbc48d71049e6b414a7597c7c5089caed4ddc16509883d92044e18d
+-- hash: 89d1fc2293cdd4f342b5ee8e24a06390119d0413431c6221cdbc73a95b94f510
 
 name:           p4haskell
 version:        0.0.0
@@ -54,7 +54,8 @@ library
   default-extensions: IncoherentInstances TemplateHaskell RecursiveDo CPP AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia DerivingStrategies GeneralizedNewtypeDeriving StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
   ghc-options: -fplugin=Polysemy.Plugin -O2 -fexpose-all-unfoldings -fspecialise-aggressively -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
   build-depends:
-      attoparsec >=0.13 && <0.14
+      PyF
+    , attoparsec >=0.13 && <0.14
     , base-noprelude >=4.12 && <5
     , bytestring >=0.10 && <0.11
     , df1 >=0.3 && <0.5
@@ -66,6 +67,7 @@ library
     , polysemy-plugin >=0.2 && <0.3
     , pretty-simple >=3.3 && <3.4
     , relude >=0.7 && <0.8
+    , rock
     , semigroupoids
     , text >=1.2 && <1.3
     , unordered-containers >=0.2 && <0.3
@@ -81,7 +83,8 @@ executable p4haskell
   default-extensions: IncoherentInstances TemplateHaskell RecursiveDo CPP AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia DerivingStrategies GeneralizedNewtypeDeriving StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
   ghc-options: -fplugin=Polysemy.Plugin -O2 -fexpose-all-unfoldings -fspecialise-aggressively -Wall -threaded -rtsopts -with-rtsopts=-N -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
   build-depends:
-      attoparsec >=0.13 && <0.14
+      PyF
+    , attoparsec >=0.13 && <0.14
     , base-noprelude >=4.12 && <5
     , bytestring >=0.10 && <0.11
     , df1 >=0.3 && <0.5
@@ -95,6 +98,7 @@ executable p4haskell
     , polysemy-plugin >=0.2 && <0.3
     , pretty-simple >=3.3 && <3.4
     , relude >=0.7 && <0.8
+    , rock
     , semigroupoids
     , text >=1.2 && <1.3
     , unordered-containers >=0.2 && <0.3
@@ -111,7 +115,8 @@ test-suite p4haskell-test
   default-extensions: IncoherentInstances TemplateHaskell RecursiveDo CPP AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia DerivingStrategies GeneralizedNewtypeDeriving StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
   ghc-options: -fplugin=Polysemy.Plugin -Wall -threaded -rtsopts -with-rtsopts=-N -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
   build-depends:
-      attoparsec >=0.13 && <0.14
+      PyF
+    , attoparsec >=0.13 && <0.14
     , base-noprelude >=4.12 && <5
     , bytestring >=0.10 && <0.11
     , df1 >=0.3 && <0.5
@@ -124,6 +129,7 @@ test-suite p4haskell-test
     , polysemy-plugin >=0.2 && <0.3
     , pretty-simple >=3.3 && <3.4
     , relude >=0.7 && <0.8
+    , rock
     , semigroupoids
     , text >=1.2 && <1.3
     , unordered-containers >=0.2 && <0.3

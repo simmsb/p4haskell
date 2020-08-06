@@ -37,6 +37,7 @@ data P4Type
   | TypeMethod'P4Type TypeMethod
   | TypeExtern'P4Type TypeExtern
   | TypeStruct'P4Type TypeStruct
+  | TypeEnum'P4Type TypeEnum
   | TypeAction'P4Type TypeAction
   | TypeError'P4Type TypeError
   | TypeString'P4Type TypeString
@@ -63,11 +64,28 @@ p4TypeDecoder = D.withCursor $ \c -> do
     "Type_Method"      -> (_Typed @TypeMethod #)      <$> tryDecoder parseTypeMethod c
     "Type_Extern"      -> (_Typed @TypeExtern #)      <$> tryDecoder parseTypeExtern c
     "Type_Struct"      -> (_Typed @TypeStruct #)      <$> tryDecoder parseTypeStruct c
+    "Type_Enum"        -> (_Typed @TypeEnum #)        <$> tryDecoder parseTypeEnum c
     "Type_Action"      -> (_Typed @TypeAction #)      <$> tryDecoder parseTypeAction c
     "Type_Error"       -> (_Typed @TypeError #)       <$> tryDecoder parseTypeError c
     "Type_ActionEnum"  -> (_Typed @TypeActionEnum #)  <$> tryDecoder parseTypeActionEnum c
     "Type_String"      -> (_Typed @TypeString #)      <$> tryDecoder parseTypeString c
     _ -> throwError . D.ParseFailed $ "invalid node type for P4Type: " <> nodeType
+
+
+data TypeEnum = TypeEnum
+  { name        :: Text
+  , annotations :: [Annotation]
+  , members     :: [DeclarationID]
+  }
+  deriving ( Show, Generic )
+
+parseTypeEnum :: DecompressC r => D.Decoder (Sem r) TypeEnum
+parseTypeEnum = D.withCursor . tryParseVal $ \c -> do
+  o           <- D.down c
+  name        <- D.fromKey "name" D.text o
+  annotations <- D.fromKey "annotations" parseAnnotations o
+  members     <- D.fromKey "members" (parseVector parseDeclarationID) o
+  pure $ TypeEnum name annotations members
 
 data TypeStruct = TypeStruct
   { name        :: Text

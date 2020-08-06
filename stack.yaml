@@ -16,5 +16,13 @@ extra-deps:
   - witherable-0.3.5@sha256:6590a15735b50ac14dcc138d4265ff1585d5f3e9d3047d5ebc5abf4cd5f50084,1476
   - these-1.0.1@sha256:58dba2446b57dde711c5e7f63910d18bc28b9a5831a89772986bb184a3e7851b,3266
   - monoidal-containers-0.6.0.1@sha256:7d776942659eb4d70d8b8da5d734396374a6eda8b4622df9e61e26b24e9c8e40,2501
+  - rock-0.3.0.0@sha256:62acd56010ea6669a7c110153c262a4b29c0dae049d3dc5028e6dd9cf20dc49f,3591
+  - constraints-extras-0.3.0.2@sha256:013b8d0392582c6ca068e226718a4fe8be8e22321cc0634f6115505bf377ad26,1853
+  - dependent-hashmap-0.1.0.1@sha256:6d1c20bd79f32d8daebd3cc741f884cc3d093118e3b876eb957defd4c594a966,1892
+  - dependent-sum-0.7.1.0@sha256:5599aa89637db434431b1dd3fa7c34bc3d565ee44f0519bfbc877be1927c2531,2068
   - github: nitros12/waargonaut
-    commit: 83626a4448bb4f37f49511c0c9cfa4e03ad96f3b 
+    commit: 83626a4448bb4f37f49511c0c9cfa4e03ad96f3b
+
+flags:
+  constraints-extras:
+    build-readme: false

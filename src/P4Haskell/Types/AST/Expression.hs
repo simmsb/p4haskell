@@ -26,6 +26,7 @@ data Expression
   | PathExpression'Expression PathExpression
   | BoolLiteral'Expression BoolLiteral
   | StringLiteral'Expression StringLiteral
+  | TypeNameExpression'Expression TypeNameExpression
   | LNot'Expression LNot
   deriving ( Show, Generic )
 
@@ -42,9 +43,33 @@ expressionDecoder = D.withCursor $ \c -> do
     "PathExpression"            -> (_Typed @PathExpression #)            <$> tryDecoder parsePathExpression c
     "BoolLiteral"               -> (_Typed @BoolLiteral #)               <$> tryDecoder parseBoolLiteral c
     "StringLiteral"             -> (_Typed @StringLiteral #)             <$> tryDecoder parseStringLiteral c
+    "TypeNameExpression"        -> (_Typed @TypeNameExpression #)        <$> tryDecoder parseTypeNameExpression c
     "LNot"                      -> (_Typed @LNot #)                      <$> tryDecoder parseLNot c
     _ -> throwError . D.ParseFailed $ "invalid node type for Expression: " <> nodeType
 
+data TypeType = TypeType
+  { type_ :: P4Type
+  }
+  deriving ( Show, Generic )
+
+parseTypeType :: DecompressC r => D.Decoder (Sem r) TypeType
+parseTypeType = D.withCursor . tryParseVal $ \c -> do
+  o             <- D.down c
+  type_         <- D.fromKey "type" p4TypeDecoder o
+  pure $ TypeType type_
+
+data TypeNameExpression = TypeNameExpression
+  { type_    :: P4Type
+  , typeName :: TypeName
+  }
+  deriving ( Show, Generic )
+
+parseTypeNameExpression :: DecompressC r => D.Decoder (Sem r) TypeNameExpression
+parseTypeNameExpression = D.withCursor . tryParseVal $ \c -> do
+  o              <- D.down c
+  TypeType type_ <- D.fromKey "type" parseTypeType o
+  typeName       <- D.fromKey "typeName" parseTypeName o
+  pure $ TypeNameExpression type_ typeName
 
 data MethodCallExpression = MethodCallExpression
   { type_         :: P4Type

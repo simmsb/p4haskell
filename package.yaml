@@ -35,6 +35,8 @@ dependencies:
   - pretty-simple ^>= 3.3
   - bytestring ^>= 0.10
   - attoparsec ^>= 0.13
+  - rock
+  - PyF
   - mtl
   - semigroupoids
 

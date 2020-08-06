@@ -110,6 +110,34 @@ packages:
   original:
     hackage: monoidal-containers-0.6.0.1@sha256:7d776942659eb4d70d8b8da5d734396374a6eda8b4622df9e61e26b24e9c8e40,2501
 - completed:
+    hackage: rock-0.3.0.0@sha256:62acd56010ea6669a7c110153c262a4b29c0dae049d3dc5028e6dd9cf20dc49f,3591
+    pantry-tree:
+      size: 535
+      sha256: a58b8c3d493b6681d5e16e91a16509668aec3c2d645533cefea18dc852302224
+  original:
+    hackage: rock-0.3.0.0@sha256:62acd56010ea6669a7c110153c262a4b29c0dae049d3dc5028e6dd9cf20dc49f,3591
+- completed:
+    hackage: constraints-extras-0.3.0.2@sha256:013b8d0392582c6ca068e226718a4fe8be8e22321cc0634f6115505bf377ad26,1853
+    pantry-tree:
+      size: 594
+      sha256: 3ce1012bfb02e4d7def9df19ce80b8cd2b472c691b25b181d9960638673fecd1
+  original:
+    hackage: constraints-extras-0.3.0.2@sha256:013b8d0392582c6ca068e226718a4fe8be8e22321cc0634f6115505bf377ad26,1853
+- completed:
+    hackage: dependent-hashmap-0.1.0.1@sha256:6d1c20bd79f32d8daebd3cc741f884cc3d093118e3b876eb957defd4c594a966,1892
+    pantry-tree:
+      size: 334
+      sha256: 817b36b81735d96696c5b165357c431e0b396dcf45afb8b4384fbfd4f4499cbb
+  original:
+    hackage: dependent-hashmap-0.1.0.1@sha256:6d1c20bd79f32d8daebd3cc741f884cc3d093118e3b876eb957defd4c594a966,1892
+- completed:
+    hackage: dependent-sum-0.7.1.0@sha256:5599aa89637db434431b1dd3fa7c34bc3d565ee44f0519bfbc877be1927c2531,2068
+    pantry-tree:
+      size: 290
+      sha256: 9cbfb32b5a8a782b7a1c941803fd517633cb699159b851c1d82267a9e9391b50
+  original:
+    hackage: dependent-sum-0.7.1.0@sha256:5599aa89637db434431b1dd3fa7c34bc3d565ee44f0519bfbc877be1927c2531,2068
+- completed:
     size: 174117
     url: https://github.com/nitros12/waargonaut/archive/83626a4448bb4f37f49511c0c9cfa4e03ad96f3b.tar.gz
     name: waargonaut

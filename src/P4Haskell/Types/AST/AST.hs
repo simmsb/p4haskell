@@ -46,6 +46,7 @@ data Node
   | TypeTypedef'Node TypeTypedef
   | TypeHeader'Node TypeHeader
   | TypeStruct'Node TypeStruct
+  | TypeEnum'Node TypeEnum
   | Method'Node Method
   | Member'Node Member
   | DeclarationMatchKind'Node DeclarationMatchKind
@@ -75,6 +76,7 @@ nodeDecoder = D.withCursor $ \c -> do
     "Type_Typedef"              -> (_Typed @TypeTypedef #)               <$> tryDecoder parseTypeTypedef c
     "Type_Header"               -> (_Typed @TypeHeader #)                <$> tryDecoder parseTypeHeader c
     "Type_Struct"               -> (_Typed @TypeStruct #)                <$> tryDecoder parseTypeStruct c
+    "Type_Enum"                 -> (_Typed @TypeEnum #)                  <$> tryDecoder parseTypeEnum c
     "Method"                    -> (_Typed @Method #)                    <$> tryDecoder parseMethod c
     "Member"                    -> (_Typed @Member #)                    <$> tryDecoder parseMember c
     "Declaration_MatchKind"     -> (_Typed @DeclarationMatchKind #)      <$> tryDecoder parseDeclarationMatchKind c
