@@ -1,6 +1,5 @@
 -- | Represents the P4 AST in haskellmodule P4Haskell.Types.AST
-module P4Haskell.Types.AST.AST
-    ( astDecoder ) where
+module P4Haskell.Types.AST.AST where
 
 import           Control.Monad.Error.Class          ( throwError )
 

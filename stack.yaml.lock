@@ -138,6 +138,34 @@ packages:
   original:
     hackage: dependent-sum-0.7.1.0@sha256:5599aa89637db434431b1dd3fa7c34bc3d565ee44f0519bfbc877be1927c2531,2068
 - completed:
+    hackage: dependent-sum-template-0.1.0.3@sha256:0bbbacdfbd3abf2a15aaf0cf2c27e5bdd159b519441fec39e1e6f2f54424adde,1682
+    pantry-tree:
+      size: 436
+      sha256: 32eeadeb991a290a1da41ce7e995dee7d38ebba3bd3e53ea8074c32c086701fd
+  original:
+    hackage: dependent-sum-template-0.1.0.3@sha256:0bbbacdfbd3abf2a15aaf0cf2c27e5bdd159b519441fec39e1e6f2f54424adde,1682
+- completed:
+    hackage: polysemy-zoo-0.7.0.0@sha256:e98ba9620128df8f8aea6adec5a0e324103324a2d2368930a2e214a2c334551b,3900
+    pantry-tree:
+      size: 3049
+      sha256: 5cc724e74ed56436891e15ce23b82ce432f9e9f735c5111847988f8854009815
+  original:
+    hackage: polysemy-zoo-0.7.0.0@sha256:e98ba9620128df8f8aea6adec5a0e324103324a2d2368930a2e214a2c334551b,3900
+- completed:
+    hackage: compact-0.2.0.0@sha256:9c5785bdc178ea6cf8f514ad35a78c64220e3cdb22216534e4cf496765551c7e,2345
+    pantry-tree:
+      size: 546
+      sha256: 6f7da573fbcddc109e1521edc07f1b34d7506473a3930074453e829daf901d71
+  original:
+    hackage: compact-0.2.0.0@sha256:9c5785bdc178ea6cf8f514ad35a78c64220e3cdb22216534e4cf496765551c7e,2345
+- completed:
+    hackage: constraints-0.11.2@sha256:d028005d93f891b48b61ff0c82c6f868859eb728010dea3e355b0c55d0f57cf9,2219
+    pantry-tree:
+      size: 867
+      sha256: 3c71f74be6758642190c7d116d43eb980f4128e1595a849af4295610f752745c
+  original:
+    hackage: constraints-0.11.2@sha256:d028005d93f891b48b61ff0c82c6f868859eb728010dea3e355b0c55d0f57cf9,2219
+- completed:
     size: 174117
     url: https://github.com/nitros12/waargonaut/archive/83626a4448bb4f37f49511c0c9cfa4e03ad96f3b.tar.gz
     name: waargonaut

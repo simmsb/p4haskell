@@ -4,7 +4,7 @@ cabal-version: 1.18
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 89d1fc2293cdd4f342b5ee8e24a06390119d0413431c6221cdbc73a95b94f510
+-- hash: 062c09622c62071498f773cfbf663e30a4ca246b7e3fd0cc83a19b60fc062138
 
 name:           p4haskell
 version:        0.0.0
@@ -31,6 +31,8 @@ source-repository head
 library
   exposed-modules:
       P4Haskell
+      P4Haskell.Compile.Query
+      P4Haskell.Compile.Scope
       P4Haskell.Types.AST
       P4Haskell.Types.AST.ActionList
       P4Haskell.Types.AST.Annotation
@@ -44,31 +46,33 @@ library
       P4Haskell.Types.AST.Path
       P4Haskell.Types.AST.Statement
       P4Haskell.Types.AST.Types
-      Polysemy.EndState
-      Polysemy.Reader.More
       Prelude
   other-modules:
       Paths_p4haskell
   hs-source-dirs:
       src
-  default-extensions: IncoherentInstances TemplateHaskell RecursiveDo CPP AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia DerivingStrategies GeneralizedNewtypeDeriving StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
+  default-extensions: IncoherentInstances TemplateHaskell RecursiveDo AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia DerivingStrategies GeneralizedNewtypeDeriving StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
   ghc-options: -fplugin=Polysemy.Plugin -O2 -fexpose-all-unfoldings -fspecialise-aggressively -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
   build-depends:
       PyF
     , attoparsec >=0.13 && <0.14
     , base-noprelude >=4.12 && <5
     , bytestring >=0.10 && <0.11
+    , dependent-sum-template >=0.1 && <0.2
     , df1 >=0.3 && <0.5
     , di-polysemy >=0.1 && <0.2
     , generic-lens >=2 && <2.1
+    , hashable >=1.3 && <1.4
     , lens >=4.18 && <4.20
     , mtl
     , polysemy >=1.3 && <1.4
     , polysemy-plugin >=0.2 && <0.3
+    , polysemy-zoo >=0.7 && <0.8
     , pretty-simple >=3.3 && <3.4
     , relude >=0.7 && <0.8
     , rock
     , semigroupoids
+    , some >=1.0 && <1.1
     , text >=1.2 && <1.3
     , unordered-containers >=0.2 && <0.3
     , waargonaut >=0.8 && <0.9
@@ -80,26 +84,30 @@ executable p4haskell
       Paths_p4haskell
   hs-source-dirs:
       app
-  default-extensions: IncoherentInstances TemplateHaskell RecursiveDo CPP AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia DerivingStrategies GeneralizedNewtypeDeriving StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
+  default-extensions: IncoherentInstances TemplateHaskell RecursiveDo AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia DerivingStrategies GeneralizedNewtypeDeriving StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
   ghc-options: -fplugin=Polysemy.Plugin -O2 -fexpose-all-unfoldings -fspecialise-aggressively -Wall -threaded -rtsopts -with-rtsopts=-N -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
   build-depends:
       PyF
     , attoparsec >=0.13 && <0.14
     , base-noprelude >=4.12 && <5
     , bytestring >=0.10 && <0.11
+    , dependent-sum-template >=0.1 && <0.2
     , df1 >=0.3 && <0.5
     , di-polysemy >=0.1 && <0.2
     , generic-lens >=2 && <2.1
+    , hashable >=1.3 && <1.4
     , lens >=4.18 && <4.20
     , mtl
     , optparse-applicative
     , p4haskell
     , polysemy >=1.3 && <1.4
     , polysemy-plugin >=0.2 && <0.3
+    , polysemy-zoo >=0.7 && <0.8
     , pretty-simple >=3.3 && <3.4
     , relude >=0.7 && <0.8
     , rock
     , semigroupoids
+    , some >=1.0 && <1.1
     , text >=1.2 && <1.3
     , unordered-containers >=0.2 && <0.3
     , waargonaut >=0.8 && <0.9
@@ -112,25 +120,29 @@ test-suite p4haskell-test
       Paths_p4haskell
   hs-source-dirs:
       test
-  default-extensions: IncoherentInstances TemplateHaskell RecursiveDo CPP AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia DerivingStrategies GeneralizedNewtypeDeriving StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
+  default-extensions: IncoherentInstances TemplateHaskell RecursiveDo AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia DerivingStrategies GeneralizedNewtypeDeriving StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
   ghc-options: -fplugin=Polysemy.Plugin -Wall -threaded -rtsopts -with-rtsopts=-N -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
   build-depends:
       PyF
     , attoparsec >=0.13 && <0.14
     , base-noprelude >=4.12 && <5
     , bytestring >=0.10 && <0.11
+    , dependent-sum-template >=0.1 && <0.2
     , df1 >=0.3 && <0.5
     , di-polysemy >=0.1 && <0.2
     , generic-lens >=2 && <2.1
+    , hashable >=1.3 && <1.4
     , lens >=4.18 && <4.20
     , mtl
     , p4haskell
     , polysemy >=1.3 && <1.4
     , polysemy-plugin >=0.2 && <0.3
+    , polysemy-zoo >=0.7 && <0.8
     , pretty-simple >=3.3 && <3.4
     , relude >=0.7 && <0.8
     , rock
     , semigroupoids
+    , some >=1.0 && <1.1
     , text >=1.2 && <1.3
     , unordered-containers >=0.2 && <0.3
     , waargonaut >=0.8 && <0.9

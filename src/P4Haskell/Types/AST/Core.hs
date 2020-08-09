@@ -6,7 +6,7 @@ module P4Haskell.Types.AST.Core
 
 import           P4Haskell.Types.AST.DecompressJSON
 
-import           Prelude                        hiding ( Member )
+import           Prelude
 
 import           Polysemy
 
