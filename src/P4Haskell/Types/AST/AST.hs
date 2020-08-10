@@ -4,6 +4,8 @@ module P4Haskell.Types.AST.AST
 
 import           Control.Monad.Error.Class          ( throwError )
 
+import qualified Generics.SOP as GS
+
 import           Data.Generics.Sum.Typed
 
 import           P4Haskell.Types.AST.Annotation
@@ -29,51 +31,75 @@ import qualified Waargonaut.Decode.Error            as D
 astDecoder :: DecompressC r => D.Decoder (Sem r) P4Program
 astDecoder = D.withCursor $ \c -> do
   o       <- D.down c
-  objects <- D.fromKey "objects" (parseVectorPure nodeDecoder) o
+  objects <- D.fromKey "objects" (parseVectorPure topLevelDecoder) o
   pure $ P4Program objects
 
 newtype P4Program = P4Program
-  { objects :: [Node]
+  { objects :: [TopLevel]
   }
   deriving ( Show, Generic )
 
-data Node
-  = TypeError'Node TypeError
-  | TypeExtern'Node TypeExtern
-  | TypeParser'Node TypeParser
-  | TypeControl'Node TypeControl
-  | TypePackage'Node TypePackage
-  | TypeTypedef'Node TypeTypedef
-  | TypeHeader'Node TypeHeader
-  | TypeStruct'Node TypeStruct
-  | TypeEnum'Node TypeEnum
-  | Method'Node Method
-  | DeclarationMatchKind'Node DeclarationMatchKind
-  | P4Parser'Node P4Parser
-  | P4Control'Node P4Control
-  | DeclarationInstance'Node DeclarationInstance
+data TopLevel
+  = TypeDecl'TopLevelTypeDecl TopLevelTypeDecl
+  | Method'TopLevel Method
+  | DeclarationMatchKind'TopLevel DeclarationMatchKind
+  | P4Parser'TopLevel P4Parser
+  | P4Control'TopLevel P4Control
+  | DeclarationInstance'TopLevel DeclarationInstance
   deriving ( Show, Generic )
 
-nodeDecoder :: DecompressC r => D.Decoder (Sem r) Node
-nodeDecoder = D.withCursor $ \c -> do
+topLevelDecoder :: DecompressC r => D.Decoder (Sem r) TopLevel
+topLevelDecoder = D.withCursor $ \c -> do
+  res <- topLevelTypeDeclDecoderInner c
+  case res of
+    Just x  -> pure $ (_Typed @TopLevelTypeDecl #) x
+    Nothing -> do
+      nodeType <- currentNodeType c
+
+      case nodeType of
+        "Method"                    -> (_Typed @Method #)                    <$> tryDecoder parseMethod c
+        "Declaration_MatchKind"     -> (_Typed @DeclarationMatchKind #)      <$> tryDecoder parseDeclarationMatchKind c
+        "P4Parser"                  -> (_Typed @P4Parser #)                  <$> tryDecoder parseP4Parser c
+        "P4Control"                 -> (_Typed @P4Control #)                 <$> tryDecoder parseP4Control c
+        "Declaration_Instance"      -> (_Typed @DeclarationInstance #)       <$> tryDecoder parseDeclarationInstance c
+        _ -> throwError . D.ParseFailed $ "invalid node type for TopLevel: " <> nodeType
+
+data TopLevelTypeDecl
+  = TypeError'TopLevelTypeDecl TypeError
+  | TypeExtern'TopLevelTypeDecl TypeExtern
+  | TypeParser'TopLevelTypeDecl TypeParser
+  | TypeControl'TopLevelTypeDecl TypeControl
+  | TypePackage'TopLevelTypeDecl TypePackage
+  | TypeTypedef'TopLevelTypeDecl TypeTypedef
+  | TypeHeader'TopLevelTypeDecl TypeHeader
+  | TypeStruct'TopLevelTypeDecl TypeStruct
+  | TypeEnum'TopLevelTypeDecl TypeEnum
+  deriving ( Show, Generic, GS.Generic )
+
+topLevelTypeDeclDecoderInner :: DecompressC r => D.JCurs -> D.DecodeResult (Sem r) (Maybe TopLevelTypeDecl)
+topLevelTypeDeclDecoderInner c = do
   nodeType <- currentNodeType c
 
   case nodeType of
-    "Type_Error"                -> (_Typed @TypeError #)                 <$> tryDecoder parseTypeError c
-    "Type_Extern"               -> (_Typed @TypeExtern #)                <$> tryDecoder parseTypeExtern c
-    "Type_Parser"               -> (_Typed @TypeParser #)                <$> tryDecoder parseTypeParser c
-    "Type_Control"              -> (_Typed @TypeControl #)               <$> tryDecoder parseTypeControl c
-    "Type_Package"              -> (_Typed @TypePackage #)               <$> tryDecoder parseTypePackage c
-    "Type_Typedef"              -> (_Typed @TypeTypedef #)               <$> tryDecoder parseTypeTypedef c
-    "Type_Header"               -> (_Typed @TypeHeader #)                <$> tryDecoder parseTypeHeader c
-    "Type_Struct"               -> (_Typed @TypeStruct #)                <$> tryDecoder parseTypeStruct c
-    "Type_Enum"                 -> (_Typed @TypeEnum #)                  <$> tryDecoder parseTypeEnum c
-    "Method"                    -> (_Typed @Method #)                    <$> tryDecoder parseMethod c
-    "Declaration_MatchKind"     -> (_Typed @DeclarationMatchKind #)      <$> tryDecoder parseDeclarationMatchKind c
-    "P4Parser"                  -> (_Typed @P4Parser #)                  <$> tryDecoder parseP4Parser c
-    "P4Control"                 -> (_Typed @P4Control #)                 <$> tryDecoder parseP4Control c
-    "Declaration_Instance"      -> (_Typed @DeclarationInstance #)       <$> tryDecoder parseDeclarationInstance c
-    _ -> throwError . D.ParseFailed $ "invalid node type for Node: " <> nodeType
+    "Type_Error"                -> Just . (_Typed @TypeError #)                 <$> tryDecoder parseTypeError c
+    "Type_Extern"               -> Just . (_Typed @TypeExtern #)                <$> tryDecoder parseTypeExtern c
+    "Type_Parser"               -> Just . (_Typed @TypeParser #)                <$> tryDecoder parseTypeParser c
+    "Type_Control"              -> Just . (_Typed @TypeControl #)               <$> tryDecoder parseTypeControl c
+    "Type_Package"              -> Just . (_Typed @TypePackage #)               <$> tryDecoder parseTypePackage c
+    "Type_Typedef"              -> Just . (_Typed @TypeTypedef #)               <$> tryDecoder parseTypeTypedef c
+    "Type_Header"               -> Just . (_Typed @TypeHeader #)                <$> tryDecoder parseTypeHeader c
+    "Type_Struct"               -> Just . (_Typed @TypeStruct #)                <$> tryDecoder parseTypeStruct c
+    "Type_Enum"                 -> Just . (_Typed @TypeEnum #)                  <$> tryDecoder parseTypeEnum c
+    _ -> pure Nothing
+
+topLevelTypeDeclDecoder :: DecompressC r => D.Decoder (Sem r) TopLevelTypeDecl
+topLevelTypeDeclDecoder = D.withCursor $ \c -> do
+  res <- topLevelTypeDeclDecoderInner c
+  case res of
+    Just x  -> pure x
+    Nothing -> do
+        nodeType <- currentNodeType c
+        throwError . D.ParseFailed $ "invalid node type for TopLevelTypeDecl: " <> nodeType
 
 data P4Action = P4Action
   { name        :: Text

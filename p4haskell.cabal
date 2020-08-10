@@ -4,7 +4,7 @@ cabal-version: 1.18
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: fcf774d6c09bc7ecaf4566f57dc334390d6ebb27447d89de9debd79b9315f1cb
+-- hash: 624da93385d1e73c3bb40a02c65e0173010f2f053f796322995fc84206924a5b
 
 name:           p4haskell
 version:        0.0.0
@@ -31,6 +31,7 @@ source-repository head
 library
   exposed-modules:
       P4Haskell
+      P4Haskell.Compile.Codegen
       P4Haskell.Compile.Declared
       P4Haskell.Compile.Eff
       P4Haskell.Compile.Fetch
@@ -49,6 +50,7 @@ library
       P4Haskell.Types.AST.Path
       P4Haskell.Types.AST.Statement
       P4Haskell.Types.AST.Types
+      P4Haskell.Utils.Drill
       Prelude
   other-modules:
       Paths_p4haskell
@@ -66,7 +68,9 @@ library
     , di-polysemy >=0.1 && <0.2
     , generic-lens >=2 && <2.1
     , generic-monoid >=0.1 && <0.2
+    , generics-sop >=0.5 && <0.6
     , hashable >=1.3 && <1.4
+    , language-c99-simple >=0.1 && <0.2
     , lens >=4.18 && <4.20
     , mtl
     , polysemy >=1.3 && <1.4
@@ -74,7 +78,7 @@ library
     , polysemy-zoo >=0.7 && <0.8
     , pretty-simple >=3.3 && <3.4
     , relude >=0.7 && <0.8
-    , rock
+    , rock >=0.3 && <0.4
     , semigroupoids
     , some >=1.0 && <1.1
     , text >=1.2 && <1.3
@@ -100,7 +104,9 @@ executable p4haskell
     , di-polysemy >=0.1 && <0.2
     , generic-lens >=2 && <2.1
     , generic-monoid >=0.1 && <0.2
+    , generics-sop >=0.5 && <0.6
     , hashable >=1.3 && <1.4
+    , language-c99-simple >=0.1 && <0.2
     , lens >=4.18 && <4.20
     , mtl
     , optparse-applicative
@@ -110,7 +116,7 @@ executable p4haskell
     , polysemy-zoo >=0.7 && <0.8
     , pretty-simple >=3.3 && <3.4
     , relude >=0.7 && <0.8
-    , rock
+    , rock >=0.3 && <0.4
     , semigroupoids
     , some >=1.0 && <1.1
     , text >=1.2 && <1.3
@@ -137,7 +143,9 @@ test-suite p4haskell-test
     , di-polysemy >=0.1 && <0.2
     , generic-lens >=2 && <2.1
     , generic-monoid >=0.1 && <0.2
+    , generics-sop >=0.5 && <0.6
     , hashable >=1.3 && <1.4
+    , language-c99-simple >=0.1 && <0.2
     , lens >=4.18 && <4.20
     , mtl
     , p4haskell
@@ -146,7 +154,7 @@ test-suite p4haskell-test
     , polysemy-zoo >=0.7 && <0.8
     , pretty-simple >=3.3 && <3.4
     , relude >=0.7 && <0.8
-    , rock
+    , rock >=0.3 && <0.4
     , semigroupoids
     , some >=1.0 && <1.1
     , text >=1.2 && <1.3
