@@ -4,7 +4,7 @@ cabal-version: 1.18
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 062c09622c62071498f773cfbf663e30a4ca246b7e3fd0cc83a19b60fc062138
+-- hash: fcf774d6c09bc7ecaf4566f57dc334390d6ebb27447d89de9debd79b9315f1cb
 
 name:           p4haskell
 version:        0.0.0
@@ -31,6 +31,9 @@ source-repository head
 library
   exposed-modules:
       P4Haskell
+      P4Haskell.Compile.Declared
+      P4Haskell.Compile.Eff
+      P4Haskell.Compile.Fetch
       P4Haskell.Compile.Query
       P4Haskell.Compile.Scope
       P4Haskell.Types.AST
@@ -62,6 +65,7 @@ library
     , df1 >=0.3 && <0.5
     , di-polysemy >=0.1 && <0.2
     , generic-lens >=2 && <2.1
+    , generic-monoid >=0.1 && <0.2
     , hashable >=1.3 && <1.4
     , lens >=4.18 && <4.20
     , mtl
@@ -95,6 +99,7 @@ executable p4haskell
     , df1 >=0.3 && <0.5
     , di-polysemy >=0.1 && <0.2
     , generic-lens >=2 && <2.1
+    , generic-monoid >=0.1 && <0.2
     , hashable >=1.3 && <1.4
     , lens >=4.18 && <4.20
     , mtl
@@ -131,6 +136,7 @@ test-suite p4haskell-test
     , df1 >=0.3 && <0.5
     , di-polysemy >=0.1 && <0.2
     , generic-lens >=2 && <2.1
+    , generic-monoid >=0.1 && <0.2
     , hashable >=1.3 && <1.4
     , lens >=4.18 && <4.20
     , mtl

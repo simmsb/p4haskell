@@ -1,5 +1,6 @@
 -- | Represents the P4 AST in haskellmodule P4Haskell.Types.AST
-module P4Haskell.Types.AST.AST where
+module P4Haskell.Types.AST.AST
+ where
 
 import           Control.Monad.Error.Class          ( throwError )
 
@@ -47,18 +48,9 @@ data Node
   | TypeStruct'Node TypeStruct
   | TypeEnum'Node TypeEnum
   | Method'Node Method
-  | Member'Node Member
   | DeclarationMatchKind'Node DeclarationMatchKind
   | P4Parser'Node P4Parser
-  | PathExpression'Node PathExpression
   | P4Control'Node P4Control
-  | BoolLiteral'Node BoolLiteral
-  | Key'Node Key
-  | ActionList'Node ActionList
-  | MethodCallExpression'Node MethodCallExpression
-  | ExpressionValue'Node ExpressionValue
-  | ConstructorCallExpression'Node ConstructorCallExpression
-  | Constant'Node Constant
   | DeclarationInstance'Node DeclarationInstance
   deriving ( Show, Generic )
 
@@ -77,18 +69,9 @@ nodeDecoder = D.withCursor $ \c -> do
     "Type_Struct"               -> (_Typed @TypeStruct #)                <$> tryDecoder parseTypeStruct c
     "Type_Enum"                 -> (_Typed @TypeEnum #)                  <$> tryDecoder parseTypeEnum c
     "Method"                    -> (_Typed @Method #)                    <$> tryDecoder parseMethod c
-    "Member"                    -> (_Typed @Member #)                    <$> tryDecoder parseMember c
     "Declaration_MatchKind"     -> (_Typed @DeclarationMatchKind #)      <$> tryDecoder parseDeclarationMatchKind c
     "P4Parser"                  -> (_Typed @P4Parser #)                  <$> tryDecoder parseP4Parser c
-    "PathExpression"            -> (_Typed @PathExpression #)            <$> tryDecoder parsePathExpression c
     "P4Control"                 -> (_Typed @P4Control #)                 <$> tryDecoder parseP4Control c
-    "BoolLiteral"               -> (_Typed @BoolLiteral #)               <$> tryDecoder parseBoolLiteral c
-    "Key"                       -> (_Typed @Key #)                       <$> tryDecoder parseKey c
-    "ActionList"                -> (_Typed @ActionList #)                <$> tryDecoder parseActionList c
-    "MethodCallExpression"      -> (_Typed @MethodCallExpression #)      <$> tryDecoder parseMethodCallExpression c
-    "ExpressionValue"           -> (_Typed @ExpressionValue #)           <$> tryDecoder parseExpressionValue c
-    "ConstructorCallExpression" -> (_Typed @ConstructorCallExpression #) <$> tryDecoder parseConstructorCallExpression c
-    "Constant"                  -> (_Typed @Constant #)                  <$> tryDecoder parseConstant c
     "Declaration_Instance"      -> (_Typed @DeclarationInstance #)       <$> tryDecoder parseDeclarationInstance c
     _ -> throwError . D.ParseFailed $ "invalid node type for Node: " <> nodeType
 
@@ -213,10 +196,26 @@ parseP4Table = D.withCursor . tryParseVal $ \c -> do
      (parseVector parseProperty)) o
   pure $ P4Table name annotations properties
 
+data PropertyValue
+  = PropertyValue'Key Key
+  | PropertyValue'ActionList ActionList
+  | PropertyValue'ExpressionValue ExpressionValue
+  deriving ( Show, Generic )
+
+propertyValueDecoder :: DecompressC r => D.Decoder (Sem r) PropertyValue
+propertyValueDecoder = D.withCursor $ \c -> do
+  nodeType <- currentNodeType c
+
+  case nodeType of
+    "Key"             -> (_Typed @Key #)             <$> tryDecoder parseKey c
+    "ActionList"      -> (_Typed @ActionList #)      <$> tryDecoder parseActionList c
+    "ExpressionValue" -> (_Typed @ExpressionValue #) <$> tryDecoder parseExpressionValue c
+    _ -> throwError . D.ParseFailed $ "invalid node type for PropertyValue: " <> nodeType
+
 data Property = Property
   { name        :: Text
   , annotations :: [Annotation]
-  , value       :: Node
+  , value       :: PropertyValue
   , isConstant  :: Bool
   }
   deriving ( Show, Generic )
@@ -226,7 +225,7 @@ parseProperty = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   name        <- D.fromKey "name" D.text o
   annotations <- D.fromKey "annotations" parseAnnotations o
-  value       <- D.fromKey "value" nodeDecoder o
+  value       <- D.fromKey "value" propertyValueDecoder o
   isConstant  <- D.fromKey "isConstant" D.bool o
   pure $ Property name annotations value isConstant
 
@@ -244,7 +243,7 @@ parseKey = D.withCursor . tryParseVal $ \c -> do
 data KeyElement = KeyElement
   { annotations :: [Annotation]
   , expression  :: Expression
-  , matchType   :: Node
+  , matchType   :: Expression
   }
   deriving ( Show, Generic )
 
@@ -253,18 +252,18 @@ parseKeyElement = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   annotations <- D.fromKey "annotations" parseAnnotations o
   expression  <- D.fromKey "expression" expressionDecoder o
-  matchType   <- D.fromKey "expression" nodeDecoder o
+  matchType   <- D.fromKey "matchType" expressionDecoder o
   pure $ KeyElement annotations expression matchType
 
 newtype ExpressionValue = ExpressionValue
-  { value :: Node
+  { value :: Expression
   }
   deriving ( Show, Generic )
 
 parseExpressionValue :: DecompressC r => D.Decoder (Sem r) ExpressionValue
 parseExpressionValue = D.withCursor . tryParseVal $ \c -> do
   o     <- D.down c
-  value <- D.fromKey "expression" nodeDecoder o
+  value <- D.fromKey "expression" expressionDecoder o
   pure $ ExpressionValue value
 
 data DeclarationInstance = DeclarationInstance

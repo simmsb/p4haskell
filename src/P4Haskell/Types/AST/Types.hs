@@ -40,8 +40,9 @@ data P4Type
   | TypeEnum'P4Type TypeEnum
   | TypeAction'P4Type TypeAction
   | TypeError'P4Type TypeError
-  | TypeString'P4Type TypeString
   | TypeActionEnum'P4Type TypeActionEnum
+  | TypeString'P4Type TypeString
+  | TypeMatchKind'P4Type TypeMatchKind
   deriving ( Show, Generic )
 
 p4TypeDecoder :: DecompressC r => D.Decoder (Sem r) P4Type
@@ -69,6 +70,7 @@ p4TypeDecoder = D.withCursor $ \c -> do
     "Type_Error"       -> (_Typed @TypeError #)       <$> tryDecoder parseTypeError c
     "Type_ActionEnum"  -> (_Typed @TypeActionEnum #)  <$> tryDecoder parseTypeActionEnum c
     "Type_String"      -> (_Typed @TypeString #)      <$> tryDecoder parseTypeString c
+    "Type_MatchKind"   -> (_Typed @TypeMatchKind #)   <$> tryDecoder parseTypeMatchKind c
     _ -> throwError . D.ParseFailed $ "invalid node type for P4Type: " <> nodeType
 
 
@@ -202,17 +204,23 @@ parseTypeControl = D.withCursor . tryParseVal $ \c -> do
      (parseVector parseParameter)) o
   pure $ TypeControl name annotations typeParameters applyParams
 
-data TypeBoolean = TypeBoolean
-  deriving ( Show, Generic )
-
 -- NOTE: these can't just be `pure TypeX` because that won't insert it into the parse cache
 --       which will mean when we have a reference node it will never resolve
+
+data TypeMatchKind = TypeMatchKind
+  deriving ( Show, Generic )
+
+parseTypeMatchKind :: DecompressC r => D.Decoder (Sem r) TypeMatchKind
+parseTypeMatchKind = D.withCursor . tryParseVal $ \_c -> pure TypeMatchKind
 
 data TypeString = TypeString
   deriving ( Show, Generic )
 
 parseTypeString :: DecompressC r => D.Decoder (Sem r) TypeString
 parseTypeString = D.withCursor . tryParseVal $ \_c -> pure TypeString
+
+data TypeBoolean = TypeBoolean
+  deriving ( Show, Generic )
 
 parseTypeBoolean :: DecompressC r => D.Decoder (Sem r) TypeBoolean
 parseTypeBoolean = D.withCursor . tryParseVal $ \_c -> pure TypeBoolean

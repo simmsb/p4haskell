@@ -1,9 +1,11 @@
 -- | Something for keeping track of scopes
 module P4Haskell.Compile.Scope
-  ( ScopeStack (..),
-    declareVar,
-    findVar,
-    runScopeStack,
+  ( Scope (..),
+    Var (..),
+    findInScope,
+    makeVar,
+    addToScope,
+    emptyScope,
   )
 where
 
@@ -11,8 +13,6 @@ import Data.Unique
 import Data.Generics.Labels ()
 import Polysemy
 import Polysemy.Fresh
-import Polysemy.Internal.Tactics
-import Polysemy.Reader as P
 
 newtype VarID = VarID Int
   deriving (Show, Eq, Generic)
@@ -21,10 +21,11 @@ newtype VarID = VarID Int
 data Var = Var
   { varOriginalName :: Text,
     varID :: VarID,
-    varType :: () -- TODO
+    varType :: ()
   }
-  deriving (Show, Generic)
+  -- TODO
 
+  deriving (Show, Generic)
 
 data Scope = Scope
   { scopeBindings :: HashMap VarID Var,
@@ -43,21 +44,7 @@ addToScope var scope =
 findInScope :: Text -> Scope -> Maybe Var
 findInScope n s = s ^. #scopeBindingsO . at n
 
-data ScopeStack m a where
-  DeclareVar :: Text -> () -> (Var -> m a) -> ScopeStack m a
-  FindVar :: Text -> ScopeStack m (Maybe Var)
-
-makeSem ''ScopeStack
-
-runScopeStack :: Member (Embed IO) r => Sem (ScopeStack ': r) a -> Sem r a
-runScopeStack =
-  runReader emptyScope
-    . freshToIO
-    . reinterpret2H \case
-      DeclareVar n t m -> do
-        i <- VarID . hashUnique <$> fresh
-        let var = Var n i t
-        mx <- runT $ m var
-        raise . runScopeStack $ P.local (addToScope var) mx
-      FindVar n ->
-        liftT $ P.asks (findInScope n)
+makeVar :: Member (Fresh Unique) r => Text -> () -> Sem r Var
+makeVar n t = do
+  i <- VarID . hashUnique <$> fresh
+  pure $ Var n i t
