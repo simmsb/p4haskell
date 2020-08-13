@@ -4,7 +4,7 @@ cabal-version: 1.18
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 624da93385d1e73c3bb40a02c65e0173010f2f053f796322995fc84206924a5b
+-- hash: 3883fe29338f309ab54bbc96d098f0cbe4cee57b1a3abaddf8576565afe72913
 
 name:           p4haskell
 version:        0.0.0
@@ -50,6 +50,11 @@ library
       P4Haskell.Types.AST.Path
       P4Haskell.Types.AST.Statement
       P4Haskell.Types.AST.Types
+      P4Haskell.Types.IR
+      P4Haskell.Types.IR.Expression
+      P4Haskell.Types.IR.Param
+      P4Haskell.Types.IR.Statement
+      P4Haskell.Types.IR.TopLevel
       P4Haskell.Utils.Drill
       Prelude
   other-modules:
