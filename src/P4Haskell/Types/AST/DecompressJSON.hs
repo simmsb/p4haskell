@@ -28,7 +28,7 @@ type DecompressState = HashMap Int (Dynamic, Text)
 
 type DecompressC r =
   (Members '[Fixpoint, State DecompressState,
-  EndState DecompressState, Final Identity] r) -- , HasCallStack)
+  EndState DecompressState, Final Identity] r , HasCallStack)
 
 addNode :: Member (State DecompressState) r => Int -> (Dynamic, Text) -> Sem r ()
 addNode k v = modify $ H.insert k v
@@ -71,7 +71,7 @@ tryParseVal f curs = do
   o   <- D.down curs
   ref <- isReferenceNode o
   id' <- D.fromKey "Node_ID" D.int o
-  -- T.traceM $ "parsing node: " <> show id' <> ", cs: " <> prettyCallStack callStack
+  -- traceM $ "parsing node: " <> show id' <> ", cs: " <> prettyCallStack callStack
   if ref
     then lift $ do
       ~(n, _) <- getNode id'

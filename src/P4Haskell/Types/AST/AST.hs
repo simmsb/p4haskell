@@ -104,7 +104,7 @@ topLevelTypeDeclDecoder = D.withCursor $ \c -> do
 data P4Action = P4Action
   { name        :: Text
   , annotations :: [Annotation]
-  , parameters  :: [Parameter]
+  , parameters  :: HashMap Text Parameter
   , body        :: BlockStatement
   }
   deriving ( Show, Generic )
@@ -116,7 +116,7 @@ parseP4Action = D.withCursor . tryParseVal $ \c -> do
   annotations <- D.fromKey "annotations" parseAnnotations o
   parameters  <- D.fromKey "parameters"
     (parseNestedObject "parameters"
-     (parseVector parseParameter)) o
+     (parseIndexedVector parseParameter)) o
   body        <- D.fromKey "body" parseBlockStatement o
   pure $ P4Action name annotations parameters body
 
@@ -138,7 +138,7 @@ declarationDecoder = D.withCursor $ \c -> do
 
 data ParserState = ParserState
   { annotations :: [Annotation]
-  , components  :: [StatOrDecl]
+  , components  :: HashMap Text StatOrDecl
   }
   deriving ( Show, Generic )
 
@@ -146,15 +146,15 @@ parseParserState :: DecompressC r => D.Decoder (Sem r) ParserState
 parseParserState = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   annotations <- D.fromKey "annotations" parseAnnotations o
-  components  <- D.fromKey "components" (parseVector statOrDeclDecoder) o
+  components  <- D.fromKey "components" (parseIndexedVector statOrDeclDecoder) o
   pure $ ParserState annotations components
 
 data P4Parser = P4Parser
   { name              :: Text
   , type_             :: P4Type
-  , constructorParams :: [Parameter]
-  , parserLocals      :: [Declaration]
-  , states            :: [ParserState]
+  , constructorParams :: HashMap Text Parameter
+  , parserLocals      :: HashMap Text Declaration
+  , states            :: HashMap Text ParserState
   }
   deriving ( Show, Generic )
 
@@ -165,30 +165,30 @@ parseP4Parser = D.withCursor . tryParseVal $ \c -> do
   type_             <- D.fromKey "type" p4TypeDecoder o
   constructorParams <- D.fromKey "constructorParams"
     (parseNestedObject "parameters"
-     (parseVector parseParameter)) o
-  parserLocals      <- D.fromKey "parserLocals" (parseVector declarationDecoder) o
-  states            <- D.fromKey "states" (parseVector parseParserState) o
+     (parseIndexedVector parseParameter)) o
+  parserLocals      <- D.fromKey "parserLocals" (parseIndexedVector declarationDecoder) o
+  states            <- D.fromKey "states" (parseIndexedVector parseParserState) o
   pure $ P4Parser name type_ constructorParams parserLocals states
 
 newtype Attribute = Attribute Json
   deriving ( Show, Generic )
 
 newtype DeclarationMatchKind = DeclarationMatchKind
-  { members :: [DeclarationID]
+  { members :: HashMap Text DeclarationID
   }
   deriving ( Show, Generic )
 
 parseDeclarationMatchKind :: DecompressC r => D.Decoder (Sem r) DeclarationMatchKind
 parseDeclarationMatchKind = D.withCursor . tryParseVal $ \c -> do
   o       <- D.down c
-  members <- D.fromKey "members" (parseVector parseDeclarationID) o
+  members <- D.fromKey "members" (parseIndexedVector parseDeclarationID) o
   pure $ DeclarationMatchKind members
 
 data P4Control = P4Control
   { name              :: Text
   , type_             :: P4Type
-  , constructorParams :: [Parameter]
-  , controlLocals     :: [Declaration]
+  , constructorParams :: HashMap Text Parameter
+  , controlLocals     :: HashMap Text Declaration
   , body              :: BlockStatement
   }
   deriving ( Show, Generic )
@@ -200,15 +200,15 @@ parseP4Control = D.withCursor . tryParseVal $ \c -> do
   type_             <- D.fromKey "type" p4TypeDecoder o
   constructorParams <- D.fromKey "constructorParams"
     (parseNestedObject "parameters"
-     (parseVector parseParameter)) o
-  controlLocals      <- D.fromKey "controlLocals" (parseVector declarationDecoder) o
+     (parseIndexedVector parseParameter)) o
+  controlLocals     <- D.fromKey "controlLocals" (parseIndexedVector declarationDecoder) o
   body              <- D.fromKey "body" parseBlockStatement o
   pure $ P4Control name type_ constructorParams controlLocals body
 
 data P4Table = P4Table
   { name        :: Text
   , annotations :: [Annotation]
-  , properties  :: [Property]
+  , properties  :: HashMap Text Property
   }
   deriving ( Show, Generic )
 
@@ -219,7 +219,7 @@ parseP4Table = D.withCursor . tryParseVal $ \c -> do
   annotations <- D.fromKey "annotations" parseAnnotations o
   properties  <- D.fromKey "properties"
     (parseNestedObject "properties"
-     (parseVector parseProperty)) o
+     (parseIndexedVector parseProperty)) o
   pure $ P4Table name annotations properties
 
 data PropertyValue

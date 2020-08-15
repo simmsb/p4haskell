@@ -2,6 +2,7 @@
 module P4Haskell.Types.AST.Core
     ( parseVectorPure
     , parseVector
+    , parseIndexedVector
     , parseNestedObject ) where
 
 import           P4Haskell.Types.AST.DecompressJSON
@@ -24,6 +25,16 @@ parseVector :: (Typeable a, DecompressC r)
 parseVector inner = D.withCursor . tryParseVal $ \c -> do
     o <- D.down c
     D.fromKey "vec" (D.list inner) o
+
+parseIndexedVector :: (Typeable a, DecompressC r)
+            => D.Decoder (Sem r) a
+            -> D.Decoder (Sem r) (HashMap Text a)
+parseIndexedVector inner = D.withCursor . tryParseVal $ \c -> do
+    o <- D.down c
+    -- even though we don't use 'vec', sometimes the nodes only exist in the vec
+    -- and not the declarations
+    _ <- D.fromKey "vec" (D.list inner) o
+    fromList <$> D.fromKey "declarations" (D.objectAsKeyValues D.text inner) o
 
 parseNestedObject
   :: (Typeable a, DecompressC r)

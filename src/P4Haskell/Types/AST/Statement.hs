@@ -104,7 +104,7 @@ parseIfStatement = D.withCursor . tryParseVal $ \c -> do
 
 data BlockStatement = BlockStatement
   { annotations :: [Annotation]
-  , components  :: [StatOrDecl]
+  , components  :: HashMap Text StatOrDecl
   }
   deriving ( Show, Generic )
 
@@ -112,7 +112,7 @@ parseBlockStatement :: DecompressC r => D.Decoder (Sem r) BlockStatement
 parseBlockStatement = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   annotations <- D.fromKey "annotations" parseAnnotations o
-  components  <- D.fromKey "components" (parseVector statOrDeclDecoder) o
+  components  <- D.fromKey "components" (parseIndexedVector statOrDeclDecoder) o
   pure $ BlockStatement annotations components
 
 data StatOrDecl

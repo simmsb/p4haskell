@@ -26,7 +26,7 @@ data Annotation = Annotation
   , body         :: [AnnotatedToken]
   , needsParsing :: Bool
   , expr         :: [Expression]
-  , kv           :: [NamedExpression]
+  , kv           :: HashMap Text NamedExpression
   }
   deriving ( Show, Generic )
 
@@ -42,7 +42,7 @@ parseAnnotation = D.withCursor . tryParseVal $ \c -> do
   body         <- D.fromKey "body" (parseVector parseAnnotatedToken) o
   needsParsing <- D.fromKey "needsParsing" D.bool o
   expr         <- D.fromKey "expr" (parseVector expressionDecoder) o
-  kv           <- D.fromKey "kv" (parseVector parseNamedExpression) o
+  kv           <- D.fromKey "kv" (parseIndexedVector parseNamedExpression) o
   pure $ Annotation name body needsParsing expr kv
 
 type AnnotatedToken = Text

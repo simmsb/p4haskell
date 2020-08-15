@@ -16,14 +16,14 @@ import           Polysemy
 import qualified Waargonaut.Decode                  as D
 
 newtype ActionList = ActionList
-  { actions :: [ActionListElement]
+  { actions :: HashMap Text ActionListElement
   }
   deriving ( Show, Generic )
 
 parseActionList :: DecompressC r => D.Decoder (Sem r) ActionList
 parseActionList = D.withCursor . tryParseVal $ \c -> do
   o       <- D.down c
-  elems   <- D.fromKey "actionList" (parseVector parseActionListElement) o
+  elems   <- D.fromKey "actionList" (parseIndexedVector parseActionListElement) o
   pure $ ActionList elems
 
 data ActionListElement = ActionListElement

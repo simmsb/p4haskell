@@ -77,7 +77,7 @@ p4TypeDecoder = D.withCursor $ \c -> do
 data TypeEnum = TypeEnum
   { name        :: Text
   , annotations :: [Annotation]
-  , members     :: [DeclarationID]
+  , members     :: HashMap Text DeclarationID
   }
   deriving ( Show, Generic )
 
@@ -86,13 +86,13 @@ parseTypeEnum = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   name        <- D.fromKey "name" D.text o
   annotations <- D.fromKey "annotations" parseAnnotations o
-  members     <- D.fromKey "members" (parseVector parseDeclarationID) o
+  members     <- D.fromKey "members" (parseIndexedVector parseDeclarationID) o
   pure $ TypeEnum name annotations members
 
 data TypeStruct = TypeStruct
   { name        :: Text
   , annotations :: [Annotation]
-  , fields      :: [StructField]
+  , fields      :: HashMap Text StructField
   }
   deriving ( Show, Generic )
 
@@ -101,7 +101,7 @@ parseTypeStruct = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   name        <- D.fromKey "name" D.text o
   annotations <- D.fromKey "annotations" parseAnnotations o
-  fields      <- D.fromKey "fields" (parseVector parseStructField) o
+  fields      <- D.fromKey "fields" (parseIndexedVector parseStructField) o
   pure $ TypeStruct name annotations fields
 
 data StructField = StructField
@@ -122,7 +122,7 @@ parseStructField = D.withCursor . tryParseVal $ \c -> do
 data TypeHeader = TypeHeader
   { name        :: Text
   , annotations :: [Annotation]
-  , fields      :: [StructField]
+  , fields      :: HashMap Text StructField
   }
   deriving ( Show, Generic )
 
@@ -131,7 +131,7 @@ parseTypeHeader = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   name        <- D.fromKey "name" D.text o
   annotations <- D.fromKey "annotations" parseAnnotations o
-  fields      <- D.fromKey "fields" (parseVector parseStructField) o
+  fields      <- D.fromKey "fields" (parseIndexedVector parseStructField) o
   pure $ TypeHeader name annotations fields
 
 data TypeTypedef = TypeTypedef
@@ -165,8 +165,8 @@ parseTypeSpecialized = D.withCursor . tryParseVal $ \c -> do
 data TypePackage = TypePackage
   { name              :: Text
   , annotations       :: [Annotation]
-  , typeParameters    :: [TypeVar]
-  , constructorParams :: [Parameter]
+  , typeParameters    :: HashMap Text TypeVar
+  , constructorParams :: HashMap Text Parameter
   }
   deriving ( Show, Generic )
 
@@ -177,17 +177,17 @@ parseTypePackage = D.withCursor . tryParseVal $ \c -> do
   annotations <- D.fromKey "annotations" parseAnnotations o
   typeParameters <- D.fromKey "typeParameters"
     (parseNestedObject "parameters"
-     (parseVector parseTypeVar)) o
+     (parseIndexedVector parseTypeVar)) o
   constructorParams    <- D.fromKey "constructorParams"
     (parseNestedObject "parameters"
-     (parseVector parseParameter)) o
+     (parseIndexedVector parseParameter)) o
   pure $ TypePackage name annotations typeParameters constructorParams
 
 data TypeControl = TypeControl
   { name           :: Text
   , annotations    :: [Annotation]
-  , typeParameters :: [TypeVar]
-  , applyParams    :: [Parameter]
+  , typeParameters :: HashMap Text TypeVar
+  , applyParams    :: HashMap Text Parameter
   }
   deriving ( Show, Generic )
 
@@ -198,10 +198,10 @@ parseTypeControl = D.withCursor . tryParseVal $ \c -> do
   annotations <- D.fromKey "annotations" parseAnnotations o
   typeParameters <- D.fromKey "typeParameters"
     (parseNestedObject "parameters"
-     (parseVector parseTypeVar)) o
+     (parseIndexedVector parseTypeVar)) o
   applyParams    <- D.fromKey "applyParams"
     (parseNestedObject "parameters"
-     (parseVector parseParameter)) o
+     (parseIndexedVector parseParameter)) o
   pure $ TypeControl name annotations typeParameters applyParams
 
 -- NOTE: these can't just be `pure TypeX` because that won't insert it into the parse cache
@@ -264,8 +264,8 @@ parseTypeVar = D.withCursor . tryParseVal $ \c -> do
   pure $ TypeVar name declID
 
 data TypeAction = TypeAction
-  { typeParameters :: [TypeVar]
-  , parameters     :: [Parameter]
+  { typeParameters :: HashMap Text TypeVar
+  , parameters     :: HashMap Text Parameter
   }
   deriving ( Show, Generic )
 
@@ -274,10 +274,10 @@ parseTypeAction = D.withCursor . tryParseVal $ \c -> do
   o              <- D.down c
   typeParameters <- D.fromKey "typeParameters"
     (parseNestedObject "parameters"
-     (parseVector parseTypeVar)) o
+     (parseIndexedVector parseTypeVar)) o
   parameters     <- D.fromKey "parameters"
     (parseNestedObject "parameters"
-     (parseVector parseParameter)) o
+     (parseIndexedVector parseParameter)) o
   pure $ TypeAction typeParameters parameters
 
 newtype TypeName = TypeName
@@ -293,8 +293,8 @@ parseTypeName = D.withCursor . tryParseVal $ \c -> do
 data TypeParser = TypeParser
   { name           :: Text
   , annotations    :: [Annotation]
-  , typeParameters :: [TypeVar]
-  , applyParams    :: [Parameter]
+  , typeParameters :: HashMap Text TypeVar
+  , applyParams    :: HashMap Text Parameter
   }
   deriving ( Show, Generic )
 
@@ -305,15 +305,15 @@ parseTypeParser = D.withCursor . tryParseVal $ \c -> do
   annotations <- D.fromKey "annotations" parseAnnotations o
   typeParameters <- D.fromKey "typeParameters"
     (parseNestedObject "parameters"
-     (parseVector parseTypeVar)) o
+     (parseIndexedVector parseTypeVar)) o
   applyParams    <- D.fromKey "applyParams"
     (parseNestedObject "parameters"
-     (parseVector parseParameter)) o
+     (parseIndexedVector parseParameter)) o
   pure $ TypeParser name annotations typeParameters applyParams
 
 data TypeMethod = TypeMethod
-  { typeParameters :: [TypeVar]
-  , parameters     :: [Parameter]
+  { typeParameters :: HashMap Text TypeVar
+  , parameters     :: HashMap Text Parameter
   , returnType     :: Maybe P4Type
   }
   deriving ( Show, Generic )
@@ -323,18 +323,18 @@ parseTypeMethod = D.withCursor . tryParseVal $ \c -> do
   o <- D.down c
   typeParameters <- D.fromKey "typeParameters"
     (parseNestedObject "parameters"
-     (parseVector parseTypeVar)) o
+     (parseIndexedVector parseTypeVar)) o
 
   parameters <- D.fromKey "parameters"
     (parseNestedObject "parameters"
-     (parseVector parseParameter)) o
+     (parseIndexedVector parseParameter)) o
 
   returnType <- D.fromKeyOptional "returnType" p4TypeDecoder o
   pure $ TypeMethod typeParameters parameters returnType
 
 data TypeExtern = TypeExtern
   { annotations    :: [Annotation]
-  , typeParameters :: [TypeVar]
+  , typeParameters :: HashMap Text TypeVar
   , methods        :: [Method]
   , name           :: Text
   --, attributes     :: HashMap Text Attribute
@@ -347,14 +347,14 @@ parseTypeExtern = D.withCursor . tryParseVal $ \c -> do
   annotations <- D.fromKey "annotations" parseAnnotations o
   typeParameters <- D.fromKey "typeParameters"
     (parseNestedObject "parameters"
-     (parseVector parseTypeVar)) o
+     (parseIndexedVector parseTypeVar)) o
   methods        <- D.fromKey "methods" (parseVector parseMethod) o
   name           <- D.fromKey "name" D.text o
   --attributes     <- D.fromKey "attributes" (parseMap parseAttribute) o
   pure $ TypeExtern annotations typeParameters methods name -- attributes
 
 data TypeError = TypeError
-  { members :: [DeclarationID]
+  { members :: HashMap Text DeclarationID
   , name    :: Text
   , declID  :: Int
   }
@@ -363,13 +363,13 @@ data TypeError = TypeError
 parseTypeError :: DecompressC r => D.Decoder (Sem r) TypeError
 parseTypeError = D.withCursor . tryParseVal $ \c -> do
   o       <- D.down c
-  members <- D.fromKey "members" (parseVector parseDeclarationID) o
+  members <- D.fromKey "members" (parseIndexedVector parseDeclarationID) o
   name    <- D.fromKey "name" D.text o
   declID  <- D.fromKey "declid" D.int o
   pure $ TypeError members name declID
 
 newtype TypeActionEnum = TypeActionEnum
-  { actionList :: [ActionListElement]
+  { actionList :: HashMap Text ActionListElement
   }
   deriving ( Show, Generic )
 
@@ -377,5 +377,5 @@ parseTypeActionEnum :: DecompressC r => D.Decoder (Sem r) TypeActionEnum
 parseTypeActionEnum = D.withCursor . tryParseVal $ \c -> do
   o       <- D.down c
   actionList <- D.fromKey "actionList" (parseNestedObject "actionList"
-                                          (parseVector parseActionListElement)) o
+                                          (parseIndexedVector parseActionListElement)) o
   pure $ TypeActionEnum actionList
