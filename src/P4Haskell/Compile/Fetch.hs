@@ -2,6 +2,7 @@
 module P4Haskell.Compile.Fetch
   ( Fetch(..)
   , fetch
+  , embedTask
   , runFetchToTask
   )
 where
@@ -11,9 +12,11 @@ import qualified Rock as R
 
 data Fetch f m a where
   Fetch :: f a -> Fetch f m a
+  EmbedTask :: R.Task f a -> Fetch f m a
 
 makeSem ''Fetch
 
 runFetchToTask :: Member (Embed (R.Task f)) r => Sem (Fetch f ': r) a -> Sem r a
 runFetchToTask = interpret \case
-  Fetch f -> embed (R.fetch f)
+  Fetch     f -> embed (R.fetch f)
+  EmbedTask t -> embed t

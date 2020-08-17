@@ -10,13 +10,12 @@ module P4Haskell.Compile.Scope
 where
 
 import Data.Unique
-import Data.Generics.Labels ()
 import Polysemy
 import Polysemy.Fresh
 
 newtype VarID = VarID Int
   deriving (Show, Eq, Generic)
-  deriving newtype (Hashable)
+  deriving (Hashable)
 
 data Var = Var
   { varOriginalName :: Text,

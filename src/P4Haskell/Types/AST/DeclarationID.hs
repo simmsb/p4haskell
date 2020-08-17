@@ -12,7 +12,7 @@ data DeclarationID = DeclarationID
   { name   :: Text
   , declID :: Int
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseDeclarationID :: DecompressC r => D.Decoder (Sem r) DeclarationID
 parseDeclarationID = D.withCursor . tryParseVal $ \c -> do

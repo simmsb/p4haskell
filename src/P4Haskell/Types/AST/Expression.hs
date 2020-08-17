@@ -28,7 +28,7 @@ data Expression
   | StringLiteral'Expression StringLiteral
   | TypeNameExpression'Expression TypeNameExpression
   | LNot'Expression LNot
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 expressionDecoder :: DecompressC r => D.Decoder (Sem r) Expression
 expressionDecoder = D.withCursor $ \c -> do
@@ -50,7 +50,7 @@ expressionDecoder = D.withCursor $ \c -> do
 data TypeType = TypeType
   { type_ :: P4Type
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeType :: DecompressC r => D.Decoder (Sem r) TypeType
 parseTypeType = D.withCursor . tryParseVal $ \c -> do
@@ -62,7 +62,7 @@ data TypeNameExpression = TypeNameExpression
   { type_    :: P4Type
   , typeName :: TypeName
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeNameExpression :: DecompressC r => D.Decoder (Sem r) TypeNameExpression
 parseTypeNameExpression = D.withCursor . tryParseVal $ \c -> do
@@ -77,7 +77,7 @@ data MethodCallExpression = MethodCallExpression
   , typeArguments :: [P4Type]
   , arguments     :: [Argument]
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseMethodCallExpression :: DecompressC r => D.Decoder (Sem r) MethodCallExpression
 parseMethodCallExpression = D.withCursor . tryParseVal $ \c -> do
@@ -93,7 +93,7 @@ data Member = Member
   , expr  :: Expression
   , member :: Text
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseMember :: DecompressC r => D.Decoder (Sem r) Member
 parseMember = D.withCursor . tryParseVal $ \c -> do
@@ -107,7 +107,7 @@ data Argument = Argument
   { name       :: Maybe Text
   , expression :: Expression
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseArgument :: DecompressC r => D.Decoder (Sem r) Argument
 parseArgument = D.withCursor . tryParseVal $ \c -> do
@@ -121,7 +121,7 @@ data ConstructorCallExpression = ConstructorCallExpression
   , constructedType :: P4Type
   , arguments       :: [Argument]
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseConstructorCallExpression :: DecompressC r => D.Decoder (Sem r) ConstructorCallExpression
 parseConstructorCallExpression = D.withCursor . tryParseVal $ \c -> do
@@ -136,7 +136,7 @@ data Constant = Constant
   , value :: Int
   , base  :: Int
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseConstant :: DecompressC r => D.Decoder (Sem r) Constant
 parseConstant = D.withCursor . tryParseVal $ \c -> do
@@ -150,7 +150,7 @@ data PathExpression = PathExpression
   { type_ :: P4Type
   , path  :: Path
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parsePathExpression :: DecompressC r => D.Decoder (Sem r) PathExpression
 parsePathExpression = D.withCursor . tryParseVal $ \c -> do
@@ -162,7 +162,7 @@ parsePathExpression = D.withCursor . tryParseVal $ \c -> do
 newtype BoolLiteral = BoolLiteral
   { value :: Bool
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseBoolLiteral :: DecompressC r => D.Decoder (Sem r) BoolLiteral
 parseBoolLiteral = D.withCursor . tryParseVal $ \c -> do
@@ -174,7 +174,7 @@ data LNot = LNot
   { type_ :: P4Type
   , expr  :: Expression
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseLNot :: DecompressC r => D.Decoder (Sem r) LNot
 parseLNot = D.withCursor . tryParseVal $ \c -> do
@@ -187,7 +187,7 @@ data StringLiteral = StringLiteral
   { type_ :: P4Type
   , value :: Text
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseStringLiteral :: DecompressC r => D.Decoder (Sem r) StringLiteral
 parseStringLiteral = D.withCursor . tryParseVal $ \c -> do

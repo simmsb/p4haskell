@@ -20,6 +20,10 @@ data Annotation
 
 instance Show Annotation
 
+instance Eq Annotation
+
+instance Hashable Annotation
+
 parseAnnotations :: DecompressC r => D.Decoder (Sem r) [Annotation]
 
 parseAnnotation :: DecompressC r => D.Decoder (Sem r) Annotation

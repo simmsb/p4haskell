@@ -15,7 +15,7 @@ data Method = Method
   , name        :: Text
   , type_       :: TypeMethod
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseMethod :: DecompressC r => D.Decoder (Sem r) Method
 parseMethod = D.withCursor . tryParseVal $ \c -> do

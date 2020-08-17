@@ -10,6 +10,7 @@ module P4Haskell.Types.AST.Annotation
 
 import           P4Haskell.Types.AST.Core
 import           P4Haskell.Types.AST.Expression
+import           P4Haskell.Types.AST.MapVec
 import           P4Haskell.Types.AST.DecompressJSON
 
 import           Prelude
@@ -26,9 +27,9 @@ data Annotation = Annotation
   , body         :: [AnnotatedToken]
   , needsParsing :: Bool
   , expr         :: [Expression]
-  , kv           :: HashMap Text NamedExpression
+  , kv           :: MapVec Text NamedExpression
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseAnnotations :: DecompressC r => D.Decoder (Sem r) [Annotation]
 parseAnnotations = D.withCursor . tryParseVal $ \c -> do

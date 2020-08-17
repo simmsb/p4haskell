@@ -12,4 +12,8 @@ data Parameter
 
 instance Show Parameter
 
+instance Eq Parameter
+
+instance Hashable Parameter
+
 parseParameter :: DecompressC r => D.Decoder (Sem r) Parameter

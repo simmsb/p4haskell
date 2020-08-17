@@ -19,7 +19,7 @@ data Parameter = Parameter
   , name        :: Text
   , type_       :: P4Type
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseParameter :: DecompressC r => D.Decoder (Sem r) Parameter
 parseParameter = D.withCursor . tryParseVal $ \c -> do

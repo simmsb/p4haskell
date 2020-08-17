@@ -14,10 +14,18 @@ data ActionList
 
 instance Show ActionList
 
+instance Eq ActionList
+
+instance Hashable ActionList
+
 parseActionList :: DecompressC r => D.Decoder (Sem r) ActionList
 
 data ActionListElement
 
 instance Show ActionListElement
+
+instance Eq ActionListElement
+
+instance Hashable ActionListElement
 
 parseActionListElement :: DecompressC r => D.Decoder (Sem r) ActionListElement

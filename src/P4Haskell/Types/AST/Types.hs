@@ -10,6 +10,7 @@ import           P4Haskell.Types.AST.Core
 import           P4Haskell.Types.AST.DeclarationID
 import           P4Haskell.Types.AST.DecompressJSON
 import {-# SOURCE #-} P4Haskell.Types.AST.Method
+import           P4Haskell.Types.AST.MapVec
 import {-# SOURCE #-} P4Haskell.Types.AST.Parameter
 import {-# SOURCE #-} P4Haskell.Types.AST.ActionList
 import           P4Haskell.Types.AST.Path
@@ -43,7 +44,7 @@ data P4Type
   | TypeActionEnum'P4Type TypeActionEnum
   | TypeString'P4Type TypeString
   | TypeMatchKind'P4Type TypeMatchKind
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 p4TypeDecoder :: DecompressC r => D.Decoder (Sem r) P4Type
 p4TypeDecoder = D.withCursor $ \c -> do
@@ -77,9 +78,9 @@ p4TypeDecoder = D.withCursor $ \c -> do
 data TypeEnum = TypeEnum
   { name        :: Text
   , annotations :: [Annotation]
-  , members     :: HashMap Text DeclarationID
+  , members     :: MapVec Text DeclarationID
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeEnum :: DecompressC r => D.Decoder (Sem r) TypeEnum
 parseTypeEnum = D.withCursor . tryParseVal $ \c -> do
@@ -92,9 +93,9 @@ parseTypeEnum = D.withCursor . tryParseVal $ \c -> do
 data TypeStruct = TypeStruct
   { name        :: Text
   , annotations :: [Annotation]
-  , fields      :: HashMap Text StructField
+  , fields      :: MapVec Text StructField
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeStruct :: DecompressC r => D.Decoder (Sem r) TypeStruct
 parseTypeStruct = D.withCursor . tryParseVal $ \c -> do
@@ -109,7 +110,7 @@ data StructField = StructField
   , annotations :: [Annotation]
   , type_ :: P4Type
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseStructField :: DecompressC r => D.Decoder (Sem r) StructField
 parseStructField = D.withCursor . tryParseVal $ \c -> do
@@ -122,9 +123,9 @@ parseStructField = D.withCursor . tryParseVal $ \c -> do
 data TypeHeader = TypeHeader
   { name        :: Text
   , annotations :: [Annotation]
-  , fields      :: HashMap Text StructField
+  , fields      :: MapVec Text StructField
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeHeader :: DecompressC r => D.Decoder (Sem r) TypeHeader
 parseTypeHeader = D.withCursor . tryParseVal $ \c -> do
@@ -139,7 +140,7 @@ data TypeTypedef = TypeTypedef
   , annotations :: [Annotation]
   , type_       :: P4Type
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeTypedef :: DecompressC r => D.Decoder (Sem r) TypeTypedef
 parseTypeTypedef = D.withCursor . tryParseVal $ \c -> do
@@ -153,7 +154,7 @@ data TypeSpecialized = TypeSpecialized
   { baseType  :: P4Type
   , arguments :: [P4Type]
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeSpecialized :: DecompressC r => D.Decoder (Sem r) TypeSpecialized
 parseTypeSpecialized = D.withCursor . tryParseVal $ \c -> do
@@ -165,10 +166,10 @@ parseTypeSpecialized = D.withCursor . tryParseVal $ \c -> do
 data TypePackage = TypePackage
   { name              :: Text
   , annotations       :: [Annotation]
-  , typeParameters    :: HashMap Text TypeVar
-  , constructorParams :: HashMap Text Parameter
+  , typeParameters    :: MapVec Text TypeVar
+  , constructorParams :: MapVec Text Parameter
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypePackage :: DecompressC r => D.Decoder (Sem r) TypePackage
 parseTypePackage = D.withCursor . tryParseVal $ \c -> do
@@ -186,10 +187,10 @@ parseTypePackage = D.withCursor . tryParseVal $ \c -> do
 data TypeControl = TypeControl
   { name           :: Text
   , annotations    :: [Annotation]
-  , typeParameters :: HashMap Text TypeVar
-  , applyParams    :: HashMap Text Parameter
+  , typeParameters :: MapVec Text TypeVar
+  , applyParams    :: MapVec Text Parameter
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeControl :: DecompressC r => D.Decoder (Sem r) TypeControl
 parseTypeControl = D.withCursor . tryParseVal $ \c -> do
@@ -208,31 +209,31 @@ parseTypeControl = D.withCursor . tryParseVal $ \c -> do
 --       which will mean when we have a reference node it will never resolve
 
 data TypeMatchKind = TypeMatchKind
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeMatchKind :: DecompressC r => D.Decoder (Sem r) TypeMatchKind
 parseTypeMatchKind = D.withCursor . tryParseVal $ \_c -> pure TypeMatchKind
 
 data TypeString = TypeString
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeString :: DecompressC r => D.Decoder (Sem r) TypeString
 parseTypeString = D.withCursor . tryParseVal $ \_c -> pure TypeString
 
 data TypeBoolean = TypeBoolean
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeBoolean :: DecompressC r => D.Decoder (Sem r) TypeBoolean
 parseTypeBoolean = D.withCursor . tryParseVal $ \_c -> pure TypeBoolean
 
 data TypeUnknown = TypeUnknown
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeUnknown :: DecompressC r => D.Decoder (Sem r) TypeUnknown
 parseTypeUnknown = D.withCursor . tryParseVal $ \_c -> pure TypeUnknown
 
 data TypeVoid = TypeVoid
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeVoid :: DecompressC r => D.Decoder (Sem r) TypeVoid
 parseTypeVoid = D.withCursor . tryParseVal $ \_c -> pure TypeVoid
@@ -241,7 +242,7 @@ data TypeBits = TypeBits
   { size     :: Int
   , isSigned :: Bool
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeBits :: DecompressC r => D.Decoder (Sem r) TypeBits
 parseTypeBits = D.withCursor . tryParseVal $ \c -> do
@@ -254,7 +255,7 @@ data TypeVar = TypeVar
   { name   :: Text
   , declID :: Int
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeVar :: DecompressC r => D.Decoder (Sem r) TypeVar
 parseTypeVar = D.withCursor . tryParseVal $ \c -> do
@@ -264,10 +265,10 @@ parseTypeVar = D.withCursor . tryParseVal $ \c -> do
   pure $ TypeVar name declID
 
 data TypeAction = TypeAction
-  { typeParameters :: HashMap Text TypeVar
-  , parameters     :: HashMap Text Parameter
+  { typeParameters :: MapVec Text TypeVar
+  , parameters     :: MapVec Text Parameter
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeAction :: DecompressC r => D.Decoder (Sem r) TypeAction
 parseTypeAction = D.withCursor . tryParseVal $ \c -> do
@@ -283,7 +284,7 @@ parseTypeAction = D.withCursor . tryParseVal $ \c -> do
 newtype TypeName = TypeName
   { path :: Path
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeName :: DecompressC r => D.Decoder (Sem r) TypeName
 parseTypeName = D.withCursor . tryParseVal $ \c -> do
@@ -293,10 +294,10 @@ parseTypeName = D.withCursor . tryParseVal $ \c -> do
 data TypeParser = TypeParser
   { name           :: Text
   , annotations    :: [Annotation]
-  , typeParameters :: HashMap Text TypeVar
-  , applyParams    :: HashMap Text Parameter
+  , typeParameters :: MapVec Text TypeVar
+  , applyParams    :: MapVec Text Parameter
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeParser :: DecompressC r => D.Decoder (Sem r) TypeParser
 parseTypeParser = D.withCursor . tryParseVal $ \c -> do
@@ -312,11 +313,11 @@ parseTypeParser = D.withCursor . tryParseVal $ \c -> do
   pure $ TypeParser name annotations typeParameters applyParams
 
 data TypeMethod = TypeMethod
-  { typeParameters :: HashMap Text TypeVar
-  , parameters     :: HashMap Text Parameter
+  { typeParameters :: MapVec Text TypeVar
+  , parameters     :: MapVec Text Parameter
   , returnType     :: Maybe P4Type
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeMethod :: DecompressC r => D.Decoder (Sem r) TypeMethod
 parseTypeMethod = D.withCursor . tryParseVal $ \c -> do
@@ -334,12 +335,12 @@ parseTypeMethod = D.withCursor . tryParseVal $ \c -> do
 
 data TypeExtern = TypeExtern
   { annotations    :: [Annotation]
-  , typeParameters :: HashMap Text TypeVar
+  , typeParameters :: MapVec Text TypeVar
   , methods        :: [Method]
   , name           :: Text
-  --, attributes     :: HashMap Text Attribute
+  --, attributes     :: MapVec Text Attribute
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeExtern :: DecompressC r => D.Decoder (Sem r) TypeExtern
 parseTypeExtern = D.withCursor . tryParseVal $ \c -> do
@@ -354,11 +355,11 @@ parseTypeExtern = D.withCursor . tryParseVal $ \c -> do
   pure $ TypeExtern annotations typeParameters methods name -- attributes
 
 data TypeError = TypeError
-  { members :: HashMap Text DeclarationID
+  { members :: MapVec Text DeclarationID
   , name    :: Text
   , declID  :: Int
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeError :: DecompressC r => D.Decoder (Sem r) TypeError
 parseTypeError = D.withCursor . tryParseVal $ \c -> do
@@ -369,9 +370,9 @@ parseTypeError = D.withCursor . tryParseVal $ \c -> do
   pure $ TypeError members name declID
 
 newtype TypeActionEnum = TypeActionEnum
-  { actionList :: HashMap Text ActionListElement
+  { actionList :: MapVec Text ActionListElement
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeActionEnum :: DecompressC r => D.Decoder (Sem r) TypeActionEnum
 parseTypeActionEnum = D.withCursor . tryParseVal $ \c -> do

@@ -6,19 +6,19 @@ module P4Haskell.Compile.Declared
   )
 where
 
-import Data.Generics.Labels ()
 import Data.Monoid.Generic
+import qualified Language.C99.Simple as C
 
 data Declared = Declared
-  { declaredTypes :: HashMap Text (),
-    declaredFuncs :: HashMap Text ()
+  { declaredTypes :: HashMap Text C.TypeSpec,
+    declaredFuncs :: HashMap Text C.Decln
   }
-  deriving (Show, Generic)
+  deriving (Generic)
   deriving (Semigroup) via GenericSemigroup Declared
   deriving (Monoid) via GenericMonoid Declared
 
-declareType :: Text -> () -> Declared
+declareType :: Text -> C.TypeSpec -> Declared
 declareType n v = mempty & #declaredTypes . at n ?~ v
 
-declareFunc :: Text -> () -> Declared
-declareFunc n v = mempty & #declaredFuncs . at n ?~ v
+declareFunc :: Text -> C.Type -> [C.Param] -> Declared
+declareFunc n ty params = mempty & #declaredFuncs . at n ?~ C.FunDecln Nothing ty (toString n) params

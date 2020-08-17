@@ -1,23 +1,19 @@
 -- | Queries
 module P4Haskell.Compile.Query
   ( Query (..),
-    rules
   )
 where
 
 import Data.GADT.Compare.TH (deriveGEq)
 import Data.Hashable
 import Data.Some
-import qualified Rock
 import qualified P4Haskell.Types.AST as AST
-import Data.Generics.Labels ()
-import Data.Generics.Sum
-import Relude.Unsafe (fromJust)
-import P4Haskell.Utils.Drill
+import qualified Language.C99.Simple as C
 
 data Query a where
-  GetMain :: Query AST.DeclarationInstance
-  FetchType :: Text -> Query AST.TopLevelTypeDecl
+  GetMain        :: Query AST.DeclarationInstance
+  FetchType      :: Text -> Query AST.TopLevelTypeDecl
+  GenerateP4Type :: AST.P4Type -> Query (C.TypeSpec, [(Text, C.TypeSpec)])
 
 deriving instance Show (Query a)
 
@@ -28,6 +24,7 @@ instance Hashable (Query a) where
     case q of
       GetMain -> h 0 ()
       FetchType t -> h 1 t
+      GenerateP4Type t -> h 2 t
     where
       {-# INLINE h #-}
       h :: forall h. Hashable h => Int -> h -> Int
@@ -42,21 +39,3 @@ instance Hashable (Some Query) where
   {-# INLINE hashWithSalt #-}
   hashWithSalt salt (Some query) =
     hashWithSalt salt query
-
-rules :: AST.P4Program -> Rock.Rules Query
-rules ast GetMain = (ast ^. #objects)
-                    & mapMaybe (\o -> do
-                                   decl <- o ^? _Typed @AST.DeclarationInstance
-                                   guard (decl ^. #name == "main")
-                                   pure decl)
-                    & listToMaybe
-                    & fromJust
-                    & pure
-rules ast (FetchType t) = (ast ^. #objects)
-                          & mapMaybe (\o -> do
-                                         decl <- o ^? _Typed @AST.TopLevelTypeDecl
-                                         guard (gdrillField @"name" decl == t)
-                                         pure decl)
-                          & listToMaybe
-                          & fromJust
-                          & pure

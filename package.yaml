@@ -136,8 +136,6 @@ default-extensions:
   - FunctionalDependencies
   - GADTs
   - DerivingVia
-  - DerivingStrategies
-  - GeneralizedNewtypeDeriving
   - StandaloneDeriving
   - DeriveAnyClass
   - InstanceSigs

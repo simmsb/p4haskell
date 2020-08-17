@@ -12,4 +12,8 @@ data Method
 
 instance Show Method
 
+instance Eq Method
+
+instance Hashable Method
+
 parseMethod :: DecompressC r => D.Decoder (Sem r) Method

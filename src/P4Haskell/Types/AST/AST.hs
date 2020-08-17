@@ -15,6 +15,7 @@ import           P4Haskell.Types.AST.DecompressJSON
 import           P4Haskell.Types.AST.Expression
 import           P4Haskell.Types.AST.Statement
 import           P4Haskell.Types.AST.Method
+import           P4Haskell.Types.AST.MapVec
 import           P4Haskell.Types.AST.Parameter
 import           P4Haskell.Types.AST.Types
 import           P4Haskell.Types.AST.ActionList
@@ -23,7 +24,6 @@ import           Prelude
 
 import           Polysemy                           hiding ( Member )
 
-import           Waargonaut
 import qualified Waargonaut.Decode                  as D
 import qualified Waargonaut.Decode.Error            as D
 
@@ -37,7 +37,7 @@ astDecoder = D.withCursor $ \c -> do
 newtype P4Program = P4Program
   { objects :: [TopLevel]
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 data TopLevel
   = TypeDecl'TopLevelTypeDecl TopLevelTypeDecl
@@ -46,7 +46,7 @@ data TopLevel
   | P4Parser'TopLevel P4Parser
   | P4Control'TopLevel P4Control
   | DeclarationInstance'TopLevel DeclarationInstance
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 topLevelDecoder :: DecompressC r => D.Decoder (Sem r) TopLevel
 topLevelDecoder = D.withCursor $ \c -> do
@@ -74,7 +74,7 @@ data TopLevelTypeDecl
   | TypeHeader'TopLevelTypeDecl TypeHeader
   | TypeStruct'TopLevelTypeDecl TypeStruct
   | TypeEnum'TopLevelTypeDecl TypeEnum
-  deriving ( Show, Generic, GS.Generic )
+  deriving ( Show, Generic, GS.Generic, Eq, Hashable )
 
 topLevelTypeDeclDecoderInner :: DecompressC r => D.JCurs -> D.DecodeResult (Sem r) (Maybe TopLevelTypeDecl)
 topLevelTypeDeclDecoderInner c = do
@@ -104,10 +104,10 @@ topLevelTypeDeclDecoder = D.withCursor $ \c -> do
 data P4Action = P4Action
   { name        :: Text
   , annotations :: [Annotation]
-  , parameters  :: HashMap Text Parameter
+  , parameters  :: MapVec Text Parameter
   , body        :: BlockStatement
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseP4Action :: DecompressC r => D.Decoder (Sem r) P4Action
 parseP4Action = D.withCursor . tryParseVal $ \c -> do
@@ -124,7 +124,7 @@ data Declaration
   = P4Action'Declaration P4Action
   | P4Table'Declaration P4Table
   | DeclarationInstance'Declaration DeclarationInstance
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 declarationDecoder :: DecompressC r => D.Decoder (Sem r) Declaration
 declarationDecoder = D.withCursor $ \c -> do
@@ -138,25 +138,25 @@ declarationDecoder = D.withCursor $ \c -> do
 
 data ParserState = ParserState
   { annotations :: [Annotation]
-  , components  :: HashMap Text StatOrDecl
+  , components  :: [StatOrDecl]
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseParserState :: DecompressC r => D.Decoder (Sem r) ParserState
 parseParserState = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   annotations <- D.fromKey "annotations" parseAnnotations o
-  components  <- D.fromKey "components" (parseIndexedVector statOrDeclDecoder) o
+  components  <- D.fromKey "components" (parseVector statOrDeclDecoder) o
   pure $ ParserState annotations components
 
 data P4Parser = P4Parser
   { name              :: Text
   , type_             :: P4Type
-  , constructorParams :: HashMap Text Parameter
-  , parserLocals      :: HashMap Text Declaration
-  , states            :: HashMap Text ParserState
+  , constructorParams :: MapVec Text Parameter
+  , parserLocals      :: MapVec Text Declaration
+  , states            :: MapVec Text ParserState
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseP4Parser :: DecompressC r => D.Decoder (Sem r) P4Parser
 parseP4Parser = D.withCursor . tryParseVal $ \c -> do
@@ -170,13 +170,13 @@ parseP4Parser = D.withCursor . tryParseVal $ \c -> do
   states            <- D.fromKey "states" (parseIndexedVector parseParserState) o
   pure $ P4Parser name type_ constructorParams parserLocals states
 
-newtype Attribute = Attribute Json
-  deriving ( Show, Generic )
+-- newtype Attribute = Attribute Json
+--   deriving ( Show, Generic, Eq, Hashable )
 
 newtype DeclarationMatchKind = DeclarationMatchKind
-  { members :: HashMap Text DeclarationID
+  { members :: MapVec Text DeclarationID
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseDeclarationMatchKind :: DecompressC r => D.Decoder (Sem r) DeclarationMatchKind
 parseDeclarationMatchKind = D.withCursor . tryParseVal $ \c -> do
@@ -186,18 +186,18 @@ parseDeclarationMatchKind = D.withCursor . tryParseVal $ \c -> do
 
 data P4Control = P4Control
   { name              :: Text
-  , type_             :: P4Type
-  , constructorParams :: HashMap Text Parameter
-  , controlLocals     :: HashMap Text Declaration
+  , type_             :: TypeControl
+  , constructorParams :: MapVec Text Parameter
+  , controlLocals     :: MapVec Text Declaration
   , body              :: BlockStatement
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseP4Control :: DecompressC r => D.Decoder (Sem r) P4Control
 parseP4Control = D.withCursor . tryParseVal $ \c -> do
   o                 <- D.down c
   name              <- D.fromKey "name" D.text o
-  type_             <- D.fromKey "type" p4TypeDecoder o
+  type_             <- D.fromKey "type" parseTypeControl o
   constructorParams <- D.fromKey "constructorParams"
     (parseNestedObject "parameters"
      (parseIndexedVector parseParameter)) o
@@ -208,9 +208,9 @@ parseP4Control = D.withCursor . tryParseVal $ \c -> do
 data P4Table = P4Table
   { name        :: Text
   , annotations :: [Annotation]
-  , properties  :: HashMap Text Property
+  , properties  :: MapVec Text Property
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseP4Table :: DecompressC r => D.Decoder (Sem r) P4Table
 parseP4Table = D.withCursor . tryParseVal $ \c -> do
@@ -226,7 +226,7 @@ data PropertyValue
   = PropertyValue'Key Key
   | PropertyValue'ActionList ActionList
   | PropertyValue'ExpressionValue ExpressionValue
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 propertyValueDecoder :: DecompressC r => D.Decoder (Sem r) PropertyValue
 propertyValueDecoder = D.withCursor $ \c -> do
@@ -244,7 +244,7 @@ data Property = Property
   , value       :: PropertyValue
   , isConstant  :: Bool
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseProperty :: DecompressC r => D.Decoder (Sem r) Property
 parseProperty = D.withCursor . tryParseVal $ \c -> do
@@ -258,7 +258,7 @@ parseProperty = D.withCursor . tryParseVal $ \c -> do
 newtype Key = Key
   { keyElements :: [KeyElement]
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseKey :: DecompressC r => D.Decoder (Sem r) Key
 parseKey = D.withCursor . tryParseVal $ \c -> do
@@ -271,7 +271,7 @@ data KeyElement = KeyElement
   , expression  :: Expression
   , matchType   :: Expression
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseKeyElement :: DecompressC r => D.Decoder (Sem r) KeyElement
 parseKeyElement = D.withCursor . tryParseVal $ \c -> do
@@ -284,7 +284,7 @@ parseKeyElement = D.withCursor . tryParseVal $ \c -> do
 newtype ExpressionValue = ExpressionValue
   { value :: Expression
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseExpressionValue :: DecompressC r => D.Decoder (Sem r) ExpressionValue
 parseExpressionValue = D.withCursor . tryParseVal $ \c -> do
@@ -298,7 +298,7 @@ data DeclarationInstance = DeclarationInstance
   , type_       :: P4Type
   , arguments   :: [Argument]
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseDeclarationInstance :: DecompressC r => D.Decoder (Sem r) DeclarationInstance
 parseDeclarationInstance = D.withCursor . tryParseVal $ \c -> do

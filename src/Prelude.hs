@@ -7,3 +7,5 @@ import           Control.Lens       hiding ( rewrite, transform )
 
 import           Relude             hiding ( Reader, (??), State, runState, error, evalState, gets
                                            , modify, trace, uncons, ask, get, local, runReader )
+
+import Data.Generics.Labels ()

@@ -7,6 +7,7 @@ module P4Haskell.Types.AST.ActionList
 import           P4Haskell.Types.AST.Annotation
 import           P4Haskell.Types.AST.Core
 import           P4Haskell.Types.AST.DecompressJSON
+import           P4Haskell.Types.AST.MapVec
 import           P4Haskell.Types.AST.Expression
 
 import           Prelude
@@ -16,9 +17,9 @@ import           Polysemy
 import qualified Waargonaut.Decode                  as D
 
 newtype ActionList = ActionList
-  { actions :: HashMap Text ActionListElement
+  { actions :: MapVec Text ActionListElement
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseActionList :: DecompressC r => D.Decoder (Sem r) ActionList
 parseActionList = D.withCursor . tryParseVal $ \c -> do
@@ -30,7 +31,7 @@ data ActionListElement = ActionListElement
   { annotations :: [Annotation]
   , expression  :: Expression
   }
-  deriving ( Show, Generic )
+  deriving ( Show, Generic, Eq, Hashable )
 
 parseActionListElement :: DecompressC r => D.Decoder (Sem r) ActionListElement
 parseActionListElement = D.withCursor . tryParseVal $ \c -> do
