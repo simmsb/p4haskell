@@ -2,9 +2,9 @@
 module P4Haskell.Compile.Scope
   ( Scope (..),
     Var (..),
-    findInScope,
     makeVar,
-    addToScope,
+    findVarInScope,
+    addVarToScope,
     emptyScope,
   )
 where
@@ -24,24 +24,24 @@ data Var = Var
   }
   -- TODO
 
-  deriving (Show, Generic)
+  deriving (Show, Generic, Eq, Hashable)
 
 data Scope = Scope
-  { scopeBindings :: HashMap VarID Var,
-    scopeBindingsO :: HashMap Text Var
+  { scopeVarBindings :: HashMap VarID Var,
+    scopeVarBindingsO :: HashMap Text Var
   }
-  deriving (Show, Generic)
+  deriving (Show, Generic, Eq, Hashable)
 
 emptyScope :: Scope
 emptyScope = Scope mempty mempty
 
-addToScope :: Var -> Scope -> Scope
-addToScope var scope =
-  scope & #scopeBindings . at (var ^. #varID) ?~ var
-    & #scopeBindingsO . at (var ^. #varOriginalName) ?~ var
+addVarToScope :: Var -> Scope -> Scope
+addVarToScope var scope =
+  scope & #scopeVarBindings . at (var ^. #varID) ?~ var
+    & #scopeVarBindingsO . at (var ^. #varOriginalName) ?~ var
 
-findInScope :: Text -> Scope -> Maybe Var
-findInScope n s = s ^. #scopeBindingsO . at n
+findVarInScope :: Text -> Scope -> Maybe Var
+findVarInScope n s = s ^. #scopeVarBindingsO . at n
 
 makeVar :: Member (Fresh Unique) r => Text -> () -> Sem r Var
 makeVar n t = do

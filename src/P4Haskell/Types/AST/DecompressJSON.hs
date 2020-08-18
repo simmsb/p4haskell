@@ -10,6 +10,7 @@ module P4Haskell.Types.AST.DecompressJSON
     , type DecompressC ) where
 
 import           Data.Dynamic
+import           Data.Typeable
 import qualified Data.HashMap.Lazy as H
 
 import           Polysemy
@@ -21,6 +22,8 @@ import           Polysemy.State
 
 import qualified Waargonaut.Decode as D
 
+import Relude ( error )
+
 -- import qualified Debug.Trace as T
 -- import qualified Data.Text.Lazy as T
 
@@ -28,7 +31,7 @@ type DecompressState = HashMap Int (Dynamic, Text)
 
 type DecompressC r =
   (Members '[Fixpoint, State DecompressState,
-  EndState DecompressState, Final Identity] r , HasCallStack)
+  EndState DecompressState, Final Identity] r) -- , HasCallStack)
 
 addNode :: Member (State DecompressState) r => Int -> (Dynamic, Text) -> Sem r ()
 addNode k v = modify $ H.insert k v
@@ -62,6 +65,10 @@ currentNodeType curs = do
       pure ty
     else D.fromKey "Node_Type" D.text o
 
+fromJustMsg :: Text -> Maybe a -> a
+fromJustMsg _ (Just a) = a
+fromJustMsg msg _ = error msg
+
 tryParseVal
   :: forall r b. (Typeable b, DecompressC r)
   => (D.JCurs -> D.DecodeResult (Sem r) b)
@@ -75,7 +82,9 @@ tryParseVal f curs = do
   if ref
     then lift $ do
       ~(n, _) <- getNode id'
-      let Just n' = fromDynamic @b n in pure n'
+      pure $ fromJustMsg ("node: " <> show id'
+                          <> ", wanted type: " <> show (typeRep $ Proxy @b)
+                          <> ", was type: " <> show (dynTypeRep n)) $ fromDynamic @b n
     else do
       b <- f curs
       ty <- D.fromKey "Node_Type" D.text o

@@ -14,6 +14,7 @@ import           P4Haskell.Types.AST.MapVec
 import {-# SOURCE #-} P4Haskell.Types.AST.Parameter
 import {-# SOURCE #-} P4Haskell.Types.AST.ActionList
 import           P4Haskell.Types.AST.Path
+import {-# SOURCE #-} P4Haskell.Types.AST.Table
 
 import           Prelude
 
@@ -44,6 +45,7 @@ data P4Type
   | TypeActionEnum'P4Type TypeActionEnum
   | TypeString'P4Type TypeString
   | TypeMatchKind'P4Type TypeMatchKind
+  | TypeTable'P4Type TypeTable
   deriving ( Show, Generic, Eq, Hashable )
 
 p4TypeDecoder :: DecompressC r => D.Decoder (Sem r) P4Type
@@ -72,6 +74,7 @@ p4TypeDecoder = D.withCursor $ \c -> do
     "Type_ActionEnum"  -> (_Typed @TypeActionEnum #)  <$> tryDecoder parseTypeActionEnum c
     "Type_String"      -> (_Typed @TypeString #)      <$> tryDecoder parseTypeString c
     "Type_MatchKind"   -> (_Typed @TypeMatchKind #)   <$> tryDecoder parseTypeMatchKind c
+    "Type_Table"       -> (_Typed @TypeTable #)       <$> tryDecoder parseTypeTable c
     _ -> throwError . D.ParseFailed $ "invalid node type for P4Type: " <> nodeType
 
 
@@ -370,13 +373,23 @@ parseTypeError = D.withCursor . tryParseVal $ \c -> do
   pure $ TypeError members name declID
 
 newtype TypeActionEnum = TypeActionEnum
-  { actionList :: MapVec Text ActionListElement
+  { actionList :: ActionList
   }
   deriving ( Show, Generic, Eq, Hashable )
 
 parseTypeActionEnum :: DecompressC r => D.Decoder (Sem r) TypeActionEnum
 parseTypeActionEnum = D.withCursor . tryParseVal $ \c -> do
-  o       <- D.down c
-  actionList <- D.fromKey "actionList" (parseNestedObject "actionList"
-                                          (parseIndexedVector parseActionListElement)) o
+  o          <- D.down c
+  actionList <- D.fromKey "actionList" parseActionList o
   pure $ TypeActionEnum actionList
+
+newtype TypeTable = TypeTable
+  { table :: P4Table
+  }
+  deriving ( Show, Generic, Eq, Hashable )
+
+parseTypeTable :: DecompressC r => D.Decoder (Sem r) TypeTable
+parseTypeTable = D.withCursor . tryParseVal $ \c -> do
+  o     <- D.down c
+  table <- D.fromKey "table" parseP4Table o
+  pure $ TypeTable table

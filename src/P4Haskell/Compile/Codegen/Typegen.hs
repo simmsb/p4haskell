@@ -25,9 +25,11 @@ generateP4Type t = do
   pure ty
 
 generateP4TypePure :: Rock.MonadFetch Query m => AST.P4Type -> m (C.TypeSpec, [(Text, C.TypeSpec)])
-generateP4TypePure (AST.TypeStruct'P4Type s) = generateP4StructPure s
-generateP4TypePure (AST.TypeVoid'P4Type   s) = generateP4VoidPure s
-generateP4TypePure (AST.TypeBits'P4Type   s) = generateP4BitsPure s
+generateP4TypePure (AST.TypeStruct'P4Type  s) = generateP4StructPure s
+generateP4TypePure (AST.TypeVoid'P4Type    s) = generateP4VoidPure s
+generateP4TypePure (AST.TypeBits'P4Type    s) = generateP4BitsPure s
+generateP4TypePure (AST.TypeName'P4Type    s) = generateP4TypeNamePure s
+generateP4TypePure (AST.TypeBoolean'P4Type s) = generateP4BoolPure s
 generateP4TypePure t = error $ "The type: " <> show t <> " shouldn't exist at this point"
 
 generateP4VoidPure :: Rock.MonadFetch Query m => AST.TypeVoid -> m (C.TypeSpec, [(Text, C.TypeSpec)])
@@ -44,6 +46,14 @@ generateP4BitsPure (AST.TypeBits size isSigned) =
                  | i <- [0 .. size + 7 `div` 8]]
         struct = C.StructDecln (Just name) fields
     in pure (C.Struct name, [(toText name, struct)])
+
+generateP4TypeNamePure :: Rock.MonadFetch Query m => AST.TypeName -> m (C.TypeSpec, [(Text, C.TypeSpec)])
+generateP4TypeNamePure (AST.TypeName p) = do
+  type_ <- Rock.fetch $ FetchType (p ^. #name)
+  Rock.fetch $ GenerateP4Type type_
+
+generateP4BoolPure :: Rock.MonadFetch Query m => AST.TypeBoolean -> m (C.TypeSpec, [(Text, C.TypeSpec)])
+generateP4BoolPure AST.TypeBoolean = pure (C.Bool, [])
 
 generateP4StructPure :: Rock.MonadFetch Query m => AST.TypeStruct -> m (C.TypeSpec, [(Text, C.TypeSpec)])
 generateP4StructPure s = do

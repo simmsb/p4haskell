@@ -9,6 +9,7 @@ import P4Haskell.Compile.Codegen
 import P4Haskell.Compile.Query
 import qualified P4Haskell.Types.AST as AST
 import P4Haskell.Utils.Drill
+import Relude (error)
 import Relude.Unsafe (fromJust)
 import qualified Rock
 
@@ -24,15 +25,15 @@ rules ast GetMain =
     & listToMaybe
     & fromJust
     & pure
-rules ast (FetchType t) =
+rules ast GetTopLevelTypes =
   (ast ^. #objects)
-    & mapMaybe
-      ( \o -> do
-          decl <- o ^? _Typed @AST.TopLevelTypeDecl
-          guard (gdrillField @"name" decl == t)
-          pure decl
-      )
-    & listToMaybe
-    & fromJust
+    & mapMaybe (^? _Typed @AST.TopLevelTypeDecl)
+    & map (\v -> (gdrillField @"name" v, v))
+    & fromList
     & pure
+rules _ast (FetchType name) = do
+    tl <- Rock.fetch GetTopLevelTypes
+    case tl ^. at name of
+      Just ty -> pure . injectSub $ ty
+      Nothing -> error $ "The type: " <> name <> "couldn't be found"
 rules _ast (GenerateP4Type t) = generateP4TypePure t
