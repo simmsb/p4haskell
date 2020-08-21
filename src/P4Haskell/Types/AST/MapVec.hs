@@ -14,3 +14,7 @@ data MapVec k v = MapVec
 
 instance Show v => Show (MapVec k v) where
   showsPrec i (MapVec _ vec) = showsPrec i vec
+
+instance Foldable (MapVec k) where
+  foldMap f m = foldMap f (m ^. #vec)
+  foldr f i m =  foldr f i (m ^. #vec)

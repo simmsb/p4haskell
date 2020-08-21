@@ -10,14 +10,14 @@ import Data.Monoid.Generic
 import qualified Language.C99.Simple as C
 
 data Declared = Declared
-  { declaredTypes :: HashMap Text C.TypeSpec,
+  { declaredTypes :: HashMap Text C.Decln,
     declaredFuncs :: HashMap Text C.Decln
   }
   deriving (Generic)
   deriving (Semigroup) via GenericSemigroup Declared
   deriving (Monoid) via GenericMonoid Declared
 
-declareType :: Text -> C.TypeSpec -> Declared
+declareType :: Text -> C.Decln -> Declared
 declareType n v = mempty & #declaredTypes . at n ?~ v
 
 declareFunc :: Text -> C.Type -> [C.Param] -> Declared

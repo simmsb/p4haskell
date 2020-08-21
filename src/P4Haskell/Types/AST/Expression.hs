@@ -116,8 +116,22 @@ parseArgument = D.withCursor . tryParseVal $ \c -> do
   expression <- D.fromKey "expression" expressionDecoder o
   pure $ Argument name expression
 
+data ControlOrParser
+  = Parser'ControlOrParser TypeParser
+  | Control'ControlOrParser TypeControl
+  deriving ( Show, Generic, Eq, Hashable )
+
+controlOrParserDecoder :: DecompressC r => D.Decoder (Sem r) ControlOrParser
+controlOrParserDecoder = D.withCursor $ \c -> do
+  nodeType <- currentNodeType c
+
+  case nodeType of
+    "Type_Parser"       -> (_Typed @TypeParser #)  <$> tryDecoder parseTypeParser c
+    "Type_Control"      -> (_Typed @TypeControl #) <$> tryDecoder parseTypeControl c
+    _ -> throwError . D.ParseFailed $ "invalid node type for ControlOrParser: " <> nodeType
+
 data ConstructorCallExpression = ConstructorCallExpression
-  { type_           :: P4Type
+  { type_           :: ControlOrParser
   , constructedType :: P4Type
   , arguments       :: [Argument]
   }
@@ -126,7 +140,7 @@ data ConstructorCallExpression = ConstructorCallExpression
 parseConstructorCallExpression :: DecompressC r => D.Decoder (Sem r) ConstructorCallExpression
 parseConstructorCallExpression = D.withCursor . tryParseVal $ \c -> do
   o               <- D.down c
-  type_           <- D.fromKey "type" p4TypeDecoder o
+  type_           <- D.fromKey "type" controlOrParserDecoder o
   constructedType <- D.fromKey "constructedType" p4TypeDecoder o
   arguments       <- D.fromKey "arguments" (parseVector parseArgument) o
   pure $ ConstructorCallExpression type_ constructedType arguments

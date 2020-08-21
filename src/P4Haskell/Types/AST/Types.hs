@@ -30,9 +30,6 @@ data P4Type
   | TypeBits'P4Type TypeBits
   | TypeName'P4Type TypeName
   | TypeBoolean'P4Type TypeBoolean
-  | TypeParser'P4Type TypeParser
-  | TypeControl'P4Type TypeControl
-  | TypePackage'P4Type TypePackage
   | TypeSpecialized'P4Type TypeSpecialized
   | TypeTypedef'P4Type TypeTypedef
   | TypeHeader'P4Type TypeHeader
@@ -59,9 +56,6 @@ p4TypeDecoder = D.withCursor $ \c -> do
     "Type_Bits"        -> (_Typed @TypeBits #)        <$> tryDecoder parseTypeBits c
     "Type_Name"        -> (_Typed @TypeName #)        <$> tryDecoder parseTypeName c
     "Type_Boolean"     -> (_Typed @TypeBoolean #)     <$> tryDecoder parseTypeBoolean c
-    "Type_Parser"      -> (_Typed @TypeParser #)      <$> tryDecoder parseTypeParser c
-    "Type_Control"     -> (_Typed @TypeControl #)     <$> tryDecoder parseTypeControl c
-    "Type_Package"     -> (_Typed @TypePackage #)     <$> tryDecoder parseTypePackage c
     "Type_Specialized" -> (_Typed @TypeSpecialized #) <$> tryDecoder parseTypeSpecialized c
     "Type_Typedef"     -> (_Typed @TypeTypedef #)     <$> tryDecoder parseTypeTypedef c
     "Type_Header"      -> (_Typed @TypeHeader #)      <$> tryDecoder parseTypeHeader c

@@ -43,6 +43,10 @@ data TopLevel
   = TypeDecl'TopLevelTypeDecl TopLevelTypeDecl
   | Method'TopLevel Method
   | DeclarationMatchKind'TopLevel DeclarationMatchKind
+  | TypeParser'TopLevel TypeParser
+  | TypeControl'TopLevel TypeControl
+  | TypeExtern'TopLevel TypeExtern
+  | TypePackage'TopLevel TypePackage
   | P4Parser'TopLevel P4Parser
   | P4Control'TopLevel P4Control
   | DeclarationInstance'TopLevel DeclarationInstance
@@ -57,19 +61,19 @@ topLevelDecoder = D.withCursor $ \c -> do
       nodeType <- currentNodeType c
 
       case nodeType of
-        "Method"                    -> (_Typed @Method #)                    <$> tryDecoder parseMethod c
-        "Declaration_MatchKind"     -> (_Typed @DeclarationMatchKind #)      <$> tryDecoder parseDeclarationMatchKind c
-        "P4Parser"                  -> (_Typed @P4Parser #)                  <$> tryDecoder parseP4Parser c
-        "P4Control"                 -> (_Typed @P4Control #)                 <$> tryDecoder parseP4Control c
-        "Declaration_Instance"      -> (_Typed @DeclarationInstance #)       <$> tryDecoder parseDeclarationInstance c
+        "Method"                    -> (_Typed @Method #)               <$> tryDecoder parseMethod c
+        "Declaration_MatchKind"     -> (_Typed @DeclarationMatchKind #) <$> tryDecoder parseDeclarationMatchKind c
+        "P4Parser"                  -> (_Typed @P4Parser #)             <$> tryDecoder parseP4Parser c
+        "P4Control"                 -> (_Typed @P4Control #)            <$> tryDecoder parseP4Control c
+        "Declaration_Instance"      -> (_Typed @DeclarationInstance #)  <$> tryDecoder parseDeclarationInstance c
+        "Type_Parser"               -> (_Typed @TypeParser #)           <$> tryDecoder parseTypeParser c
+        "Type_Control"              -> (_Typed @TypeControl #)          <$> tryDecoder parseTypeControl c
+        "Type_Extern"               -> (_Typed @TypeExtern #)           <$> tryDecoder parseTypeExtern c
+        "Type_Package"              -> (_Typed @TypePackage #)          <$> tryDecoder parseTypePackage c
         _ -> throwError . D.ParseFailed $ "invalid node type for TopLevel: " <> nodeType
 
 data TopLevelTypeDecl
   = TypeError'TopLevelTypeDecl TypeError
-  | TypeExtern'TopLevelTypeDecl TypeExtern
-  | TypeParser'TopLevelTypeDecl TypeParser
-  | TypeControl'TopLevelTypeDecl TypeControl
-  | TypePackage'TopLevelTypeDecl TypePackage
   | TypeTypedef'TopLevelTypeDecl TypeTypedef
   | TypeHeader'TopLevelTypeDecl TypeHeader
   | TypeStruct'TopLevelTypeDecl TypeStruct
@@ -81,15 +85,11 @@ topLevelTypeDeclDecoderInner c = do
   nodeType <- currentNodeType c
 
   case nodeType of
-    "Type_Error"                -> Just . (_Typed @TypeError #)                 <$> tryDecoder parseTypeError c
-    "Type_Extern"               -> Just . (_Typed @TypeExtern #)                <$> tryDecoder parseTypeExtern c
-    "Type_Parser"               -> Just . (_Typed @TypeParser #)                <$> tryDecoder parseTypeParser c
-    "Type_Control"              -> Just . (_Typed @TypeControl #)               <$> tryDecoder parseTypeControl c
-    "Type_Package"              -> Just . (_Typed @TypePackage #)               <$> tryDecoder parseTypePackage c
-    "Type_Typedef"              -> Just . (_Typed @TypeTypedef #)               <$> tryDecoder parseTypeTypedef c
-    "Type_Header"               -> Just . (_Typed @TypeHeader #)                <$> tryDecoder parseTypeHeader c
-    "Type_Struct"               -> Just . (_Typed @TypeStruct #)                <$> tryDecoder parseTypeStruct c
-    "Type_Enum"                 -> Just . (_Typed @TypeEnum #)                  <$> tryDecoder parseTypeEnum c
+    "Type_Error"                -> Just . (_Typed @TypeError #)   <$> tryDecoder parseTypeError c
+    "Type_Typedef"              -> Just . (_Typed @TypeTypedef #) <$> tryDecoder parseTypeTypedef c
+    "Type_Header"               -> Just . (_Typed @TypeHeader #)  <$> tryDecoder parseTypeHeader c
+    "Type_Struct"               -> Just . (_Typed @TypeStruct #)  <$> tryDecoder parseTypeStruct c
+    "Type_Enum"                 -> Just . (_Typed @TypeEnum #)    <$> tryDecoder parseTypeEnum c
     _ -> pure Nothing
 
 topLevelTypeDeclDecoder :: DecompressC r => D.Decoder (Sem r) TopLevelTypeDecl
@@ -151,7 +151,7 @@ parseParserState = D.withCursor . tryParseVal $ \c -> do
 
 data P4Parser = P4Parser
   { name              :: Text
-  , type_             :: P4Type
+  , type_             :: TypeParser
   , constructorParams :: MapVec Text Parameter
   , parserLocals      :: MapVec Text Declaration
   , states            :: MapVec Text ParserState
@@ -162,7 +162,7 @@ parseP4Parser :: DecompressC r => D.Decoder (Sem r) P4Parser
 parseP4Parser = D.withCursor . tryParseVal $ \c -> do
   o                 <- D.down c
   name              <- D.fromKey "name" D.text o
-  type_             <- D.fromKey "type" p4TypeDecoder o
+  type_             <- D.fromKey "type" parseTypeParser o
   constructorParams <- D.fromKey "constructorParams"
     (parseNestedObject "parameters"
      (parseIndexedVector parseParameter)) o

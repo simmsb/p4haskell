@@ -14,7 +14,7 @@ data Query a where
   GetMain          :: Query AST.DeclarationInstance
   GetTopLevelTypes :: Query (HashMap Text AST.TopLevelTypeDecl)
   FetchType        :: Text -> Query AST.P4Type
-  GenerateP4Type   :: AST.P4Type -> Query (C.TypeSpec, [(Text, C.TypeSpec)])
+  GenerateP4Type   :: AST.P4Type -> Query (C.Type, [(Text, C.Decln)])
 
 deriving instance Show (Query a)
 

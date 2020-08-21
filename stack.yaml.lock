@@ -166,27 +166,6 @@ packages:
   original:
     hackage: constraints-0.11.2@sha256:d028005d93f891b48b61ff0c82c6f868859eb728010dea3e355b0c55d0f57cf9,2219
 - completed:
-    hackage: language-c99-simple-0.1.2@sha256:5b522616fa22a0909250d56a0632f1f1cae1c38d585149e13eeb809103af9543,1540
-    pantry-tree:
-      size: 574
-      sha256: 1d297b46c78e2a498f7828bddc794d8355656273f7334f8ab27452ccfd28d5be
-  original:
-    hackage: language-c99-simple-0.1.2@sha256:5b522616fa22a0909250d56a0632f1f1cae1c38d585149e13eeb809103af9543,1540
-- completed:
-    hackage: language-c99-0.1.2@sha256:6c9022378c7ed57d080fe41442066a5f2657347fd02a07ad291bbf41d71ab954,1587
-    pantry-tree:
-      size: 399
-      sha256: 53d202a7489f2501c633e5c1f4d6a63deed004df1bec36d3ce29d54388c4a619
-  original:
-    hackage: language-c99-0.1.2@sha256:6c9022378c7ed57d080fe41442066a5f2657347fd02a07ad291bbf41d71ab954,1587
-- completed:
-    hackage: language-c99-util-0.1.1@sha256:480adee2ba3045d04305be5362be991b1814faf58cfd7af1f845d0fc9dbcf3a7,1177
-    pantry-tree:
-      size: 489
-      sha256: 3a5e1387e9b073dad4f51fa749fd4c33e2abe31566b63a120a38a7f88d809493
-  original:
-    hackage: language-c99-util-0.1.1@sha256:480adee2ba3045d04305be5362be991b1814faf58cfd7af1f845d0fc9dbcf3a7,1177
-- completed:
     size: 174117
     url: https://github.com/nitros12/waargonaut/archive/83626a4448bb4f37f49511c0c9cfa4e03ad96f3b.tar.gz
     name: waargonaut
@@ -197,6 +176,39 @@ packages:
       sha256: e5df45e2ff01300b013069e6ee308619f267d1bd115df256597fce7a9453bad5
   original:
     url: https://github.com/nitros12/waargonaut/archive/83626a4448bb4f37f49511c0c9cfa4e03ad96f3b.tar.gz
+- completed:
+    size: 8219
+    url: https://github.com/fdedden/language-c99-simple/archive/755ad2fc610a82888b9b64b3e6567bb86a7d7832.tar.gz
+    name: language-c99-simple
+    version: 0.1.2
+    sha256: 16e5c7c9845691b7e013ab19f4e73d31c62b8c1e35e777fef6e97fb574ef9596
+    pantry-tree:
+      size: 574
+      sha256: 1ab9761dcdc90841de387c06a571329aac491967031fb04176ce4d845571e802
+  original:
+    url: https://github.com/fdedden/language-c99-simple/archive/755ad2fc610a82888b9b64b3e6567bb86a7d7832.tar.gz
+- completed:
+    size: 11223
+    url: https://github.com/fdedden/language-c99/archive/e9a4f42155690f0461a1dfed824f164ff480adb4.tar.gz
+    name: language-c99
+    version: 0.1.2
+    sha256: 8ddfac86734ae90708e89ef993ca598cc2a3d77b3243bf2797173471b5983b87
+    pantry-tree:
+      size: 399
+      sha256: 9cea97f2724f27b2abc70a5cf58f36a4f30505f950f722e52957015e78a8c0bf
+  original:
+    url: https://github.com/fdedden/language-c99/archive/e9a4f42155690f0461a1dfed824f164ff480adb4.tar.gz
+- completed:
+    size: 5020
+    url: https://github.com/fdedden/language-c99-util/archive/e5a123b27867e5a235d6ab8ea5217b18b6faf621.tar.gz
+    name: language-c99-util
+    version: 0.1.1
+    sha256: f7c46e8eea863387e944c9a5c611eefb350b7e5e79ea24f3bb0dbfa27d3660a4
+    pantry-tree:
+      size: 489
+      sha256: d2dc9d669f92b5f42e3a4b5490fc91d1932c836f0d45b4dabae8ea68577eeeff
+  original:
+    url: https://github.com/fdedden/language-c99-util/archive/e5a123b27867e5a235d6ab8ea5217b18b6faf621.tar.gz
 snapshots:
 - completed:
     size: 532379

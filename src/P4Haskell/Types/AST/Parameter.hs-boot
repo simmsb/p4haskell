@@ -1,12 +1,24 @@
 module P4Haskell.Types.AST.Parameter
     ( Parameter
-    , parseParameter ) where
+    , Direction
+    , parseParameter
+    , parseDirection ) where
 
 import           P4Haskell.Types.AST.DecompressJSON
 
 import           Polysemy
 
 import qualified Waargonaut.Decode                  as D
+
+data Direction
+
+instance Show Direction
+
+instance Eq Direction
+
+instance Hashable Direction
+
+parseDirection :: Monad m => D.Decoder m Direction
 
 data Parameter
 
