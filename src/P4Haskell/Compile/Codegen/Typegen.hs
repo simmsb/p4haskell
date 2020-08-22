@@ -29,6 +29,7 @@ generateP4TypePure :: Rock.MonadFetch Query m => AST.P4Type -> m (C.Type, [(Text
 generateP4TypePure (AST.TypeStruct'P4Type s) = generateP4StructPure s
 generateP4TypePure (AST.TypeHeader'P4Type s) = generateP4HeaderPure s
 generateP4TypePure (AST.TypeEnum'P4Type s) = generateP4EnumPure s
+generateP4TypePure (AST.TypeError'P4Type s) = generateP4ErrorPure s
 generateP4TypePure (AST.TypeVoid'P4Type s) = generateP4VoidPure s
 generateP4TypePure (AST.TypeBits'P4Type s) = generateP4BitsPure s
 generateP4TypePure (AST.TypeName'P4Type s) = generateP4TypeNamePure s
@@ -142,6 +143,13 @@ generateP4HeaderPure h = do
 
 generateP4EnumPure :: Rock.MonadFetch Query m => AST.TypeEnum -> m (C.Type, [(Text, C.Decln)])
 generateP4EnumPure e =
+  let values = e ^.. #members . #vec . traverse . #name . unpacked
+      ident = toString $ e ^. #name
+      decln = C.TypeDecln . C.TypeSpec $ C.EnumDecln (Just ident) (fromList values)
+  in pure (C.TypeSpec $ C.Enum ident, [(e ^. #name, decln)])
+
+generateP4ErrorPure :: Rock.MonadFetch Query m => AST.TypeError -> m (C.Type, [(Text, C.Decln)])
+generateP4ErrorPure e =
   let values = e ^.. #members . #vec . traverse . #name . unpacked
       ident = toString $ e ^. #name
       decln = C.TypeDecln . C.TypeSpec $ C.EnumDecln (Just ident) (fromList values)
