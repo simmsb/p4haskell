@@ -4,20 +4,23 @@ module P4Haskell.Compile.Eff
   )
 where
 
-import qualified P4Haskell.Types.AST as AST
+import Data.Unique
 import P4Haskell.Compile.Declared
 import P4Haskell.Compile.Fetch
 import P4Haskell.Compile.Query
 import P4Haskell.Compile.Scope
+import qualified P4Haskell.Types.AST as AST
 import Polysemy
-import Polysemy.Writer
+import Polysemy.Fresh
 import Polysemy.Reader
+import Polysemy.Writer
 
 type CompC r =
   Members
     [ Fetch Query,
       Writer Declared,
       Reader AST.P4Program,
-      Reader Scope
+      Reader Scope,
+      Fresh Unique
     ]
     r

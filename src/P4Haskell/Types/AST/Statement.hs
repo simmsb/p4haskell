@@ -104,7 +104,7 @@ parseIfStatement = D.withCursor . tryParseVal $ \c -> do
 
 data BlockStatement = BlockStatement
   { annotations :: [Annotation]
-  , components  :: [StatOrDecl]
+  , components  :: [Statement]
   }
   deriving ( Show, Generic, Eq, Hashable )
 
@@ -112,22 +112,22 @@ parseBlockStatement :: DecompressC r => D.Decoder (Sem r) BlockStatement
 parseBlockStatement = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   annotations <- D.fromKey "annotations" parseAnnotations o
-  components  <- D.fromKey "components" (parseVector statOrDeclDecoder) o
+  components  <- D.fromKey "components" (parseVector statementDecoder) o
   pure $ BlockStatement annotations components
 
-data StatOrDecl
-  = DeclarationVariable'StatOrDecl DeclarationVariable
-  | Statement'StatOrDecl Statement
-  deriving ( Show, Generic, Eq, Hashable )
+-- data StatOrDecl
+--   = DeclarationVariable'StatOrDecl DeclarationVariable
+--   | Statement'StatOrDecl Statement
+--   deriving ( Show, Generic, Eq, Hashable )
 
-statOrDeclDecoder :: DecompressC r => D.Decoder (Sem r) StatOrDecl
-statOrDeclDecoder = D.withCursor $ \c -> do
-  res <- statementDecoderInner c
-  case res of
-    Just x  -> pure $ (_Typed @Statement #) x
-    Nothing -> do
-      nodeType <- currentNodeType c
+-- statOrDeclDecoder :: DecompressC r => D.Decoder (Sem r) StatOrDecl
+-- statOrDeclDecoder = D.withCursor $ \c -> do
+--   res <- statementDecoderInner c
+--   case res of
+--     Just x  -> pure $ (_Typed @Statement #) x
+--     Nothing -> do
+--       nodeType <- currentNodeType c
 
-      case nodeType of
-        "DeclarationVariable" -> (_Typed @DeclarationVariable #) <$> tryDecoder parseDeclarationVariable c
-        _ -> throwError . D.ParseFailed $ "invalid node type for StatOrDecl: " <> nodeType
+--       case nodeType of
+--         "DeclarationVariable" -> (_Typed @DeclarationVariable #) <$> tryDecoder parseDeclarationVariable c
+--         _ -> throwError . D.ParseFailed $ "invalid node type for StatOrDecl: " <> nodeType

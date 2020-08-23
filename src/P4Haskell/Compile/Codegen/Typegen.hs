@@ -34,6 +34,7 @@ generateP4TypePure (AST.TypeVoid'P4Type s) = generateP4VoidPure s
 generateP4TypePure (AST.TypeBits'P4Type s) = generateP4BitsPure s
 generateP4TypePure (AST.TypeName'P4Type s) = generateP4TypeNamePure s
 generateP4TypePure (AST.TypeBoolean'P4Type s) = generateP4BoolPure s
+generateP4TypePure (AST.TypeString'P4Type s) = generateP4StringPure s
 generateP4TypePure (AST.TypeTypedef'P4Type s) = generateP4TypeDefPure s
 -- generateP4TypePure (AST.TypeParser'P4Type s) = generateP4ParserPure s
 -- generateP4TypePure (AST.TypeControl'P4Type s) = generateP4ControlPure s
@@ -64,6 +65,9 @@ generateP4TypeNamePure (AST.TypeName p) = do
 
 generateP4BoolPure :: Rock.MonadFetch Query m => AST.TypeBoolean -> m (C.Type, [(Text, C.Decln)])
 generateP4BoolPure AST.TypeBoolean = pure (C.TypeSpec C.Bool, [])
+
+generateP4StringPure :: Rock.MonadFetch Query m => AST.TypeString -> m (C.Type, [(Text, C.Decln)])
+generateP4StringPure AST.TypeString = pure (C.Ptr $ C.TypeSpec C.Char, [])
 
 generateP4TypeDefPure :: Rock.MonadFetch Query m => AST.TypeTypedef -> m (C.Type, [(Text, C.Decln)])
 generateP4TypeDefPure td = Rock.fetch $ GenerateP4Type (td ^. #type_)

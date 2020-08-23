@@ -138,7 +138,7 @@ declarationDecoder = D.withCursor $ \c -> do
 
 data ParserState = ParserState
   { annotations :: [Annotation]
-  , components  :: [StatOrDecl]
+  , components  :: [Statement]
   }
   deriving ( Show, Generic, Eq, Hashable )
 
@@ -146,7 +146,7 @@ parseParserState :: DecompressC r => D.Decoder (Sem r) ParserState
 parseParserState = D.withCursor . tryParseVal $ \c -> do
   o           <- D.down c
   annotations <- D.fromKey "annotations" parseAnnotations o
-  components  <- D.fromKey "components" (parseVector statOrDeclDecoder) o
+  components  <- D.fromKey "components" (parseVector statementDecoder) o
   pure $ ParserState annotations components
 
 data P4Parser = P4Parser
