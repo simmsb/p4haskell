@@ -2,7 +2,7 @@
 module P4Haskell.Compile.Declared
   ( Declared (..),
     declareType,
-    declareFunc,
+    defineFunc,
   )
 where
 
@@ -11,7 +11,7 @@ import qualified Language.C99.Simple as C
 
 data Declared = Declared
   { declaredTypes :: HashMap Text C.Decln,
-    declaredFuncs :: HashMap Text C.Decln
+    declaredFuncs :: HashMap Text C.FunDef
   }
   deriving (Generic)
   deriving (Semigroup) via GenericSemigroup Declared
@@ -20,5 +20,5 @@ data Declared = Declared
 declareType :: Text -> C.Decln -> Declared
 declareType n v = mempty & #declaredTypes . at n ?~ v
 
-declareFunc :: Text -> C.Type -> [C.Param] -> Declared
-declareFunc n ty params = mempty & #declaredFuncs . at n ?~ C.FunDecln Nothing ty (toString n) params
+defineFunc :: Text -> C.Type -> [C.Param] -> [C.Stmt] -> Declared
+defineFunc n ty params body = mempty & #declaredFuncs . at n ?~ C.FunDef ty (toString n) params [] body

@@ -22,7 +22,6 @@ data Statement
   | AssignmentStatement'Statement AssignmentStatement
   | DeclarationVariable'Statement DeclarationVariable
   | IfStatement'Statement IfStatement
-  | BlockStatement'Statement BlockStatement
   deriving ( Show, Generic, Eq, Hashable )
 
 statementDecoderInner :: DecompressC r => D.JCurs -> D.DecodeResult (Sem r) (Maybe Statement)
@@ -34,7 +33,6 @@ statementDecoderInner c = do
     "AssignmentStatement"  -> Just . (_Typed @AssignmentStatement #) <$> tryDecoder parseAssignmentStatement c
     "Declaration_Variable" -> Just . (_Typed @DeclarationVariable #) <$> tryDecoder parseDeclarationVariable c
     "IfStatement"          -> Just . (_Typed @IfStatement #)         <$> tryDecoder parseIfStatement c
-    "BlockStatement"       -> Just . (_Typed @BlockStatement #)      <$> tryDecoder parseBlockStatement c
     _ -> pure Nothing
 
 statementDecoder :: DecompressC r => D.Decoder (Sem r) Statement
