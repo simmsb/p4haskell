@@ -22,14 +22,15 @@ newtype VarID = VarID Int
 data Var = Var
   { varOriginalName :: Text,
     varID :: VarID,
-    varType :: C.Type
+    varType :: C.Type,
+    needsDeref :: Bool
   }
   -- TODO
 
   deriving (Generic)
 
 instance Show Var where
-  showsPrec i (Var name vid _) = showsPrec i $ name <> ":" <> show vid
+  showsPrec i (Var name vid _ _) = showsPrec i $ name <> ":" <> show vid
 
 instance Eq Var where
   (==) = on (==) (^. #varID)
@@ -54,7 +55,7 @@ addVarToScope var scope =
 findVarInScope :: Text -> Scope -> Maybe Var
 findVarInScope n s = s ^. #scopeVarBindingsO . at n
 
-makeVar :: Member (Fresh Unique) r => Text -> C.Type -> Sem r Var
-makeVar n t = do
+makeVar :: Member (Fresh Unique) r => Text -> C.Type -> Bool -> Sem r Var
+makeVar n t nd = do
   i <- VarID . hashUnique <$> fresh
-  pure $ Var n i t
+  pure $ Var n i t nd

@@ -209,7 +209,7 @@ data DeclarationInstance = DeclarationInstance
   { name        :: Text
   , annotations :: [Annotation]
   , type_       :: P4Type
-  , arguments   :: [Argument]
+  , arguments   :: [Argument ConstructorCallExpression]
   }
   deriving ( Show, Generic, Eq, Hashable )
 
@@ -219,5 +219,5 @@ parseDeclarationInstance = D.withCursor . tryParseVal $ \c -> do
   name        <- D.fromKey "name" D.text o
   annotations <- D.fromKey "annotations" parseAnnotations o
   type_       <- D.fromKey "type" p4TypeDecoder o
-  arguments   <- D.fromKey "arguments" (parseVector parseArgument) o
+  arguments   <- D.fromKey "arguments" (parseVector $ parseArgument parseConstructorCallExpression) o
   pure $ DeclarationInstance name annotations type_ arguments
