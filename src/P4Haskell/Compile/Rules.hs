@@ -31,9 +31,15 @@ rules ast GetTopLevelTypes =
     & map (\v -> (gdrillField @"name" v, v))
     & fromList
     & pure
+rules ast GetTopLevelControl =
+  (ast ^. #objects)
+    & mapMaybe (^? _Typed @AST.P4Control)
+    & map (\v -> (v ^. #name, v))
+    & fromList
+    & pure
 rules _ast (FetchType name) = do
     tl <- Rock.fetch GetTopLevelTypes
     case tl ^. at name of
       Just ty -> pure . injectSub $ ty
-      Nothing -> error $ "The type: " <> name <> "couldn't be found"
+      Nothing -> error $ "The type: " <> name <> " couldn't be found"
 rules _ast (GenerateP4Type t) = generateP4TypePure t

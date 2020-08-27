@@ -25,8 +25,6 @@ data Var = Var
     varType :: C.Type,
     needsDeref :: Bool
   }
-  -- TODO
-
   deriving (Generic)
 
 instance Show Var where

@@ -50,7 +50,7 @@ data TopLevel
   | P4Parser'TopLevel P4Parser
   | P4Control'TopLevel P4Control
   | DeclarationInstance'TopLevel DeclarationInstance
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving ( Show, Generic, GS.Generic, Eq, Hashable )
 
 topLevelDecoder :: DecompressC r => D.Decoder (Sem r) TopLevel
 topLevelDecoder = D.withCursor $ \c -> do

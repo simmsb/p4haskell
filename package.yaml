@@ -34,6 +34,7 @@ dependencies:
   - polysemy-zoo ^>= 0.7
   - polysemy-plugin ^>= 0.2
   - text ^>= 1.2
+  - pretty
   - pretty-simple ^>= 3.3
   - bytestring ^>= 0.10
   - attoparsec ^>= 0.13
@@ -45,6 +46,7 @@ dependencies:
   - PyF
   - mtl
   - semigroupoids
+  - language-c99 ^>= 0.1
   - language-c99-simple ^>= 0.1
 
 executables:

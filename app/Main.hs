@@ -7,7 +7,17 @@ import qualified Data.Text.IO         as TIO
 import           Options.Applicative
 
 import           P4Haskell
+import qualified P4Haskell.Compile.Codegen as CG
+import qualified P4Haskell.Compile.Eff as E
+import qualified P4Haskell.Compile.Rules as R
+import qualified P4Haskell.Compile.Declared as D
 
+import qualified Polysemy as P
+
+import qualified Language.C99.Simple as C
+import qualified Language.C99.Pretty as PC
+
+import qualified Text.PrettyPrint as TP
 import Text.Pretty.Simple (pPrint)
 
 -- import qualified Waargonaut.Decode    as D
@@ -40,10 +50,15 @@ main' path = do
 
 main'' :: Text -> IO ()
 main'' t = do
-  -- log . show $ toEncoding ast'
   let parsed = parseAST t
   either failWithHistory pPrint parsed
-  -- log $ show parsed
+
+  let Right ast = parsed
+
+  (declared, ()) <- P.runFinal . P.embedToFinal . E.runComp (R.rules ast) ast $ CG.generateMain
+
+  let out = TP.render . PC.pretty . C.translate . D.exportDeclared $ declared
+  putStrLn out
+
   where failWithHistory (err, _hist) = do
           print err
-          -- print (D.ppCursorHistory hist)

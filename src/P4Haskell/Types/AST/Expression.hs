@@ -16,6 +16,7 @@ import           Polysemy                           hiding ( Member )
 import qualified Waargonaut.Decode                  as D
 import qualified Waargonaut.Decode.Error            as D
 import qualified Generics.SOP as GS
+import Relude.Extra.Map ((!?))
 
 
 data Expression
@@ -26,7 +27,7 @@ data Expression
   | BoolLiteral'Expression BoolLiteral
   | StringLiteral'Expression StringLiteral
   | TypeNameExpression'Expression TypeNameExpression
-  | LNot'Expression LNot
+  | UnaryOp'Expression UnaryOp
   deriving ( Show, Generic, GS.Generic, Eq, Hashable )
 
 expressionDecoder :: DecompressC r => D.Decoder (Sem r) Expression
@@ -41,7 +42,7 @@ expressionDecoder = D.withCursor $ \c -> do
     "BoolLiteral"               -> (_Typed @BoolLiteral #)               <$> tryDecoder parseBoolLiteral c
     "StringLiteral"             -> (_Typed @StringLiteral #)             <$> tryDecoder parseStringLiteral c
     "TypeNameExpression"        -> (_Typed @TypeNameExpression #)        <$> tryDecoder parseTypeNameExpression c
-    "LNot"                      -> (_Typed @LNot #)                      <$> tryDecoder parseLNot c
+    IsUnaryOp t                 -> (_Typed @UnaryOp #)                   <$> tryDecoder (parseUnaryOp t) c
     _ -> throwError . D.ParseFailed $ "invalid node type for Expression: " <> nodeType
 
 data TypeType = TypeType
@@ -197,18 +198,28 @@ parseBoolLiteral = D.withCursor . tryParseVal $ \c -> do
   value <- D.fromKey "value" D.bool o
   pure $ BoolLiteral type_ value
 
-data LNot = LNot
+data UnaryOpType = UnaryOpLNot
+  deriving ( Show, Generic, Eq, Enum, Hashable )
+
+unaryOpTypes :: HashMap Text UnaryOpType
+unaryOpTypes = fromList [("LNot", UnaryOpLNot)]
+
+pattern IsUnaryOp :: UnaryOpType -> Text
+pattern IsUnaryOp t <- ((unaryOpTypes !?) -> Just t)
+
+data UnaryOp = UnaryOp
   { type_ :: P4Type
   , expr  :: Expression
+  , op    :: UnaryOpType
   }
   deriving ( Show, Generic, Eq, Hashable )
 
-parseLNot :: DecompressC r => D.Decoder (Sem r) LNot
-parseLNot = D.withCursor . tryParseVal $ \c -> do
+parseUnaryOp :: UnaryOpType -> DecompressC r => D.Decoder (Sem r) UnaryOp
+parseUnaryOp t = D.withCursor . tryParseVal $ \c -> do
   o     <- D.down c
   type_ <- D.fromKey "type" p4TypeDecoder o
   expr  <- D.fromKey "expr" expressionDecoder o
-  pure $ LNot type_ expr
+  pure $ UnaryOp type_ expr t
 
 data StringLiteral = StringLiteral
   { type_ :: P4Type

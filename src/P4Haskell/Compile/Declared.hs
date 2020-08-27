@@ -3,6 +3,7 @@ module P4Haskell.Compile.Declared
   ( Declared (..),
     declareType,
     defineFunc,
+    exportDeclared,
   )
 where
 
@@ -22,3 +23,6 @@ declareType n v = mempty & #declaredTypes . at n ?~ v
 
 defineFunc :: Text -> C.Type -> [C.Param] -> [C.Stmt] -> Declared
 defineFunc n ty params body = mempty & #declaredFuncs . at n ?~ C.FunDef ty (toString n) params [] body
+
+exportDeclared :: Declared -> C.TransUnit
+exportDeclared d = C.TransUnit (d ^.. #declaredTypes . traverse) (d ^.. #declaredFuncs . traverse)

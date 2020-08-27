@@ -13,6 +13,7 @@ import qualified Language.C99.Simple as C
 import P4Haskell.Compile.Codegen.Typegen
 import P4Haskell.Compile.Declared
 import P4Haskell.Compile.Eff
+import P4Haskell.Compile.Fetch
 import P4Haskell.Compile.Query
 import P4Haskell.Compile.Scope
 import qualified P4Haskell.Types.AST as AST
@@ -32,8 +33,15 @@ generateTempVar = do
   i <- hashUnique <$> fresh
   pure $ "tmp_var_" <> show i
 
-generateMain :: CompC r => AST.DeclarationInstance -> Sem r ()
-generateMain main = undefined
+generateMain :: CompC r => Sem r ()
+generateMain = do
+  main <- fetch GetMain
+  let pipeName = main ^. #arguments . ix 1 . #expression . #constructedType . _Typed @AST.TypeName . #path . #name
+  controls <- fetch GetTopLevelControl
+  let pipe = controls ^?! ix pipeName
+  controlName <- generateControl pipe
+  tell $ defineFunc "main" (C.TypeSpec C.Void) [] [C.Expr $ C.Funcall (C.Ident controlName) []]
+  pure ()
 
 generateControl :: CompC r => AST.P4Control -> Sem r C.Ident
 generateControl c = do
@@ -49,6 +57,8 @@ generateControlParams c =
     <$> forM
       (c ^. #type_ . #applyParams . #vec)
       ( \param -> do
+          -- TODO: handle extern types (Generate a type for them)
+          print $ "Generating Control param: " <> show param
           ty <- generateP4Type (param ^. #type_)
           let isOut = param ^. #direction . #out
           var <- makeVar (param ^. #name) ty isOut
@@ -71,6 +81,8 @@ generateStatement n = liftA2 (<>) (generateStatementInner n)
 
 generateDV :: CompC r => AST.DeclarationVariable -> Sem r [C.Stmt] -> Sem r [C.Stmt]
 generateDV dv rM = do
+  -- TODO: globals that persist need to be done differently
+  print $ "Generating DV: " <> show dv
   ty <- generateP4Type (dv ^. #type_)
   (deps, initExpr) <- runWriterAssocR $ generateP4Expression (dv ^. #initializer)
   var <- makeVar (dv ^. #name) ty False
@@ -104,9 +116,18 @@ generateP4Expression (AST.PathExpression'Expression pe) = generatePE pe
 generateP4Expression (AST.Constant'Expression ce) = generateCE ce
 generateP4Expression (AST.BoolLiteral'Expression ble) = generateBLE ble
 generateP4Expression (AST.StringLiteral'Expression sle) = generateSLE sle
+generateP4Expression (AST.UnaryOp'Expression uoe) = generateUOE uoe
+generateP4Expression (AST.TypeNameExpression'Expression _) = error "type name expressions can only be part of member expressions"
+
+generateUOE :: (CompC r, Member (Writer [C.Stmt]) r) => AST.UnaryOp -> Sem r C.Expr
+generateUOE uoe = do
+  expr <- generateP4Expression $ uoe ^. #expr
+  pure case uoe ^. #op of
+    AST.UnaryOpLNot -> C.UnaryOp C.BoolNot expr
 
 generatePE :: CompC r => AST.PathExpression -> Sem r C.Expr
 generatePE pe = do
+  print $ "Generating PE: " <> show pe
   let ident = C.Ident $ pe ^. #path . #name . unpacked
   -- the ubpf backend YOLOs this too: https://github.com/p4lang/p4c/blob/master/backends/ubpf/ubpfControl.cpp#L262
   var <- Polysemy.Reader.asks $ findVarInScope (pe ^. #path . #name)
@@ -131,6 +152,7 @@ isCPtr _ = False
 
 generateME :: (CompC r, Member (Writer [C.Stmt]) r) => AST.Member -> Sem r C.Expr
 generateME me = do
+  print $ "Generating ME: " <> show me
   expr <- generateP4Expression $ me ^. #expr
   ty <- generateP4Type . gdrillField @"type_" $ me ^. #expr
   pure $
@@ -143,9 +165,10 @@ data MethodType
   | TypeAction'MethodType AST.TypeAction
   deriving (Show, Generic, GS.Generic, Eq, Hashable)
 
-processMCEParam :: (CompC r, Member (Writer [C.Stmt]) r)
-  => (AST.Parameter, AST.Expression)
-  -> Sem r (C.Expr, Maybe C.Stmt)
+processMCEParam ::
+  (CompC r, Member (Writer [C.Stmt]) r) =>
+  (AST.Parameter, AST.Expression) ->
+  Sem r (C.Expr, Maybe C.Stmt)
 processMCEParam (p, e) = do
   varName <- generateTempVar
   paramTy <- generateP4Type $ p ^. #type_
@@ -170,6 +193,7 @@ isCVoid _ = False
 generateMCE :: (CompC r, Member (Writer [C.Stmt]) r) => AST.MethodCallExpression -> Sem r C.Expr
 generateMCE me = do
   -- TODO: do some type param stuff and overloads for table apply, extern calls, etc
+  print $ "Generating MCE: " <> show me
   method <- generateP4Expression . injectSub $ me ^. #method
   resultTy <- generateP4Type $ me ^. #type_
   let methodTy :: MethodType = fromJustNote "Unexpected method type" . projectSub . gdrillField @"type_" $ me ^. #method
@@ -188,7 +212,6 @@ generateMCE me = do
       tell [C.Var resultTy resName (Just . C.InitExpr $ callExpr)]
       tell postStmts'
       pure $ C.Ident resName
-
 
 {-
  NOTE:
