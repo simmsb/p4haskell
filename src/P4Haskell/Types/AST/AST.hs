@@ -45,7 +45,6 @@ data TopLevel
   | DeclarationMatchKind'TopLevel DeclarationMatchKind
   | TypeParser'TopLevel TypeParser
   | TypeControl'TopLevel TypeControl
-  | TypeExtern'TopLevel TypeExtern
   | TypePackage'TopLevel TypePackage
   | P4Parser'TopLevel P4Parser
   | P4Control'TopLevel P4Control
@@ -68,7 +67,6 @@ topLevelDecoder = D.withCursor $ \c -> do
         "Declaration_Instance"      -> (_Typed @DeclarationInstance #)  <$> tryDecoder parseDeclarationInstance c
         "Type_Parser"               -> (_Typed @TypeParser #)           <$> tryDecoder parseTypeParser c
         "Type_Control"              -> (_Typed @TypeControl #)          <$> tryDecoder parseTypeControl c
-        "Type_Extern"               -> (_Typed @TypeExtern #)           <$> tryDecoder parseTypeExtern c
         "Type_Package"              -> (_Typed @TypePackage #)          <$> tryDecoder parseTypePackage c
         _ -> throwError . D.ParseFailed $ "invalid node type for TopLevel: " <> nodeType
 
@@ -78,6 +76,7 @@ data TopLevelTypeDecl
   | TypeHeader'TopLevelTypeDecl TypeHeader
   | TypeStruct'TopLevelTypeDecl TypeStruct
   | TypeEnum'TopLevelTypeDecl TypeEnum
+  | TypeExtern'TopLevelTypeDecl TypeExtern
   deriving ( Show, Generic, GS.Generic, Eq, Hashable )
 
 topLevelTypeDeclDecoderInner :: DecompressC r => D.JCurs -> D.DecodeResult (Sem r) (Maybe TopLevelTypeDecl)
@@ -90,6 +89,7 @@ topLevelTypeDeclDecoderInner c = do
     "Type_Header"               -> Just . (_Typed @TypeHeader #)  <$> tryDecoder parseTypeHeader c
     "Type_Struct"               -> Just . (_Typed @TypeStruct #)  <$> tryDecoder parseTypeStruct c
     "Type_Enum"                 -> Just . (_Typed @TypeEnum #)    <$> tryDecoder parseTypeEnum c
+    "Type_Extern"               -> Just . (_Typed @TypeExtern #)           <$> tryDecoder parseTypeExtern c
     _ -> pure Nothing
 
 topLevelTypeDeclDecoder :: DecompressC r => D.Decoder (Sem r) TopLevelTypeDecl

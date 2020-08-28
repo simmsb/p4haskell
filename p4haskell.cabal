@@ -4,7 +4,7 @@ cabal-version: 1.18
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 818cba4363a4e59daefc02f852fd11db031e56a8362e09f3452cc963e67a859a
+-- hash: 86eb15be3fafe9f1f548d6d8f44313fe8ecb21abe0e210070d0e4e6ca37413fd
 
 name:           p4haskell
 version:        0.0.0
@@ -32,8 +32,12 @@ library
   exposed-modules:
       P4Haskell
       P4Haskell.Compile.Codegen
-      P4Haskell.Compile.Codegen.Codegen
+      P4Haskell.Compile.Codegen.Expression
+      P4Haskell.Compile.Codegen.Extern
+      P4Haskell.Compile.Codegen.MethodCall
+      P4Haskell.Compile.Codegen.Statement
       P4Haskell.Compile.Codegen.Typegen
+      P4Haskell.Compile.Codegen.Utils
       P4Haskell.Compile.Declared
       P4Haskell.Compile.Eff
       P4Haskell.Compile.Fetch

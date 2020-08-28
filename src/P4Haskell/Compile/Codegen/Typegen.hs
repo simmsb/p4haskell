@@ -2,12 +2,12 @@
 module P4Haskell.Compile.Codegen.Typegen
   ( generateP4Type,
     generateP4TypePure,
-    generateP4StructPure,
   )
 where
 
 import qualified Control.Monad.Writer.Strict as SW
 import qualified Language.C99.Simple as C
+import P4Haskell.Compile.Codegen.Extern
 import P4Haskell.Compile.Declared
 import P4Haskell.Compile.Eff
 import P4Haskell.Compile.Fetch
@@ -19,13 +19,13 @@ import Relude (error)
 import qualified Rock
 import Data.Text.Lens (unpacked)
 
-generateP4Type :: CompC r => AST.P4Type -> Sem r C.Type
+generateP4Type :: CompC r => AST.P4Type -> Sem r (C.Type, C.Type)
 generateP4Type t = do
-  (ty, deps) <- embedTask $ generateP4TypePure t
+  (ty, rawTy, deps) <- embedTask $ generateP4TypePure t
   forM_ deps (tell . uncurry declareType)
-  pure ty
+  pure (ty, rawTy)
 
-generateP4TypePure :: Rock.MonadFetch Query m => AST.P4Type -> m (C.Type, [(Text, C.Decln)])
+generateP4TypePure :: Rock.MonadFetch Query m => AST.P4Type -> m (C.Type, C.Type, [(Text, C.Decln)])
 generateP4TypePure (AST.TypeStruct'P4Type s) = generateP4StructPure s
 generateP4TypePure (AST.TypeHeader'P4Type s) = generateP4HeaderPure s
 generateP4TypePure (AST.TypeEnum'P4Type s) = generateP4EnumPure s
@@ -36,44 +36,54 @@ generateP4TypePure (AST.TypeName'P4Type s) = generateP4TypeNamePure s
 generateP4TypePure (AST.TypeBoolean'P4Type s) = generateP4BoolPure s
 generateP4TypePure (AST.TypeString'P4Type s) = generateP4StringPure s
 generateP4TypePure (AST.TypeTypedef'P4Type s) = generateP4TypeDefPure s
+generateP4TypePure (AST.TypeExtern'P4Type s) = generateP4ExternPure s
 -- generateP4TypePure (AST.TypeParser'P4Type s) = generateP4ParserPure s
 -- generateP4TypePure (AST.TypeControl'P4Type s) = generateP4ControlPure s
 generateP4TypePure t = error $ "The type: " <> show t <> " shouldn't exist at this point"
 
-generateP4VoidPure :: Rock.MonadFetch Query m => AST.TypeVoid -> m (C.Type, [(Text, C.Decln)])
-generateP4VoidPure _ = pure (C.TypeSpec C.Void, [])
+dupFst :: (a, b) -> (a, a, b)
+dupFst (a, b) = (a, a, b)
 
-generateP4BitsPure :: Rock.MonadFetch Query m => AST.TypeBits -> m (C.Type, [(Text, C.Decln)])
+generateP4ExternPure :: Rock.MonadFetch Query m => AST.TypeExtern -> m (C.Type, C.Type, [(Text, C.Decln)])
+generateP4ExternPure e = pure let ty = getExternType $ e ^. #name
+                              in (extractInfo ty, ty, [])
+  where extractInfo (C.TypeSpec (C.StructDecln (Just name) _)) = C.TypeSpec $ C.Struct name
+        extractInfo x = x
+
+generateP4VoidPure :: Rock.MonadFetch Query m => AST.TypeVoid -> m (C.Type, C.Type, [(Text, C.Decln)])
+generateP4VoidPure _ = pure $ dupFst (C.TypeSpec C.Void, [])
+
+generateP4BitsPure :: Rock.MonadFetch Query m => AST.TypeBits -> m (C.Type, C.Type, [(Text, C.Decln)])
 generateP4BitsPure (AST.TypeBits size isSigned) =
   if size `elem` [8, 16, 32, 64]
     then
       let signChar = if isSigned then "" else "u"
-       in pure (C.TypeSpec . C.TypedefName $ signChar <> "int" <> show size <> "_t", [])
+       in pure $ dupFst (C.TypeSpec . C.TypedefName $ signChar <> "int" <> show size <> "_t", [])
     else
       let name = "bits_" <> show size
           fields =
             [ C.FieldDecln (C.TypeSpec $ C.TypedefName "uint8_t") ("byte_" <> show i)
               | i <- [0 .. size + 7 `div` 8]
             ]
-          struct = C.TypeDecln . C.TypeSpec $ C.StructDecln (Just name) (fromList fields)
-       in pure (C.TypeSpec $ C.Struct name, [(toText name, struct)])
+          struct = C.TypeSpec $ C.StructDecln (Just name) (fromList fields)
+       in pure (C.TypeSpec $ C.Struct name, struct, [(toText name, C.TypeDecln struct)])
 
-generateP4TypeNamePure :: Rock.MonadFetch Query m => AST.TypeName -> m (C.Type, [(Text, C.Decln)])
+generateP4TypeNamePure :: Rock.MonadFetch Query m => AST.TypeName -> m (C.Type, C.Type, [(Text, C.Decln)])
 generateP4TypeNamePure (AST.TypeName p) = do
   type_ <- Rock.fetch $ FetchType (p ^. #name)
   Rock.fetch $ GenerateP4Type type_
 
-generateP4BoolPure :: Rock.MonadFetch Query m => AST.TypeBoolean -> m (C.Type, [(Text, C.Decln)])
-generateP4BoolPure AST.TypeBoolean = pure (C.TypeSpec C.Bool, [])
+generateP4BoolPure :: Rock.MonadFetch Query m => AST.TypeBoolean -> m (C.Type, C.Type, [(Text, C.Decln)])
+generateP4BoolPure AST.TypeBoolean = pure $ dupFst (C.TypeSpec C.Bool, [])
 
-generateP4StringPure :: Rock.MonadFetch Query m => AST.TypeString -> m (C.Type, [(Text, C.Decln)])
-generateP4StringPure AST.TypeString = pure (C.Ptr $ C.TypeSpec C.Char, [])
+generateP4StringPure :: Rock.MonadFetch Query m => AST.TypeString -> m (C.Type, C.Type, [(Text, C.Decln)])
+generateP4StringPure AST.TypeString = pure $ dupFst (C.Ptr $ C.TypeSpec C.Char, [])
 
-generateP4TypeDefPure :: Rock.MonadFetch Query m => AST.TypeTypedef -> m (C.Type, [(Text, C.Decln)])
+generateP4TypeDefPure :: Rock.MonadFetch Query m => AST.TypeTypedef -> m (C.Type, C.Type, [(Text, C.Decln)])
 generateP4TypeDefPure td = Rock.fetch $ GenerateP4Type (td ^. #type_)
 -- NOTE: we silently ignore the name of the typedef here and just return the true name of the type
 
--- generateP4ParserPure :: (Rock.MonadFetch Query m, MonadIO m) => AST.TypeParser -> m (C.Type, [(Text, C.Decln)])
+-- generateP4ParserPure :: (Rock.MonadFetch Query m, MonadIO m) => AST.TypeParser -> m (C.Type, C.Type, [(Text, C.Decln)])
 -- generateP4ParserPure p = do
 --   when (null $ p ^. #typeParameters) $
 --     print $ "Parser: " <> (p ^. #name) <> " has type parameters that are being ignored"
@@ -92,7 +102,7 @@ generateP4TypeDefPure td = Rock.fetch $ GenerateP4Type (td ^. #type_)
 --   let fn = C.FunDecln Nothing (C.TypeSpec C.Void) ident params
 --   pure (C.TypeSpec . C.TypedefName $ ident, (p ^. #name, fn) : deps)
 
--- generateP4ControlPure :: (Rock.MonadFetch Query m, MonadIO m) => AST.TypeControl -> m (C.Type, [(Text, C.Decln)])
+-- generateP4ControlPure :: (Rock.MonadFetch Query m, MonadIO m) => AST.TypeControl -> m (C.Type, C.Type, [(Text, C.Decln)])
 -- generateP4ControlPure p = do
 --   when (null $ p ^. #typeParameters) $
 --     print $ "Control: " <> (p ^. #name) <> " has type parameters that are being ignored"
@@ -111,7 +121,7 @@ generateP4TypeDefPure td = Rock.fetch $ GenerateP4Type (td ^. #type_)
 --   let fn = C.FunDecln Nothing (C.TypeSpec C.Void) ident params
 --   pure (C.TypeSpec . C.TypedefName $ ident, (p ^. #name, fn) : deps)
 
-generateP4StructPure :: Rock.MonadFetch Query m => AST.TypeStruct -> m (C.Type, [(Text, C.Decln)])
+generateP4StructPure :: Rock.MonadFetch Query m => AST.TypeStruct -> m (C.Type, C.Type, [(Text, C.Decln)])
 generateP4StructPure s = do
   let fields = s ^. #fields . #vec
   (fields', deps) <-
@@ -119,16 +129,16 @@ generateP4StructPure s = do
       forM
         fields
         ( \f -> do
-            (ty, deps) <- Rock.fetch $ GenerateP4Type (f ^. #type_)
+            (ty, _, deps) <- Rock.fetch $ GenerateP4Type (f ^. #type_)
             SW.tell deps
             pure $ C.FieldDecln ty (toString $ f ^. #name)
         )
   let ident = toString $ s ^. #name
-  let struct = C.TypeDecln . C.TypeSpec $ C.StructDecln (Just ident) (fromList fields')
-  let deps' = ((s ^. #name, struct) : deps)
-  pure (C.TypeSpec $ C.Struct ident, deps')
+  let struct = C.TypeSpec $ C.StructDecln (Just ident) (fromList fields')
+  let deps' = ((s ^. #name, C.TypeDecln struct) : deps)
+  pure (C.TypeSpec $ C.Struct ident, struct, deps')
 
-generateP4HeaderPure :: Rock.MonadFetch Query m => AST.TypeHeader -> m (C.Type, [(Text, C.Decln)])
+generateP4HeaderPure :: Rock.MonadFetch Query m => AST.TypeHeader -> m (C.Type, C.Type, [(Text, C.Decln)])
 generateP4HeaderPure h = do
   let fields = h ^. #fields . #vec
   (fields', deps) <-
@@ -136,25 +146,25 @@ generateP4HeaderPure h = do
       forM
         fields
         ( \f -> do
-            (ty, deps) <- Rock.fetch $ GenerateP4Type (f ^. #type_)
+            (ty, _, deps) <- Rock.fetch $ GenerateP4Type (f ^. #type_)
             SW.tell deps
             pure $ C.FieldDecln ty (toString $ f ^. #name)
         )
   let ident = toString $ h ^. #name
-  let struct = C.TypeDecln . C.TypeSpec $ C.StructDecln (Just ident) (fromList fields')
-  let deps' = ((h ^. #name, struct) : deps)
-  pure (C.TypeSpec $ C.Struct ident, deps')
+  let struct = C.TypeSpec $ C.StructDecln (Just ident) (fromList fields')
+  let deps' = ((h ^. #name, C.TypeDecln struct) : deps)
+  pure (C.TypeSpec $ C.Struct ident, struct, deps')
 
-generateP4EnumPure :: Rock.MonadFetch Query m => AST.TypeEnum -> m (C.Type, [(Text, C.Decln)])
+generateP4EnumPure :: Rock.MonadFetch Query m => AST.TypeEnum -> m (C.Type, C.Type, [(Text, C.Decln)])
 generateP4EnumPure e =
   let values = e ^.. #members . #vec . traverse . #name . unpacked
       ident = toString $ e ^. #name
-      decln = C.TypeDecln . C.TypeSpec $ C.EnumDecln (Just ident) (fromList values)
-  in pure (C.TypeSpec $ C.Enum ident, [(e ^. #name, decln)])
+      enum' = C.TypeSpec $ C.EnumDecln (Just ident) (fromList values)
+  in pure (C.TypeSpec $ C.Enum ident, enum', [(e ^. #name, C.TypeDecln enum')])
 
-generateP4ErrorPure :: Rock.MonadFetch Query m => AST.TypeError -> m (C.Type, [(Text, C.Decln)])
+generateP4ErrorPure :: Rock.MonadFetch Query m => AST.TypeError -> m (C.Type, C.Type, [(Text, C.Decln)])
 generateP4ErrorPure e =
   let values = e ^.. #members . #vec . traverse . #name . unpacked
       ident = toString $ e ^. #name
-      decln = C.TypeDecln . C.TypeSpec $ C.EnumDecln (Just ident) (fromList values)
-  in pure (C.TypeSpec $ C.Enum ident, [(e ^. #name, decln)])
+      enum' = C.TypeSpec $ C.EnumDecln (Just ident) (fromList values)
+  in pure (C.TypeSpec $ C.Enum ident, enum', [(e ^. #name, C.TypeDecln enum')])
