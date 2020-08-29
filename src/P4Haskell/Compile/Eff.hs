@@ -14,13 +14,13 @@ import qualified P4Haskell.Types.AST as AST
 import Polysemy
 import Polysemy.Fresh
 import Polysemy.Reader
-import Polysemy.Writer
+import Polysemy.State
 import qualified Rock
 
 type CompC r =
   Members
     [ Fetch Query,
-      Writer Declared,
+      State Declared,
       Reader AST.P4Program,
       Reader Scope,
       Fresh Unique,
@@ -34,7 +34,7 @@ runComp ::
   AST.P4Program ->
   Sem
     ( Fetch Query
-        ': Writer Declared
+        ': State Declared
           ': Reader AST.P4Program
             ': Reader Scope
               ': Fresh Unique ': r
@@ -47,6 +47,6 @@ runComp rules program m = do
   freshToIO
     . runReader emptyScope
     . runReader program
-    . runWriter
+    . runState mempty
     . runFetchToIO (Rock.runTask (Rock.memoise memoVar rules))
     $ m

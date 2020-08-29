@@ -23,7 +23,7 @@ fromJustNote :: Text -> Maybe a -> a
 fromJustNote _ (Just a) = a
 fromJustNote msg _ = error msg
 
-generateP4Expression :: (CompC r, Member (Writer [C.Stmt]) r) => AST.Expression -> Sem r C.Expr
+generateP4Expression :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.Expression -> Sem r C.Expr
 generateP4Expression (AST.MethodCallExpression'Expression mce) = generateMCE mce
 generateP4Expression (AST.Member'Expression me) = generateME me
 generateP4Expression (AST.PathExpression'Expression pe) = generatePE pe
@@ -33,7 +33,7 @@ generateP4Expression (AST.StringLiteral'Expression sle) = generateSLE sle
 generateP4Expression (AST.UnaryOp'Expression uoe) = generateUOE uoe
 generateP4Expression (AST.TypeNameExpression'Expression _) = error "type name expressions can only be part of member expressions"
 
-generateUOE :: (CompC r, Member (Writer [C.Stmt]) r) => AST.UnaryOp -> Sem r C.Expr
+generateUOE :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.UnaryOp -> Sem r C.Expr
 generateUOE uoe = do
   expr <- generateP4Expression $ uoe ^. #expr
   pure case uoe ^. #op of
@@ -41,7 +41,6 @@ generateUOE uoe = do
 
 generatePE :: CompC r => AST.PathExpression -> Sem r C.Expr
 generatePE pe = do
-  print $ "Generating PE: " <> show pe
   let ident = C.Ident $ pe ^. #path . #name . unpacked
   -- the ubpf backend YOLOs this too: https://github.com/p4lang/p4c/blob/master/backends/ubpf/ubpfControl.cpp#L262
   var <- Polysemy.Reader.asks $ findVarInScope (pe ^. #path . #name)
@@ -60,19 +59,11 @@ generateBLE ble = pure . C.LitInt $ if ble ^. #value then 1 else 0
 generateSLE :: CompC r => AST.StringLiteral -> Sem r C.Expr
 generateSLE sle = pure . C.LitString $ sle ^. #value . unpacked
 
-isCPtr :: C.Type -> Bool
-isCPtr (C.Ptr _) = True
-isCPtr _ = False
-
-generateME :: (CompC r, Member (Writer [C.Stmt]) r) => AST.Member -> Sem r C.Expr
+generateME :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.Member -> Sem r C.Expr
 generateME me = do
-  print $ "Generating ME: " <> show me
   expr <- generateP4Expression $ me ^. #expr
-  (ty, _) <- generateP4Type . gdrillField @"type_" $ me ^. #expr
-  pure $
-    if isCPtr ty
-      then C.Arrow expr (me ^. #member . unpacked)
-      else C.Dot expr (me ^. #member . unpacked)
+  -- (ty, _) <- generateP4Type . gdrillField @"type_" $ me ^. #expr
+  pure $ C.Dot expr (me ^. #member . unpacked)
 
 data MethodType
   = TypeMethod'MethodType AST.TypeMethod
@@ -91,10 +82,9 @@ decideMethodCallType (AST.Member'Expression (AST.Member _ expr member))
 decideMethodCallType expr = MethodCall expr
 -- TODO: tables
 
-generateMCE :: (CompC r, Member (Writer [C.Stmt]) r) => AST.MethodCallExpression -> Sem r C.Expr
+generateMCE :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.MethodCallExpression -> Sem r C.Expr
 generateMCE me = do
   -- TODO: do some type param stuff and overloads for table apply, etc
-  print $ "Generating MCE: " <> show me
   case decideMethodCallType . injectSub $ me ^. #method of
     ExternCall name member expr -> do
       (_, expr') <- generateExternCall name member expr (me ^.. #arguments . traverse . #expression)
@@ -104,4 +94,4 @@ generateMCE me = do
       let methodTy :: MethodType = fromJustNote "Unexpected method type" . projectSub . gdrillField @"type_" $ me ^. #method
       let parameters :: AST.MapVec Text AST.Parameter = gdrillField @"parameters" methodTy
       let params = zip (parameters ^. #vec) (me ^.. #arguments . traverse . #expression)
-      generateCall (expr, resultTy) params
+      generateCall (expr, C.TypeSpec resultTy) params

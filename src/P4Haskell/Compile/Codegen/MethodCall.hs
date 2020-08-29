@@ -15,15 +15,15 @@ import Polysemy
 import Polysemy.Writer
 
 processParam ::
-  (CompC r, Member (Writer [C.Stmt]) r) =>
+  (CompC r, Member (Writer [C.BlockItem]) r) =>
   (AST.Parameter, AST.Expression) ->
   Sem r (C.Expr, Maybe C.Stmt)
 processParam (p, e) = do
   (paramTy, _) <- generateP4Type $ p ^. #type_
-  processParam' (p ^. #direction . #out, paramTy, e)
+  processParam' (p ^. #direction . #out, C.TypeSpec paramTy, e)
 
 processParam' ::
-  (CompC r, Member (Writer [C.Stmt]) r) =>
+  (CompC r, Member (Writer [C.BlockItem]) r) =>
   (Bool, C.Type, AST.Expression) ->
   Sem r (C.Expr, Maybe C.Stmt)
 processParam' (asRef, paramTy, e) = do
@@ -33,20 +33,20 @@ processParam' (asRef, paramTy, e) = do
     then do
       tmpName <- generateTempVar
       tell
-        [ C.Var (C.Ptr paramTy) varName (Just . C.InitExpr $ C.ref expr),
-          C.Var paramTy tmpName (Just . C.InitExpr . C.deref $ C.Ident varName)
+        [ C.Decln $ C.VarDecln Nothing (C.Ptr paramTy) varName (Just . C.InitExpr $ C.ref expr),
+          C.Decln $ C.VarDecln Nothing paramTy tmpName (Just . C.InitExpr . C.deref $ C.Ident varName)
         ]
       let afterOp = C.Expr $ C.AssignOp C.Assign (C.deref . C.Ident $ varName) (C.Ident tmpName)
       pure (C.ref . C.Ident $ tmpName, Just afterOp)
     else do
-      tell [C.Var paramTy varName (Just . C.InitExpr $ expr)]
+      tell [C.Decln $ C.VarDecln Nothing paramTy varName (Just . C.InitExpr $ expr)]
       pure (C.Ident varName, Nothing)
 
 isCVoid :: C.Type -> Bool
 isCVoid (C.TypeSpec C.Void) = True
 isCVoid _ = False
 
-generateCall :: (CompC r, Member (Writer [C.Stmt]) r) => (AST.Expression, C.Type) -> [(AST.Parameter, AST.Expression)] -> Sem r C.Expr
+generateCall :: (CompC r, Member (Writer [C.BlockItem]) r) => (AST.Expression, C.Type) -> [(AST.Parameter, AST.Expression)] -> Sem r C.Expr
 generateCall (expr, resultTy) params = do
   method <- generateP4Expression expr
   (params', postStmts) <- unzip <$> mapM processParam params
@@ -55,15 +55,20 @@ generateCall (expr, resultTy) params = do
 
   let callExpr = C.Funcall method params'
 
-  if (null postStmts' || isCVoid resultTy)
-    then pure callExpr
-    else do
-      resName <- generateTempVar
-      tell [C.Var resultTy resName (Just . C.InitExpr $ callExpr)]
-      tell postStmts'
-      pure $ C.Ident resName
+  res <-
+    if (isCVoid resultTy)
+      then do
+        tell [C.Stmt $ C.Expr callExpr]
+        pure $ C.LitInt 0
+      else do
+        resName <- generateTempVar
+        tell [C.Decln $ C.VarDecln Nothing resultTy resName (Just . C.InitExpr $ callExpr)]
+        pure $ C.Ident resName
 
-generateCall' :: (CompC r, Member (Writer [C.Stmt]) r) => (Text, C.Type) -> [(Bool, C.Type, AST.Expression)] -> Sem r C.Expr
+  tell $ map C.Stmt postStmts'
+  pure res
+
+generateCall' :: (CompC r, Member (Writer [C.BlockItem]) r) => (Text, C.Type) -> [(Bool, C.Type, AST.Expression)] -> Sem r C.Expr
 generateCall' (name, resultTy) params = do
   (params', postStmts) <- unzip <$> mapM processParam' params
 
@@ -71,10 +76,15 @@ generateCall' (name, resultTy) params = do
 
   let callExpr = C.Funcall (C.Ident $ toString name) params'
 
-  if (null postStmts' || isCVoid resultTy)
-    then pure callExpr
-    else do
-      resName <- generateTempVar
-      tell [C.Var resultTy resName (Just . C.InitExpr $ callExpr)]
-      tell postStmts'
-      pure $ C.Ident resName
+  res <-
+    if (isCVoid resultTy)
+      then do
+        tell [C.Stmt $ C.Expr callExpr]
+        pure $ C.LitInt 0
+      else do
+        resName <- generateTempVar
+        tell [C.Decln $ C.VarDecln Nothing resultTy resName (Just . C.InitExpr $ callExpr)]
+        pure $ C.Ident resName
+
+  tell $ map C.Stmt postStmts'
+  pure res

@@ -9,7 +9,6 @@ import P4Haskell.Compile.Codegen.Typegen
 import P4Haskell.Compile.Query
 import qualified P4Haskell.Types.AST as AST
 import P4Haskell.Utils.Drill
-import Relude (error)
 import Relude.Unsafe (fromJust)
 import qualified Rock
 
@@ -39,7 +38,5 @@ rules ast GetTopLevelControl =
     & pure
 rules _ast (FetchType name) = do
     tl <- Rock.fetch GetTopLevelTypes
-    case tl ^. at name of
-      Just ty -> pure . injectSub $ ty
-      Nothing -> error $ "The type: " <> name <> " couldn't be found"
+    pure $ injectSub <$> (tl ^. at name)
 rules _ast (GenerateP4Type t) = generateP4TypePure t
