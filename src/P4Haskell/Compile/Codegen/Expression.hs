@@ -1,15 +1,17 @@
 -- |
 module P4Haskell.Compile.Codegen.Expression
-    ( generateP4Expression
-     ) where
+  ( generateP4Expression,
+  )
+where
 
 import Data.Generics.Sum
 import Data.Text.Lens (unpacked)
 import qualified Generics.SOP as GS
 import qualified Language.C99.Simple as C
-import P4Haskell.Compile.Codegen.Typegen
-import {-# SOURCE #-} P4Haskell.Compile.Codegen.MethodCall
 import P4Haskell.Compile.Codegen.Extern
+import {-# SOURCE #-} P4Haskell.Compile.Codegen.MethodCall
+import P4Haskell.Compile.Codegen.Tables
+import P4Haskell.Compile.Codegen.Typegen
 import P4Haskell.Compile.Eff
 import P4Haskell.Compile.Scope
 import qualified P4Haskell.Types.AST as AST
@@ -72,23 +74,32 @@ data MethodType
 
 data MethodCallType
   = ExternCall Text Text AST.Expression
+  | TableCall AST.TypeTable Text AST.TypeStruct
   | MethodCall AST.Expression
   deriving (Generic)
 
-decideMethodCallType :: AST.Expression -> MethodCallType
-decideMethodCallType (AST.Member'Expression (AST.Member _ expr member))
-  | AST.TypeExtern'P4Type ty <- gdrillField @"type_" expr
-  = ExternCall (ty ^. #name) member expr
-decideMethodCallType expr = MethodCall expr
--- TODO: tables
+decideMethodCallType :: AST.MethodCallExpression -> MethodCallType
+decideMethodCallType (AST.MethodCallExpression _ (AST.Member'MethodExpression (AST.Member _ expr member)) _ _)
+  | AST.TypeExtern'P4Type ty <- gdrillField @"type_" expr =
+    ExternCall (ty ^. #name) member expr
+decideMethodCallType (AST.MethodCallExpression (AST.TypeStruct'P4Type rty)
+                      (AST.Member'MethodExpression
+                       (AST.Member _
+                         (AST.PathExpression'Expression
+                           (AST.PathExpression (AST.TypeTable'P4Type tty) tname))
+                         "apply")) _ _) =
+  TableCall tty (tname ^. #name) rty
+decideMethodCallType (AST.MethodCallExpression _ expr _ _) = MethodCall $ injectSub expr
 
 generateMCE :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.MethodCallExpression -> Sem r C.Expr
 generateMCE me = do
   -- TODO: do some type param stuff and overloads for table apply, etc
-  case decideMethodCallType . injectSub $ me ^. #method of
+  case decideMethodCallType me of
     ExternCall name member expr -> do
       (_, expr') <- generateExternCall name member expr (me ^.. #arguments . traverse . #expression)
       pure expr'
+    TableCall tty tname rty -> do
+      generateTableCall tty tname rty
     MethodCall expr -> do
       (resultTy, _) <- generateP4Type $ me ^. #type_
       let methodTy :: MethodType = fromJustNote "Unexpected method type" . projectSub . gdrillField @"type_" $ me ^. #method

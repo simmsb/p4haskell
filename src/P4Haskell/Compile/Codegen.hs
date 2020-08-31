@@ -24,12 +24,21 @@ import Polysemy.State
 generateMain :: CompC r => Sem r ()
 generateMain = do
   main <- fetch GetMain
+
+  let pipeName = main ^. #arguments . ix 1 . #expression . #constructedType . _Typed @AST.TypeName . #path . #name
   let dprsName = main ^. #arguments . ix 2 . #expression . #constructedType . _Typed @AST.TypeName . #path . #name
+
   controls <- fetch GetTopLevelControl
-  let dprs = controls ^?! ix dprsName
-  controlName <- generateControl dprs
+
+  let pipeAST = controls ^?! ix pipeName
+  pipeControl <- generateControl pipeAST
+
+  let dprsAST = controls ^?! ix dprsName
+  dprsControl <- generateControl dprsAST
+
   modify . (<>) $ defineFunc "main" (C.TypeSpec C.Void) []
-    [ C.Stmt . C.Expr $ C.Funcall (C.Ident controlName) [] -- TODO: params
+    [ C.Stmt . C.Expr $ C.Funcall (C.Ident pipeControl) [] -- TODO: params
+    , C.Stmt . C.Expr $ C.Funcall (C.Ident dprsControl) [] -- TODO: params
     ]
   pure ()
 
