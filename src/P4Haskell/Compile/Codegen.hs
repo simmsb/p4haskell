@@ -30,15 +30,15 @@ generateMain = do
 
   controls <- fetch GetTopLevelControl
 
-  let pipeAST = controls ^?! ix pipeName
-  pipeControl <- generateControl pipeAST
+  -- let pipeAST = controls ^?! ix pipeName
+  -- pipeControl <- generateControl pipeAST
 
   let dprsAST = controls ^?! ix dprsName
   dprsControl <- generateControl dprsAST
 
   modify . (<>) $ defineFunc "main" (C.TypeSpec C.Void) []
-    [ C.Stmt . C.Expr $ C.Funcall (C.Ident pipeControl) [] -- TODO: params
-    , C.Stmt . C.Expr $ C.Funcall (C.Ident dprsControl) [] -- TODO: params
+    [ -- C.Stmt . C.Expr $ C.Funcall (C.Ident pipeControl) [] -- TODO: params
+     C.Stmt . C.Expr $ C.Funcall (C.Ident dprsControl) [] -- TODO: params
     ]
   pure ()
 

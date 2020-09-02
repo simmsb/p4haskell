@@ -49,6 +49,7 @@ dependencies:
   - semigroupoids
   - language-c99 ^>= 0.1
   - language-c99-simple ^>= 0.1
+  - extra ^>= 1.7
 
 executables:
   p4haskell:

@@ -4,6 +4,7 @@ module P4Haskell.Compile.Codegen.Typegen
     generateP4TypePure,
     resolveType,
     simplifyType,
+    resolveP4Type,
   )
 where
 
@@ -21,3 +22,5 @@ generateP4TypePure :: Rock.MonadFetch Query m => AST.P4Type -> m (C.TypeSpec, C.
 resolveType :: CompC r => C.TypeSpec -> Sem r C.TypeSpec
 
 simplifyType :: CompC r => C.TypeSpec -> Sem r C.TypeSpec
+
+resolveP4Type :: CompC r => AST.P4Type -> Sem r AST.P4Type

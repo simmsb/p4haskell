@@ -56,7 +56,7 @@ generateCall (expr, resultTy) params = do
   let callExpr = C.Funcall method params'
 
   res <-
-    if (isCVoid resultTy)
+    if isCVoid resultTy
       then do
         tell [C.Stmt $ C.Expr callExpr]
         pure $ C.LitInt 0
@@ -77,7 +77,7 @@ generateCall' (name, resultTy) params = do
   let callExpr = C.Funcall (C.Ident $ toString name) params'
 
   res <-
-    if (isCVoid resultTy)
+    if isCVoid resultTy
       then do
         tell [C.Stmt $ C.Expr callExpr]
         pure $ C.LitInt 0

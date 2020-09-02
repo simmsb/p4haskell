@@ -4,6 +4,7 @@ module P4Haskell.Compile.Codegen.Typegen
     generateP4TypePure,
     resolveType,
     simplifyType,
+    resolveP4Type,
   )
 where
 
@@ -48,6 +49,10 @@ simplifyType t@(C.StructDecln (Just name) _) = do
   pure $ C.Struct name
 simplifyType t = pure t
 
+resolveP4Type :: CompC r => AST.P4Type -> Sem r AST.P4Type
+resolveP4Type (AST.TypeName'P4Type p) = fromJust <$> fetch (FetchType $ p ^. #path . #name)
+resolveP4Type t = pure t
+
 generateP4TypePure :: Rock.MonadFetch Query m => AST.P4Type -> m (C.TypeSpec, C.TypeSpec, [(Text, C.TypeSpec)])
 generateP4TypePure (AST.TypeStruct'P4Type s) = generateP4StructPure s
 generateP4TypePure (AST.TypeHeader'P4Type s) = generateP4HeaderPure s
@@ -81,18 +86,11 @@ generateP4VoidPure _ = pure $ dupFst (C.Void, [])
 
 generateP4BitsPure :: Rock.MonadFetch Query m => AST.TypeBits -> m (C.TypeSpec, C.TypeSpec, [(Text, C.TypeSpec)])
 generateP4BitsPure (AST.TypeBits size isSigned) =
-  if size `elem` [8, 16, 32, 64]
-    then
+  case find (size <=) [8, 16, 32, 64] of
+    Just size' ->
       let signChar = if isSigned then "" else "u"
-       in pure $ dupFst (C.TypedefName $ signChar <> "int" <> show size <> "_t", [])
-    else
-      let name = "bits_" <> show size
-          fields =
-            [ C.FieldDecln (C.TypeSpec $ C.TypedefName "uint8_t") ("byte_" <> show i)
-              | i <- [0 .. (size + 7) `div` 8]
-            ]
-          struct = C.StructDecln (Just name) (fromList fields)
-       in pure (C.Struct name, struct, [(toText name, struct)])
+       in pure $ dupFst (C.TypedefName $ signChar <> "int" <> show size' <> "_t", [])
+    Nothing -> error $ "unsupported bit width: " <> show size
 
 generateP4TypeNamePure :: Rock.MonadFetch Query m => AST.TypeName -> m (C.TypeSpec, C.TypeSpec, [(Text, C.TypeSpec)])
 generateP4TypeNamePure (AST.TypeName p) = do

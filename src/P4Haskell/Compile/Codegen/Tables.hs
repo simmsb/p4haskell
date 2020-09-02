@@ -23,6 +23,10 @@ import qualified Data.HashMap.Lazy as LH
 filterMapVec :: (v -> Bool) -> AST.MapVec k v -> AST.MapVec k v
 filterMapVec f (AST.MapVec m v) = AST.MapVec (LH.filter f m) (filter f v)
 
+-- TODO: Have params for passing table configurations
+-- TODO: Handle each type of table key
+-- TODO: Transform table keys into a search trie
+
 generateTableCall :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.TypeTable -> Text -> AST.TypeStruct -> Sem r C.Expr
 generateTableCall tty name rty = do
   let rty' = rty & #fields %~ filterMapVec ((/= "action_run") . (^. #name))

@@ -4,7 +4,7 @@ cabal-version: 1.18
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4ad871e34d685eba43935e87157a3ed8a2ae9e81cdf85c2d996fac75c90873a7
+-- hash: 09ec803027a59f6a9927e0e8c3807f93ab78bb1315c3273eb06c584178b0706a
 
 name:           p4haskell
 version:        0.0.0
@@ -76,6 +76,7 @@ library
     , dependent-sum-template >=0.1 && <0.2
     , df1 >=0.3 && <0.5
     , di-polysemy >=0.1 && <0.2
+    , extra >=1.7 && <1.8
     , generic-lens >=2 && <2.1
     , generic-monoid >=0.1 && <0.2
     , generics-sop >=0.5 && <0.6
@@ -115,6 +116,7 @@ executable p4haskell
     , dependent-sum-template >=0.1 && <0.2
     , df1 >=0.3 && <0.5
     , di-polysemy >=0.1 && <0.2
+    , extra >=1.7 && <1.8
     , generic-lens >=2 && <2.1
     , generic-monoid >=0.1 && <0.2
     , generics-sop >=0.5 && <0.6
@@ -157,6 +159,7 @@ test-suite p4haskell-test
     , dependent-sum-template >=0.1 && <0.2
     , df1 >=0.3 && <0.5
     , di-polysemy >=0.1 && <0.2
+    , extra >=1.7 && <1.8
     , generic-lens >=2 && <2.1
     , generic-monoid >=0.1 && <0.2
     , generics-sop >=0.5 && <0.6
