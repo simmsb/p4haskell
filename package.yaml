@@ -29,7 +29,8 @@ dependencies:
   - generic-monoid ^>= 0.1
   - unordered-containers ^>= 0.2
   - ordered-containers ^>= 0.2
-  - di-polysemy ^>= 0.1
+  - di-polysemy ^>= 0.2
+  - di ^>= 1.3
   - df1 >= 0.3 && < 0.5
   - polysemy ^>= 1.3
   - polysemy-zoo ^>= 0.7

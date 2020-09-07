@@ -43,6 +43,9 @@ data P4Type
   | TypeString'P4Type TypeString
   | TypeMatchKind'P4Type TypeMatchKind
   | TypeTable'P4Type TypeTable
+  | TypeList'P4Type TypeList
+  | TypeState'P4Type TypeState
+  | TypeDontCare'P4Type TypeDontCare
   deriving ( Show, Generic, Eq, Hashable )
 
 p4TypeDecoder :: DecompressC r => D.Decoder (Sem r) P4Type
@@ -69,8 +72,10 @@ p4TypeDecoder = D.withCursor $ \c -> do
     "Type_String"      -> (_Typed @TypeString #)      <$> tryDecoder parseTypeString c
     "Type_MatchKind"   -> (_Typed @TypeMatchKind #)   <$> tryDecoder parseTypeMatchKind c
     "Type_Table"       -> (_Typed @TypeTable #)       <$> tryDecoder parseTypeTable c
+    "Type_List"        -> (_Typed @TypeList #)        <$> tryDecoder parseTypeList c
+    "Type_State"       -> (_Typed @TypeState #)       <$> tryDecoder parseTypeState c
+    "Type_Dontcare"    -> (_Typed @TypeDontCare #)    <$> tryDecoder parseTypeDontCare c
     _ -> throwError . D.ParseFailed $ "invalid node type for P4Type: " <> nodeType
-
 
 data TypeEnum = TypeEnum
   { name        :: Text
@@ -235,6 +240,18 @@ data TypeVoid = TypeVoid
 parseTypeVoid :: DecompressC r => D.Decoder (Sem r) TypeVoid
 parseTypeVoid = D.withCursor . tryParseVal $ \_c -> pure TypeVoid
 
+data TypeState = TypeState
+  deriving ( Show, Generic, Eq, Hashable )
+
+parseTypeState :: DecompressC r => D.Decoder (Sem r) TypeState
+parseTypeState = D.withCursor . tryParseVal $ \_c -> pure TypeState
+
+data TypeDontCare = TypeDontCare
+  deriving ( Show, Generic, Eq, Hashable )
+
+parseTypeDontCare :: DecompressC r => D.Decoder (Sem r) TypeDontCare
+parseTypeDontCare = D.withCursor . tryParseVal $ \_c -> pure TypeDontCare
+
 data TypeBits = TypeBits
   { size     :: Int
   , isSigned :: Bool
@@ -387,3 +404,14 @@ parseTypeTable = D.withCursor . tryParseVal $ \c -> do
   o     <- D.down c
   table <- D.fromKey "table" parseP4Table o
   pure $ TypeTable table
+
+newtype TypeList = TypeList
+  { types :: [P4Type]
+  }
+  deriving ( Show, Generic, Eq, Hashable )
+
+parseTypeList :: DecompressC r => D.Decoder (Sem r) TypeList
+parseTypeList = D.withCursor . tryParseVal $ \c -> do
+  o    <- D.down c
+  list <- D.fromKey "components" (parseVector p4TypeDecoder) o
+  pure $ TypeList list

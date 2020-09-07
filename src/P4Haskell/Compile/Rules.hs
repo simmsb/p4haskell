@@ -11,6 +11,7 @@ import qualified P4Haskell.Types.AST as AST
 import P4Haskell.Utils.Drill
 import Relude.Unsafe (fromJust)
 import qualified Rock
+import Relude.Extra (toPairs)
 
 rules :: AST.P4Program -> Rock.Rules Query
 rules ast GetMain =
@@ -34,6 +35,12 @@ rules ast GetTopLevelControl =
   (ast ^. #objects)
     & mapMaybe (^? _Typed @AST.P4Control)
     & map (\v -> (v ^. #name, v))
+    & fromList
+    & pure
+rules ast GetTopLevelMatchKind =
+  (ast ^. #objects)
+    & mapMaybe (^? _Typed @AST.DeclarationMatchKind)
+    & concatMap (toPairs . (^. #members . #map))
     & fromList
     & pure
 rules _ast (FetchType name) = do

@@ -2,10 +2,6 @@
 module P4Haskell.Types.AST.Table
   ( P4Table
   , parseP4Table
-  , PropertyValue
-  , propertyValueDecoder
-  , Property
-  , parseProperty
   , Key
   , parseKey
   , KeyElement
@@ -29,28 +25,6 @@ instance Hashable P4Table
 
 
 parseP4Table :: DecompressC r => D.Decoder (Sem r) P4Table
-
-data PropertyValue
-
-instance Show PropertyValue
-
-instance Eq PropertyValue
-
-instance Hashable PropertyValue
-
-
-propertyValueDecoder :: DecompressC r => D.Decoder (Sem r) PropertyValue
-
-data Property
-
-instance Show Property
-
-instance Eq Property
-
-instance Hashable Property
-
-
-parseProperty :: DecompressC r => D.Decoder (Sem r) Property
 
 data Key
 

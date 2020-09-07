@@ -15,6 +15,7 @@ import           P4Haskell.Types.AST.Expression
 import           P4Haskell.Types.AST.Statement
 import           P4Haskell.Types.AST.Method
 import           P4Haskell.Types.AST.MapVec
+import           P4Haskell.Types.AST.SelectKey
 import           P4Haskell.Types.AST.Parameter
 import           P4Haskell.Types.AST.Types
 import           P4Haskell.Types.AST.Table
@@ -137,17 +138,65 @@ declarationDecoder = D.withCursor $ \c -> do
     _ -> throwError . D.ParseFailed $ "invalid node type for Declaration: " <> nodeType
 
 data ParserState = ParserState
-  { annotations :: [Annotation]
-  , components  :: [Statement]
+  { annotations      :: [Annotation]
+  , components       :: [Statement]
+  , selectExpression :: Maybe ParserSelect
   }
   deriving ( Show, Generic, Eq, Hashable )
 
 parseParserState :: DecompressC r => D.Decoder (Sem r) ParserState
 parseParserState = D.withCursor . tryParseVal $ \c -> do
-  o           <- D.down c
-  annotations <- D.fromKey "annotations" parseAnnotations o
-  components  <- D.fromKey "components" (parseVector statementDecoder) o
-  pure $ ParserState annotations components
+  o                <- D.down c
+  annotations      <- D.fromKey "annotations" parseAnnotations o
+  components       <- D.fromKey "components" (parseVector statementDecoder) o
+  selectExpression <- D.fromKeyOptional "selectExpression" parserSelectDecoder o
+  pure $ ParserState annotations components selectExpression
+
+data ParserSelect
+  = SelectExpression'ParserSelect SelectExpression
+  | PathExpression'ParserSelect PathExpression
+  deriving ( Show, Generic, Eq, Hashable )
+
+parserSelectDecoder :: DecompressC r => D.Decoder (Sem r) ParserSelect
+parserSelectDecoder = D.withCursor $ \c -> do
+  nodeType <- currentNodeType c
+
+  case nodeType of
+    "SelectExpression" -> (_Typed @SelectExpression #) <$> tryDecoder parseSelectExpression c
+    "PathExpression"   -> (_Typed @PathExpression #)   <$> tryDecoder parsePathExpression c
+    _ -> throwError . D.ParseFailed $ "invalid node type for ParserSelect: " <> nodeType
+
+data SelectExpression = SelectExpression
+  { type_            :: P4Type
+  , selectType       :: P4Type
+  , selectComponents :: [Expression]
+  , cases            :: [SelectCase]
+  }
+  deriving ( Show, Generic, Eq, Hashable )
+
+parseSelectExpression :: DecompressC r => D.Decoder (Sem r) SelectExpression
+parseSelectExpression = D.withCursor . tryParseVal $ \c -> do
+  o                <- D.down c
+  type_            <- D.fromKey "type" p4TypeDecoder o
+  selectType       <- D.fromKey "select" (parseNestedObject "type" p4TypeDecoder) o
+  selectComponents <- D.fromKey "select"
+    (parseNestedObject "components"
+      (parseVector expressionDecoder)) o
+  cases            <- D.fromKey "selectCases" (parseVector parseSelectCase) o
+  pure $ SelectExpression type_ selectType selectComponents cases
+
+data SelectCase = SelectCase
+  { keyset :: SelectKey
+  , state  :: PathExpression
+  }
+  deriving ( Show, Generic, Eq, Hashable )
+
+parseSelectCase :: DecompressC r => D.Decoder (Sem r) SelectCase
+parseSelectCase = D.withCursor . tryParseVal $ \c -> do
+  o      <- D.down c
+  keyset <- D.fromKey "keyset" selectKeyDecoder o
+  state  <- D.fromKey "state" parsePathExpression o
+  pure $ SelectCase keyset state
 
 data P4Parser = P4Parser
   { name              :: Text
