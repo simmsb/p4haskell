@@ -32,10 +32,12 @@ generateDV :: CompC r => AST.DeclarationVariable -> Sem r [C.BlockItem] -> Sem r
 generateDV dv rM = do
   -- TODO: globals that persist need to be done differently
   (ty, _) <- generateP4Type (dv ^. #type_)
-  (deps, initExpr) <- runWriterAssocR $ generateP4Expression (dv ^. #initializer)
-  var <- makeVar (dv ^. #name) (C.TypeSpec ty) False
+  initializer <- mapM (runWriterAssocR . generateP4Expression) (dv ^. #initializer)
+  let deps = maybe mempty fst initializer
+  let initExpr = snd <$> initializer
+  var <- makeVar (dv ^. #name) (C.TypeSpec ty) (dv ^. #type_) False
   r <- local (addVarToScope var) rM
-  let decln = C.Decln $ C.VarDecln Nothing (C.TypeSpec ty) (dv ^. #name . unpacked) (Just $ C.InitExpr initExpr)
+  let decln = C.Decln $ C.VarDecln Nothing (C.TypeSpec ty) (dv ^. #name . unpacked) (C.InitExpr <$> initExpr)
   pure (deps <> (decln : r))
 
 generateAS :: CompC r => AST.AssignmentStatement -> Sem r [C.BlockItem]

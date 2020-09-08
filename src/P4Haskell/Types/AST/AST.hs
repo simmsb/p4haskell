@@ -90,7 +90,7 @@ topLevelTypeDeclDecoderInner c = do
     "Type_Header"               -> Just . (_Typed @TypeHeader #)  <$> tryDecoder parseTypeHeader c
     "Type_Struct"               -> Just . (_Typed @TypeStruct #)  <$> tryDecoder parseTypeStruct c
     "Type_Enum"                 -> Just . (_Typed @TypeEnum #)    <$> tryDecoder parseTypeEnum c
-    "Type_Extern"               -> Just . (_Typed @TypeExtern #)           <$> tryDecoder parseTypeExtern c
+    "Type_Extern"               -> Just . (_Typed @TypeExtern #)  <$> tryDecoder parseTypeExtern c
     _ -> pure Nothing
 
 topLevelTypeDeclDecoder :: DecompressC r => D.Decoder (Sem r) TopLevelTypeDecl
@@ -125,6 +125,7 @@ data Declaration
   = P4Action'Declaration P4Action
   | P4Table'Declaration P4Table
   | DeclarationInstance'Declaration DeclarationInstance
+  | DeclarationVariable'Declaration DeclarationVariable
   deriving ( Show, Generic, Eq, Hashable )
 
 declarationDecoder :: DecompressC r => D.Decoder (Sem r) Declaration
@@ -135,6 +136,7 @@ declarationDecoder = D.withCursor $ \c -> do
     "P4Action"             -> (_Typed @P4Action #)            <$> tryDecoder parseP4Action c
     "P4Table"              -> (_Typed @P4Table #)             <$> tryDecoder parseP4Table c
     "Declaration_Instance" -> (_Typed @DeclarationInstance #) <$> tryDecoder parseDeclarationInstance c
+    "Declaration_Variable" -> (_Typed @DeclarationVariable #) <$> tryDecoder parseDeclarationVariable c
     _ -> throwError . D.ParseFailed $ "invalid node type for Declaration: " <> nodeType
 
 data ParserState = ParserState

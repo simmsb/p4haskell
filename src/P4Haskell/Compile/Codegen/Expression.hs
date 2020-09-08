@@ -10,7 +10,7 @@ import qualified Generics.SOP as GS
 import qualified Language.C99.Simple as C
 import P4Haskell.Compile.Codegen.Extern
 import {-# SOURCE #-} P4Haskell.Compile.Codegen.MethodCall
-import P4Haskell.Compile.Codegen.Tables
+import {-# SOURCE #-} P4Haskell.Compile.Codegen.Tables
 import P4Haskell.Compile.Codegen.Typegen
 import P4Haskell.Compile.Eff
 import P4Haskell.Compile.Scope
@@ -33,6 +33,7 @@ generateP4Expression (AST.Constant'Expression ce) = generateCE ce
 generateP4Expression (AST.BoolLiteral'Expression ble) = generateBLE ble
 generateP4Expression (AST.StringLiteral'Expression sle) = generateSLE sle
 generateP4Expression (AST.UnaryOp'Expression uoe) = generateUOE uoe
+generateP4Expression (AST.BinaryOp'Expression uoe) = generateBOE uoe
 generateP4Expression (AST.TypeNameExpression'Expression _) = error "type name expressions can only be part of member expressions"
 
 generateUOE :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.UnaryOp -> Sem r C.Expr
@@ -41,11 +42,19 @@ generateUOE uoe = do
   pure case uoe ^. #op of
     AST.UnaryOpLNot -> C.UnaryOp C.BoolNot expr
 
+generateBOE :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.BinaryOp -> Sem r C.Expr
+generateBOE boe = do
+  left <- generateP4Expression $ boe ^. #left
+  right <- generateP4Expression $ boe ^. #right
+  let op = case boe ^. #op of
+        AST.BinaryOpAdd -> C.Add
+  pure $ C.BinaryOp op left right
+
 generatePE :: CompC r => AST.PathExpression -> Sem r C.Expr
 generatePE pe = do
   let ident = C.Ident $ pe ^. #path . #name . unpacked
   -- the ubpf backend YOLOs this too: https://github.com/p4lang/p4c/blob/master/backends/ubpf/ubpfControl.cpp#L262
-  var <- Polysemy.Reader.asks $ findVarInScope (pe ^. #path . #name)
+  var <- lookupVarInScope (pe ^. #path . #name) (pe ^. #type_)
   let needsDeref = maybe False (^. #needsDeref) var
   pure
     if needsDeref

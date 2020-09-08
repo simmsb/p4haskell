@@ -118,43 +118,8 @@ generateP4TypeDefPure td = Rock.fetch $ GenerateP4Type (td ^. #type_)
 
 -- NOTE: we silently ignore the name of the typedef here and just return the true name of the type
 
--- generateP4ParserPure :: (Rock.MonadFetch Query m, MonadIO m) => AST.TypeParser -> m (C.TypeSpec, C.TypeSpec, [(Text, C.TypeSpec)])
--- generateP4ParserPure p = do
---   when (null $ p ^. #typeParameters) $
---     print $ "Parser: " <> (p ^. #name) <> " has type parameters that are being ignored"
-
---   (params, deps) <-
---     SW.runWriterT $
---       forM
---         (p ^. #applyParams . #vec)
---         ( \param -> do
---             (ty, deps) <- Rock.fetch $ GenerateP4Type (param ^. #type_)
---             let ty' = if param ^. #direction . #out then C.Ptr ty else ty
---             SW.tell deps
---             pure $ C.Param ty' (toString $ param ^. #name)
---         )
---   let ident = toString $ p ^. #name
---   let fn = C.FunDecln Nothing (C.TypeSpec C.Void) ident params
---   pure (C.TypeSpec . C.TypedefName $ ident, (p ^. #name, fn) : deps)
-
--- generateP4ControlPure :: (Rock.MonadFetch Query m, MonadIO m) => AST.TypeControl -> m (C.TypeSpec, C.TypeSpec, [(Text, C.TypeSpec)])
--- generateP4ControlPure p = do
---   when (null $ p ^. #typeParameters) $
---     print $ "Control: " <> (p ^. #name) <> " has type parameters that are being ignored"
-
---   (params, deps) <-
---     SW.runWriterT $
---       forM
---         (p ^. #applyParams . #vec)
---         ( \param -> do
---             (ty, deps) <- Rock.fetch $ GenerateP4Type (param ^. #type_)
---             let ty' = if param ^. #direction . #out then C.Ptr ty else ty
---             SW.tell deps
---             pure $ C.Param ty' (toString $ param ^. #name)
---         )
---   let ident = toString $ p ^. #name
---   let fn = C.FunDecln Nothing (C.TypeSpec C.Void) ident params
---   pure (C.TypeSpec . C.TypedefName $ ident, (p ^. #name, fn) : deps)
+nullField :: C.FieldDecln
+nullField = C.FieldDecln (C.TypeSpec C.Char) "unused"
 
 generateP4StructPure :: Rock.MonadFetch Query m => AST.TypeStruct -> m (C.TypeSpec, C.TypeSpec, [(Text, C.TypeSpec)])
 generateP4StructPure s = do
@@ -169,7 +134,7 @@ generateP4StructPure s = do
             pure $ C.FieldDecln (C.TypeSpec ty) (toString $ f ^. #name)
         )
   let ident = toString $ s ^. #name
-  let struct = C.StructDecln (Just ident) (fromList fields')
+  let struct = C.StructDecln (Just ident) (fromMaybe (nullField :| []) $ nonEmpty fields')
   let deps' = ((s ^. #name, struct) : deps)
   pure (C.Struct ident, struct, deps')
 
@@ -186,7 +151,7 @@ generateP4HeaderPure h = do
             pure $ C.FieldDecln (C.TypeSpec ty) (toString $ f ^. #name)
         )
   let ident = toString $ h ^. #name
-  let struct = C.StructDecln (Just ident) (fromList fields')
+  let struct = C.StructDecln (Just ident) (fromMaybe (nullField :| []) $ nonEmpty fields')
   let deps' = ((h ^. #name, struct) : deps)
   pure (C.Struct ident, struct, deps')
 

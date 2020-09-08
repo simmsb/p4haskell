@@ -28,6 +28,7 @@ data Expression
   | StringLiteral'Expression StringLiteral
   | TypeNameExpression'Expression TypeNameExpression
   | UnaryOp'Expression UnaryOp
+  | BinaryOp'Expression BinaryOp
   deriving ( Show, Generic, GS.Generic, Eq, Hashable )
 
 expressionDecoder :: DecompressC r => D.Decoder (Sem r) Expression
@@ -43,6 +44,7 @@ expressionDecoder = D.withCursor $ \c -> do
     "StringLiteral"             -> (_Typed @StringLiteral #)             <$> tryDecoder parseStringLiteral c
     "TypeNameExpression"        -> (_Typed @TypeNameExpression #)        <$> tryDecoder parseTypeNameExpression c
     IsUnaryOp t                 -> (_Typed @UnaryOp #)                   <$> tryDecoder (parseUnaryOp t) c
+    IsBinaryOp t                -> (_Typed @BinaryOp #)                  <$> tryDecoder (parseBinaryOp t) c
     _ -> throwError . D.ParseFailed $ "invalid node type for Expression: " <> nodeType
 
 data TypeType = TypeType
@@ -220,6 +222,31 @@ parseUnaryOp t = D.withCursor . tryParseVal $ \c -> do
   type_ <- D.fromKey "type" p4TypeDecoder o
   expr  <- D.fromKey "expr" expressionDecoder o
   pure $ UnaryOp type_ expr t
+
+data BinaryOpType = BinaryOpAdd
+  deriving ( Show, Generic, Eq, Enum, Hashable )
+
+binaryOpTypes :: HashMap Text BinaryOpType
+binaryOpTypes = fromList [("Add", BinaryOpAdd)]
+
+pattern IsBinaryOp :: BinaryOpType -> Text
+pattern IsBinaryOp t <- ((binaryOpTypes !?) -> Just t)
+
+data BinaryOp = BinaryOp
+  { type_ :: P4Type
+  , left  :: Expression
+  , right :: Expression
+  , op    :: BinaryOpType
+  }
+  deriving ( Show, Generic, Eq, Hashable )
+
+parseBinaryOp :: BinaryOpType -> DecompressC r => D.Decoder (Sem r) BinaryOp
+parseBinaryOp t = D.withCursor . tryParseVal $ \c -> do
+  o     <- D.down c
+  type_ <- D.fromKey "type" p4TypeDecoder o
+  left  <- D.fromKey "left" expressionDecoder o
+  right  <- D.fromKey "right" expressionDecoder o
+  pure $ BinaryOp type_ left right t
 
 data StringLiteral = StringLiteral
   { type_ :: P4Type

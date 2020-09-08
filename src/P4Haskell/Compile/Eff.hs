@@ -22,6 +22,7 @@ type CompC r =
     [ Fetch Query,
       State Declared,
       Reader AST.P4Program,
+      ScopeLookup,
       Reader Scope,
       Fresh Unique,
       Embed IO
@@ -36,8 +37,9 @@ runComp ::
     ( Fetch Query
         ': State Declared
           ': Reader AST.P4Program
-            ': Reader Scope
-              ': Fresh Unique ': r
+            ': ScopeLookup
+              ': Reader Scope
+                ': Fresh Unique ': r
     )
     a ->
   Sem r (Declared, a)
@@ -46,6 +48,7 @@ runComp rules program m = do
 
   freshToIO
     . runReader emptyScope
+    . runScopeLookupReader
     . runReader program
     . runState mempty
     . runFetchToIO (Rock.runTask (Rock.memoise memoVar rules))

@@ -72,7 +72,7 @@ data DeclarationVariable = DeclarationVariable
   { name :: Text
   , annotations :: [Annotation]
   , type_ :: P4Type
-  , initializer :: Expression
+  , initializer :: Maybe Expression
   }
   deriving ( Show, Generic, Eq, Hashable )
 
@@ -82,7 +82,7 @@ parseDeclarationVariable = D.withCursor . tryParseVal $ \c -> do
   name        <- D.fromKey "name" D.text o
   annotations <- D.fromKey "annotations" parseAnnotations o
   type_       <- D.fromKey "type" p4TypeDecoder o
-  initializer <- D.fromKey "initializer" expressionDecoder o
+  initializer <- D.fromKeyOptional"initializer" expressionDecoder o
   pure $ DeclarationVariable name annotations type_ initializer
 
 data IfStatement = IfStatement

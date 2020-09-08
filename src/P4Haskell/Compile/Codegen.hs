@@ -11,6 +11,7 @@ import P4Haskell.Compile.Codegen.Typegen
 import Data.Generics.Sum
 import Data.Text.Lens (unpacked)
 import qualified Language.C99.Simple as C
+import P4Haskell.Compile.Codegen.Utils
 import P4Haskell.Compile.Declared
 import P4Haskell.Compile.Eff
 import P4Haskell.Compile.Fetch
@@ -30,29 +31,27 @@ generateMain = do
 
   controls <- fetch GetTopLevelControl
 
-  -- let pipeAST = controls ^?! ix pipeName
-  -- pipeControl <- generateControl pipeAST
+  let pipeAST = controls ^?! ix pipeName
+  pipeControl <- generateControl pipeAST
 
   let dprsAST = controls ^?! ix dprsName
   dprsControl <- generateControl dprsAST
 
   modify . (<>) $ defineFunc "main" (C.TypeSpec C.Void) []
-    [ -- C.Stmt . C.Expr $ C.Funcall (C.Ident pipeControl) [] -- TODO: params
-     C.Stmt . C.Expr $ C.Funcall (C.Ident dprsControl) [] -- TODO: params
+    [ C.Stmt . C.Expr $ C.Funcall (C.Ident pipeControl) [] -- TODO: params
+    , C.Stmt . C.Expr $ C.Funcall (C.Ident dprsControl) [] -- TODO: params
     ]
   pure ()
-
--- HACK: we use (LitInt 0) to signal void expressions
-removeDeadExprs :: [C.BlockItem] -> [C.BlockItem]
-removeDeadExprs = filter notDeadExpr
-  where notDeadExpr (C.Stmt (C.Expr (C.LitInt _))) = False
-        notDeadExpr _ = True
 
 generateControl :: CompC r => AST.P4Control -> Sem r C.Ident
 generateControl c = do
   (params, vars) <- generateControlParams c
-  let scopeUpdate scope = flipfoldl' addVarToScope scope vars
-  body <- local scopeUpdate . generateStatements $ c ^. #body . #components
+  let localVars = c ^.. #controlLocals . #vec . traverse . _Typed @AST.DeclarationVariable
+  let actions = c ^.. #controlLocals . #vec . traverse . _Typed @AST.P4Action
+  let scopeUpdate scope =
+        let withVars = flipfoldl' addVarToScope scope vars
+         in flipfoldl' addActionToScope withVars actions
+  body <- local scopeUpdate . generateStatements $ (map injectTyped localVars) <> (c ^. #body . #components)
   let body' = removeDeadExprs body
   modify . (<>) $ defineFunc (c ^. #name) (C.TypeSpec C.Void) params body'
   pure $ c ^. #name . unpacked
@@ -65,20 +64,7 @@ generateControlParams c =
       ( \param -> do
           (ty, _) <- generateP4Type (param ^. #type_)
           let isOut = param ^. #direction . #out
-          var <- makeVar (param ^. #name) (C.TypeSpec ty) isOut
+          var <- makeVar (param ^. #name) (C.TypeSpec ty) (param ^. #type_) isOut
           let ty' = if isOut then C.Ptr (C.TypeSpec ty) else (C.TypeSpec ty)
           pure (C.Param ty' (toString $ param ^. #name), var)
       )
-
-{-
- NOTE:
- For control blocks:
-  1. enumerate through body, performing apply sections
-  2. generate backing code for action bodies as required
-
- need:
-   something to lift tables and action into functions
-   special case table.apply()
-   the struct return value of table.apply() is in the expression result type
-
--}
