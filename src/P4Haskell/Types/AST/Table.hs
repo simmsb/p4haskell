@@ -99,8 +99,8 @@ newtype Key = Key
 
 parseKey :: DecompressC r => D.Decoder (Sem r) Key
 parseKey = D.withCursor . tryParseVal $ \c -> do
-  o        <- D.down c
-  elems   <- D.fromKey "keyElements" (parseVector parseKeyElement) o
+  o     <- D.down c
+  elems <- D.fromKey "keyElements" (parseVector parseKeyElement) o
   pure $ Key elems
 
 data KeyElement = KeyElement

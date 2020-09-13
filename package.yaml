@@ -51,6 +51,8 @@ dependencies:
   - language-c99 ^>= 0.1
   - language-c99-simple ^>= 0.1
   - extra ^>= 1.7
+  - bitvec ^>= 1.0
+  - vector ^>= 0.12
 
 executables:
   p4haskell:
