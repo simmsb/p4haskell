@@ -4,6 +4,7 @@ module P4Haskell.Compile.Codegen.Tables
   )
 where
 
+import Data.Foldable
 import Data.Generics.Sum
 import qualified Data.HashMap.Lazy as LH
 import Data.Text.Lens (unpacked)
@@ -26,19 +27,17 @@ import Polysemy
 import Polysemy.Reader
 import Polysemy.State
 import Polysemy.Writer
-import Polysemy.Fixpoint
 import Relude (error)
 import Relude.Unsafe ((!!), fromJust)
 import Data.Bit
 import qualified Data.Vector.Unboxed as V
+import Relude.Extra (toPairs)
 
 filterMapVec :: (v -> Bool) -> AST.MapVec k v -> AST.MapVec k v
 filterMapVec f (AST.MapVec m v) = AST.MapVec (LH.filter f m) (filter f v)
 
 -- TODO: Have params for passing table configurations
 -- TODO: Handle each type of table key
--- TODO: Transform table keys into a search trie
-
 
 data LiftedAction = LiftedAction
   { nameExpr :: C.Expr,
@@ -128,9 +127,6 @@ generateTableKeys elems =
     )
     elems
 
-bitsPerLevel :: Int
-bitsPerLevel = 4
-
 matchTreeNodeType :: C.TypeSpec
 matchTreeNodeType =
   C.StructDecln
@@ -149,6 +145,10 @@ makeNode val offsets = C.InitVal
                                            map (C.InitItem Nothing . C.InitExpr . C.LitInt) offsets)
             ])
 
+-- TODO(optimisation): decide on the bits per level dynamically
+bitsPerLevel :: Int
+bitsPerLevel = 4
+
 data BitChunk
   = BitChunk Int
   | AcceptAll
@@ -160,7 +160,7 @@ typeSize p4ty = case p4ty of
                   _ -> error $ "The type: " <> show p4ty <> " is unsupported in table keys"
 
 chunkVec :: V.Unbox a => Int -> V.Vector a -> [V.Vector a]
-chunkVec interval v = [V.slice i interval v | i <- [0, interval .. V.length v]]
+chunkVec interval v = [V.slice i interval v | i <- [0, interval .. (V.length v - interval)]]
 
 cielDiv :: Int -> Int -> Int
 cielDiv a b = (a + b) `div` b
@@ -168,80 +168,103 @@ cielDiv a b = (a + b) `div` b
 lastN :: Int -> [a] -> [a]
 lastN n xs = drop (length xs - n) xs
 
-generateBitChunks :: AST.TableEntry -> [BitChunk]
-generateBitChunks (AST.TableEntry keys _ _) = concatMap inner keys
-  where inner (AST.Constant'SelectKey (AST.Constant (typeSize -> size) v _)) =
+generateBitChunks :: [Int] -> AST.TableEntry -> [BitChunk]
+generateBitChunks  widths(AST.TableEntry keys _ _) = concatMap (uncurry inner) (zip keys widths)
+  where inner (AST.Constant'SelectKey (AST.Constant _ v _)) width =
           let vec = fromIntegral @_ @Word v & V.singleton & castFromWords & V.reverse
-              chunks = map (V.head . cloneToWords8)
-                       . lastN (cielDiv size bitsPerLevel)
+              chunks = map (V.head . cloneToWords8 . V.reverse)
+                       . lastN (cielDiv width bitsPerLevel)
                        $ chunkVec bitsPerLevel vec
            in map (BitChunk . fromIntegral) chunks
-        inner (AST.Default'SelectKey (AST.DefaultExpression (typeSize -> size))) =
-          replicate (cielDiv size bitsPerLevel) AcceptAll
+        inner (AST.Default'SelectKey (AST.DefaultExpression _)) width =
+          replicate (cielDiv width bitsPerLevel) AcceptAll
 
 data ChunkTrie
   = ChunkTrieLeaf Int
-  | ChunkTrieNode [Maybe ChunkTrie]
+  | ChunkTrieNode [Maybe Int]
   deriving ( Show, Generic )
 
-type TrieC r = Members [Writer [(C.Expr, Int)], State Int] r
+type TrieBuildC r = Members [State (HashMap Int ChunkTrie), State Int] r
+
+nodeToExpr :: Int -> ChunkTrie -> C.Expr
+nodeToExpr myId (ChunkTrieNode ns) =
+  let offsets = map toInteger $ map (maybe (-myId) (subtract myId)) ns
+   in makeNode 0 offsets
+nodeToExpr _ (ChunkTrieLeaf v) =
+  let offsets = replicate (2 ^ bitsPerLevel) 0
+   in makeNode (toInteger v) offsets
+
+trieToExpr :: [(Int, ChunkTrie)] -> [C.Expr]
+trieToExpr t =
+  let nodes = map (\(nid, n) -> (nid, nodeToExpr nid n)) t
+      deadNode = (0, makeNode 0 $ replicate (2 ^ bitsPerLevel) 0)
+      -- sort in reverse since the C dsl orders arrays in reverse
+   in map snd $ sortOn (Down . fst) (deadNode : nodes)
+
+emptyTrieNode :: [Maybe Int]
+emptyTrieNode = replicate (2 ^ bitsPerLevel) Nothing
 
 getNodeId :: Member (State Int) r => Sem r Int
 getNodeId = get <* modify (+ 1)
 
-nodeToExpr :: TrieC r => ChunkTrie -> Sem r (C.Expr, Int)
-nodeToExpr (ChunkTrieNode ns) = do
-  childNodes <- mapM (traverse nodeToExpr) ns
-  tell $ catMaybes childNodes
-  myId <- getNodeId
-  let childrenOffsets = map toInteger $ map (maybe (-myId) ((subtract myId) . snd)) childNodes
-  pure (makeNode 0 childrenOffsets, myId)
-nodeToExpr (ChunkTrieLeaf v) = do
-  myId <- getNodeId
-  let offsets = replicate (2 ^ bitsPerLevel) 0
-  pure (makeNode (toInteger v) offsets, myId)
+nameNode :: TrieBuildC r => ChunkTrie -> Sem r (Int, ChunkTrie)
+nameNode n = do
+  nid <- getNodeId
+  modify @(HashMap Int ChunkTrie) . (<>) $ fromList [(nid, n)]
+  pure (nid, n)
 
-trieToExpr :: ChunkTrie -> ([C.Expr], Int)
-trieToExpr t =
-  let (nodes, r@(_, rid)) = run . runWriterAssocR . evalState 1 . nodeToExpr $ t
-      sortedNodes = map fst $ sortOn snd (r : nodes)
-   in (sortedNodes, rid)
-
-emptyTrieNode :: [Maybe ChunkTrie]
-emptyTrieNode = replicate (2 ^ bitsPerLevel) Nothing
+makeTrieTail :: TrieBuildC r => [BitChunk] -> Int -> Sem r ChunkTrie
+makeTrieTail cs v = foldrM go (ChunkTrieLeaf v) cs
+  where go (BitChunk bp) n = nameNode n <&>
+          \(nid, _) -> ChunkTrieNode (emptyTrieNode & ix bp ?~ nid)
+        go AcceptAll n = nameNode n <&>
+          \(nid, _) -> ChunkTrieNode (emptyTrieNode $> Just nid)
 
 isEmptyAt :: Int -> [Maybe a] -> Bool
 isEmptyAt n l = isNothing (l !! n)
 
-makeTrieTail :: [BitChunk] -> Int -> ChunkTrie
-makeTrieTail cs v = foldr go (ChunkTrieLeaf v) cs
-  where go (BitChunk bp) n = ChunkTrieNode (emptyTrieNode & ix bp ?~ n)
-        go AcceptAll n = ChunkTrieNode (emptyTrieNode $> (Just n))
-
-addEntry :: [BitChunk] -> Int -> ChunkTrie -> ChunkTrie
-addEntry (BitChunk bp : cs) v (ChunkTrieNode xs@(isEmptyAt bp -> True)) =
-  ChunkTrieNode (xs & ix bp ?~ makeTrieTail cs v)
-addEntry (BitChunk bp : cs) v (ChunkTrieNode xs) =
-  ChunkTrieNode (xs & ix bp . _Just %~ addEntry cs v)
-addEntry (AcceptAll : cs) v (ChunkTrieNode xs) =
-  ChunkTrieNode (xs & traverse . filtered isNothing . _Just .~ makeTrieTail cs v)
+addEntry :: TrieBuildC r => [BitChunk] -> Int -> ChunkTrie -> Sem r ChunkTrie
+addEntry (BitChunk bp : cs) v (ChunkTrieNode xs@(isEmptyAt bp -> True)) = do
+  (tid, _) <- nameNode =<< makeTrieTail cs v
+  pure $ ChunkTrieNode (xs & ix bp ?~ tid)
+addEntry (BitChunk bp : cs) v (ChunkTrieNode xs@((!! bp) -> Just nid)) = do
+  n <- gets @(HashMap Int ChunkTrie) (^?! ix nid)
+  n' <- addEntry cs v n
+  modify @(HashMap Int ChunkTrie) (at nid ?~ n')
+  pure $ ChunkTrieNode xs
+addEntry (AcceptAll : cs) v (ChunkTrieNode xs) = do
+  (tid, _) <- nameNode =<< makeTrieTail cs v
+  pure . ChunkTrieNode $ map (Just . fromMaybe tid) xs
 addEntry _ _ _ = error "failed to insert entry into search trie"
 
-generateNodes :: [AST.TableEntry] -> [C.Expr]
-generateNodes entries =
-  let chunks = map generateBitChunks entries
+buildTrie :: [([BitChunk], Int)] -> (HashMap Int ChunkTrie, Int)
+buildTrie inp = run . runState @(HashMap Int ChunkTrie) mempty . evalState @Int 1 $ do
+  let root = ChunkTrieNode emptyTrieNode
+  (rid, _) <- nameNode =<< foldlM (flip $ uncurry addEntry) root inp
+  pure rid
+
+generateTableTrie :: CompC r => Text -> [AST.TableEntry] -> [Int] -> Sem r (C.Expr, Int)
+generateTableTrie tableName entries widths =
+  let chunks = map (generateBitChunks widths) entries
       actionIds = [1..]
-      trie = flipfoldl' (uncurry addEntry) (ChunkTrieNode emptyTrieNode) (zip chunks actionIds)
-   in undefined
+      (trieNodes, rootId) = buildTrie $ zip chunks actionIds
+      trieInits = trieToExpr $ toPairs trieNodes
+      trieInit = C.InitMultiple . fromList . map (C.InitItem Nothing . C.InitExpr) $ trieInits
+      staticName = tableName <> "_search_trie"
+   in do
+    putStrLn $ "chunks: " <> show chunks
+    treeNodeTy <- simplifyType matchTreeNodeType
+    let arrayTy = C.Array (C.TypeSpec treeNodeTy) (Just . C.LitInt . fromIntegral $ length trieInits)
+    modify . (<>) $ defineStatic staticName Nothing arrayTy trieInit
+    pure (C.Ident . toString $ staticName, rootId)
 
 generateTableCall :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.TypeTable -> Text -> AST.TypeStruct -> Sem r C.Expr
 generateTableCall (AST.TypeTable table) name rty = do
-  treeNodeTy <- simplifyType matchTreeNodeType
   let rty' = rty & #fields %~ filterMapVec ((/= "action_run") . (^. #name))
   (rty'', _) <- generateP4Type $ AST.TypeStruct'P4Type rty'
   keys <- generateTableKeys $ table ^. #keys
 
   let entries = fromMaybe (error "tables without entries are not yet supported") $ table ^. #entries
-
+  (searchTrie, rootNode) <- generateTableTrie (table ^. #name) entries (map (^. _3) keys)
 
   pure $ C.LitInt 1

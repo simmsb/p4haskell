@@ -39,6 +39,7 @@ struct metadata {}
 
 
 parser prs(packet_in packet, out Headers_t hdr, inout metadata meta, inout standard_metadata std_meta) {
+    
     state start {
         transition parse_ethernet;
     }
@@ -58,11 +59,16 @@ parser prs(packet_in packet, out Headers_t hdr, inout metadata meta, inout stand
 
 control pipe(inout Headers_t hdr, inout metadata meta, inout standard_metadata std_meta) {
 
-    action mod_nw_tos(bit<32> out_port) {
-        hdr.ipv4.diffserv = 12;
+    bit<8> y = 0;
+
+    action mod_nw_tos(inout bit<8> x, bit<32> out_port) {
+        x = x + 1;
+        hdr.ipv4.diffserv = x;
         std_meta.output_action = ubpf_action.REDIRECT;
         std_meta.output_port = out_port;
     }
+
+    bit<8> i0 = 0;
 
     table test_tbl {
 
@@ -71,9 +77,14 @@ control pipe(inout Headers_t hdr, inout metadata meta, inout standard_metadata s
         }
 
         actions = {
-            mod_nw_tos;
+            mod_nw_tos(i0);
         }
 
+        const entries = {
+             0: mod_nw_tos(i0, 1);
+             1: mod_nw_tos(i0, 0);
+             _: mod_nw_tos(i0, 2);
+        }
     }
 
     apply {
