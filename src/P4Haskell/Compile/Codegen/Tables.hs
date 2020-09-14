@@ -5,26 +5,26 @@ module P4Haskell.Compile.Codegen.Tables
 where
 
 import Data.Foldable
-import Data.Generics.Sum
+-- import Data.Generics.Sum
 import qualified Data.HashMap.Lazy as LH
-import Data.Text.Lens (unpacked)
-import qualified Generics.SOP as GS
+-- import Data.Text.Lens (unpacked)
+-- import qualified Generics.SOP as GS
 import qualified Language.C99.Simple as C
 import P4Haskell.Compile.Codegen.Expression
-import P4Haskell.Compile.Codegen.Extern
-import {-# SOURCE #-} P4Haskell.Compile.Codegen.MethodCall
-import P4Haskell.Compile.Codegen.Statement
+-- import P4Haskell.Compile.Codegen.Extern
+-- import {-# SOURCE #-} P4Haskell.Compile.Codegen.MethodCall
+-- import P4Haskell.Compile.Codegen.Statement
 import P4Haskell.Compile.Codegen.Typegen
 import P4Haskell.Compile.Codegen.Utils
 import P4Haskell.Compile.Declared
 import P4Haskell.Compile.Eff
 import P4Haskell.Compile.Fetch
 import P4Haskell.Compile.Query
-import P4Haskell.Compile.Scope
+-- import P4Haskell.Compile.Scope
 import qualified P4Haskell.Types.AST as AST
 import P4Haskell.Utils.Drill
 import Polysemy
-import Polysemy.Reader
+-- import Polysemy.Reader
 import Polysemy.State
 import Polysemy.Writer
 import Relude (error)
@@ -38,68 +38,8 @@ filterMapVec f (AST.MapVec m v) = AST.MapVec (LH.filter f m) (filter f v)
 
 -- TODO: Have params for passing table configurations
 -- TODO: Handle each type of table key
-
-data LiftedAction = LiftedAction
-  { nameExpr :: C.Expr,
-    liftedParams :: [AST.Parameter],
-    liftedParamExprs :: [AST.Expression],
-    originalParams :: [AST.Parameter]
-  }
-  deriving (Generic)
-
-interceptUnknownVars :: CompC r => Sem r a -> Sem r (Scope, a)
-interceptUnknownVars m = do
-  parentScope <- Polysemy.Reader.ask
-  runState emptyScope . intercept @ScopeLookup (inner parentScope) . raise . local (const emptyScope) $ m
-  where
-    inner :: (CompC r, Member (State Scope) r) => forall m x. Scope -> ScopeLookup m x -> Sem r x
-    inner parentScope (LookupVarInScope name p4ty) = do
-      val <- Polysemy.Reader.asks $ findVarInScope name
-      case val of
-        Just v -> pure (Just v)
-        Nothing -> do
-          val' <- Polysemy.State.gets $ findVarInScope name
-          case val' of
-            Just v -> pure (Just v)
-            Nothing -> do
-              case findVarInScope name parentScope of
-                Just _ -> do
-                  (ty, _) <- generateP4Type p4ty
-                  var <- makeVar name (C.TypeSpec ty) p4ty True
-                  modify $ addVarToScope var
-                  pure (Just var)
-                Nothing -> pure Nothing
-
-generateActionParams :: CompC r => AST.P4Action -> Sem r ([C.Param], [Var])
-generateActionParams a =
-  unzip
-    <$> forM
-      (a ^. #parameters . #vec)
-      ( \param -> do
-          (ty, _) <- generateP4Type (param ^. #type_)
-          let isOut = param ^. #direction . #out
-          var <- makeVar (param ^. #name) (C.TypeSpec ty) (param ^. #type_) isOut
-          let ty' = if isOut then C.Ptr (C.TypeSpec ty) else (C.TypeSpec ty)
-          pure (C.Param ty' (toString $ param ^. #name), var)
-      )
-
-liftAction :: CompC r => AST.P4Action -> Sem r LiftedAction
-liftAction action = do
-  (params, vars) <- generateActionParams action
-  let scopeUpdate scope = flipfoldl' addVarToScope scope vars
-  (extraVars, body) <-
-    local scopeUpdate . interceptUnknownVars . generateStatements $
-      action ^. #body . #components
-  let body' = removeDeadExprs body
-  let (extraCParams, extraP4Params, paramExprs) =
-        unzip3 $ map
-          (\v -> ( C.Param (v ^. #varType) (toString $ v ^. #varOriginalName)
-                 , AST.Parameter [] (AST.Direction True True) (v ^. #varOriginalName) (v ^. #varP4Type)
-                 , AST.PathExpression'Expression $ AST.PathExpression (v ^. #varP4Type) (AST.Path False $ v ^. #varOriginalName)
-                 ))
-          (LH.elems $ extraVars ^. #scopeVarBindings)
-  modify . (<>) $ defineFunc (action ^. #name) (C.TypeSpec C.Void) (params <> extraCParams) body'
-  pure $ LiftedAction (C.Ident . toString $ action ^. #name) extraP4Params paramExprs (action ^. #parameters . #vec)
+-- TODO(optimisation): move ternary expressions to the start and pack them together
+-- TODO: decide on how to implement LPM
 
 data TableMatchKind
   = Exact
@@ -141,7 +81,7 @@ makeNode :: Integer -> [Integer] -> C.Expr
 makeNode val offsets = C.InitVal
   (C.TypeName . C.TypeSpec . C.Struct $ "match_tree_node")
   (fromList [ C.InitItem (Just "value") (C.InitExpr $ C.LitInt val)
-            , C.InitItem (Just "offsets") (C.InitMultiple . fromList $
+            , C.InitItem (Just "offsets") (C.InitMultiple . fromList . reverse $
                                            map (C.InitItem Nothing . C.InitExpr . C.LitInt) offsets)
             ])
 
@@ -168,15 +108,15 @@ cielDiv a b = (a + b) `div` b
 lastN :: Int -> [a] -> [a]
 lastN n xs = drop (length xs - n) xs
 
-generateBitChunks :: [Int] -> AST.TableEntry -> [BitChunk]
-generateBitChunks  widths(AST.TableEntry keys _ _) = concatMap (uncurry inner) (zip keys widths)
-  where inner (AST.Constant'SelectKey (AST.Constant _ v _)) width =
+generateBitChunks :: [(Int, TableMatchKind)] -> AST.TableEntry -> [BitChunk]
+generateBitChunks  meta (AST.TableEntry keys _ _) = concatMap (uncurry inner) (zip keys meta)
+  where inner (AST.Constant'SelectKey (AST.Constant _ v _)) (width, _matchKind) =
           let vec = fromIntegral @_ @Word v & V.singleton & castFromWords & V.reverse
               chunks = map (V.head . cloneToWords8 . V.reverse)
                        . lastN (cielDiv width bitsPerLevel)
                        $ chunkVec bitsPerLevel vec
            in map (BitChunk . fromIntegral) chunks
-        inner (AST.Default'SelectKey (AST.DefaultExpression _)) width =
+        inner (AST.Default'SelectKey (AST.DefaultExpression _)) (width, _matchKind) =
           replicate (cielDiv width bitsPerLevel) AcceptAll
 
 data ChunkTrie
@@ -237,26 +177,34 @@ addEntry (AcceptAll : cs) v (ChunkTrieNode xs) = do
   pure . ChunkTrieNode $ map (Just . fromMaybe tid) xs
 addEntry _ _ _ = error "failed to insert entry into search trie"
 
+-- logState :: (Show s, Member (State s) r) => Sem r a -> Sem r a
+-- logState m = get >>= \s -> trace (toString $ pShow s) m
+
 buildTrie :: [([BitChunk], Int)] -> (HashMap Int ChunkTrie, Int)
 buildTrie inp = run . runState @(HashMap Int ChunkTrie) mempty . evalState @Int 1 $ do
   let root = ChunkTrieNode emptyTrieNode
   (rid, _) <- nameNode =<< foldlM (flip $ uncurry addEntry) root inp
   pure rid
 
-generateTableTrie :: CompC r => Text -> [AST.TableEntry] -> [Int] -> Sem r (C.Expr, Int)
-generateTableTrie tableName entries widths =
-  let chunks = map (generateBitChunks widths) entries
+generateTableTrie :: CompC r => Text -> [AST.TableEntry] -> [(Int, TableMatchKind)] -> Sem r (C.Expr, Int)
+generateTableTrie tableName entries meta =
+  let chunks = map (generateBitChunks meta) entries
       actionIds = [1..]
       (trieNodes, rootId) = buildTrie $ zip chunks actionIds
       trieInits = trieToExpr $ toPairs trieNodes
       trieInit = C.InitMultiple . fromList . map (C.InitItem Nothing . C.InitExpr) $ trieInits
       staticName = tableName <> "_search_trie"
    in do
-    putStrLn $ "chunks: " <> show chunks
     treeNodeTy <- simplifyType matchTreeNodeType
     let arrayTy = C.Array (C.TypeSpec treeNodeTy) (Just . C.LitInt . fromIntegral $ length trieInits)
     modify . (<>) $ defineStatic staticName Nothing arrayTy trieInit
     pure (C.Ident . toString $ staticName, rootId)
+
+makeCase :: (([C.BlockItem], C.Expr), Integer) -> C.Case
+makeCase ((stmts, expr), caseId) =
+  C.Case
+    (C.LitInt caseId)
+    (C.Block $ stmts <> [C.Stmt $ C.Expr expr, C.Stmt C.Break])
 
 generateTableCall :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.TypeTable -> Text -> AST.TypeStruct -> Sem r C.Expr
 generateTableCall (AST.TypeTable table) name rty = do
@@ -265,6 +213,14 @@ generateTableCall (AST.TypeTable table) name rty = do
   keys <- generateTableKeys $ table ^. #keys
 
   let entries = fromMaybe (error "tables without entries are not yet supported") $ table ^. #entries
-  (searchTrie, rootNode) <- generateTableTrie (table ^. #name) entries (map (^. _3) keys)
+  (searchTrie, rootNode) <- generateTableTrie (table ^. #name) entries (map (\(_, a, b) -> (b, a)) keys)
 
-  pure $ C.LitInt 1
+  let resultExpr = C.LitInt 0
+
+  actions <- mapM (censor (const mempty) . listen . generateP4Expression) (entries ^.. traverse . #action)
+
+  let cases = [C.Default C.Break] <> map makeCase (zip actions [1 ..])
+
+  tell [C.Stmt $ C.Switch resultExpr cases]
+
+  pure $ C.LitInt 0

@@ -9,6 +9,7 @@ import Data.Text.Lens (unpacked)
 import qualified Generics.SOP as GS
 import qualified Language.C99.Simple as C
 import P4Haskell.Compile.Codegen.Extern
+import P4Haskell.Compile.Codegen.Action
 import {-# SOURCE #-} P4Haskell.Compile.Codegen.MethodCall
 import {-# SOURCE #-} P4Haskell.Compile.Codegen.Tables
 import P4Haskell.Compile.Codegen.Typegen
@@ -34,7 +35,8 @@ generateP4Expression (AST.BoolLiteral'Expression ble) = generateBLE ble
 generateP4Expression (AST.StringLiteral'Expression sle) = generateSLE sle
 generateP4Expression (AST.UnaryOp'Expression uoe) = generateUOE uoe
 generateP4Expression (AST.BinaryOp'Expression uoe) = generateBOE uoe
-generateP4Expression (AST.TypeNameExpression'Expression _) = error "type name expressions can only be part of member expressions"
+generateP4Expression (AST.TypeNameExpression'Expression tn) =
+  error $ "type name expressions can only be part of member expressions: " <> show tn
 
 generateUOE :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.UnaryOp -> Sem r C.Expr
 generateUOE uoe = do
@@ -71,6 +73,11 @@ generateSLE :: CompC r => AST.StringLiteral -> Sem r C.Expr
 generateSLE sle = pure . C.LitString $ sle ^. #value . unpacked
 
 generateME :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.Member -> Sem r C.Expr
+generateME (AST.Member _ (AST.TypeNameExpression'Expression tn) n) = do
+  (_, ty) <- generateP4Type (tn ^. #type_)
+  case ty of
+    C.EnumDecln _ (elem $ toString n -> True) -> pure . C.Ident $ toString n
+    _ -> error $ "member " <> n <> " not found in: " <> show (tn ^. #typeName)
 generateME me = do
   expr <- generateP4Expression $ me ^. #expr
   -- (ty, _) <- generateP4Type . gdrillField @"type_" $ me ^. #expr
@@ -84,6 +91,7 @@ data MethodType
 data MethodCallType
   = ExternCall Text Text AST.Expression
   | TableCall AST.TypeTable Text AST.TypeStruct
+  | ActionCall Text
   | MethodCall AST.Expression
   deriving (Generic)
 
@@ -98,6 +106,9 @@ decideMethodCallType (AST.MethodCallExpression (AST.TypeStruct'P4Type rty)
                            (AST.PathExpression (AST.TypeTable'P4Type tty) tname))
                          "apply")) _ _) =
   TableCall tty (tname ^. #name) rty
+decideMethodCallType (AST.MethodCallExpression (AST.TypeAction'P4Type _)
+                      (AST.PathExpression'MethodExpression
+                       (AST.PathExpression _ aname)) _ _) = ActionCall (aname ^. #name)
 decideMethodCallType (AST.MethodCallExpression _ expr _ _) = MethodCall $ injectSub expr
 
 generateMCE :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.MethodCallExpression -> Sem r C.Expr
@@ -109,9 +120,21 @@ generateMCE me = do
       pure expr'
     TableCall tty tname rty -> do
       generateTableCall tty tname rty
+    ActionCall aname -> do
+      action' <- Polysemy.Reader.asks $ findActionInScope aname
+      case action' of
+        Just action -> do
+          liftedAction <- liftAction action
+          let args = me ^.. #arguments . traverse . #expression
+          let params =
+                zip (liftedAction ^. #originalParams) args
+                  <> zip (liftedAction ^. #liftedParams) (liftedAction ^. #liftedParamExprs)
+          generateCall (liftedAction ^. #nameExpr, C.TypeSpec C.Void) params
+        Nothing -> error $ "unkown action: " <> aname
     MethodCall expr -> do
       (resultTy, _) <- generateP4Type $ me ^. #type_
       let methodTy :: MethodType = fromJustNote "Unexpected method type" . projectSub . gdrillField @"type_" $ me ^. #method
       let parameters :: AST.MapVec Text AST.Parameter = gdrillField @"parameters" methodTy
       let params = zip (parameters ^. #vec) (me ^.. #arguments . traverse . #expression)
-      generateCall (expr, C.TypeSpec resultTy) params
+      methodExpr <- generateP4Expression expr
+      generateCall (methodExpr, C.TypeSpec resultTy) params

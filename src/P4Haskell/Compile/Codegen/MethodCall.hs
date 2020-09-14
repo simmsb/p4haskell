@@ -46,14 +46,13 @@ isCVoid :: C.Type -> Bool
 isCVoid (C.TypeSpec C.Void) = True
 isCVoid _ = False
 
-generateCall :: (CompC r, Member (Writer [C.BlockItem]) r) => (AST.Expression, C.Type) -> [(AST.Parameter, AST.Expression)] -> Sem r C.Expr
+generateCall :: (CompC r, Member (Writer [C.BlockItem]) r) => (C.Expr, C.Type) -> [(AST.Parameter, AST.Expression)] -> Sem r C.Expr
 generateCall (expr, resultTy) params = do
-  method <- generateP4Expression expr
   (params', postStmts) <- unzip <$> mapM processParam params
 
   let postStmts' = catMaybes postStmts
 
-  let callExpr = C.Funcall method params'
+  let callExpr = C.Funcall expr params'
 
   res <-
     if isCVoid resultTy
