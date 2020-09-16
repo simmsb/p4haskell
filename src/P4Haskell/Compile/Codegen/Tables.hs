@@ -124,6 +124,14 @@ data ChunkTrie
   | ChunkTrieNode [Maybe Int]
   deriving ( Show, Generic )
 
+-- isLeaf :: ChunkTrie -> Bool
+-- isLeaf (ChunkTrieLeaf _) = True
+-- isLeaf _ = False
+
+isNode :: ChunkTrie -> Bool
+isNode (ChunkTrieNode _) = True
+isNode _ = False
+
 type TrieBuildC r = Members [State (HashMap Int ChunkTrie), State Int] r
 
 nodeToExpr :: Int -> ChunkTrie -> C.Expr
@@ -174,8 +182,17 @@ addEntry (BitChunk bp : cs) v (ChunkTrieNode xs@((!! bp) -> Just nid)) = do
   pure $ ChunkTrieNode xs
 addEntry (AcceptAll : cs) v (ChunkTrieNode xs) = do
   (tid, _) <- nameNode =<< makeTrieTail cs v
-  pure . ChunkTrieNode $ map (Just . fromMaybe tid) xs
-addEntry _ _ _ = error "failed to insert entry into search trie"
+  xs' <- mapM ((Just <$>) . maybe (pure tid) insertOverlapping) xs
+  pure $ ChunkTrieNode xs'
+  where
+    insertOverlapping :: TrieBuildC r => Int -> Sem r Int
+    insertOverlapping nid = do
+      n <- gets @(HashMap Int ChunkTrie) (^?! ix nid)
+      when (isNode n) do
+        n' <- addEntry cs v n
+        modify @(HashMap Int ChunkTrie) (at nid ?~ n')
+      pure nid
+addEntry bp v n = error $ "failed to insert entry into search trie: bp=" <> show bp <> ", v=" <> show v <> ", n=" <> show n
 
 -- logState :: (Show s, Member (State s) r) => Sem r a -> Sem r a
 -- logState m = get >>= \s -> trace (toString $ pShow s) m
