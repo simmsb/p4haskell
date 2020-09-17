@@ -5,26 +5,18 @@ module P4Haskell.Compile.Codegen.Tables
 where
 
 import Data.Foldable
--- import Data.Generics.Sum
 import qualified Data.HashMap.Lazy as LH
--- import Data.Text.Lens (unpacked)
--- import qualified Generics.SOP as GS
 import qualified Language.C99.Simple as C
 import P4Haskell.Compile.Codegen.Expression
--- import P4Haskell.Compile.Codegen.Extern
--- import {-# SOURCE #-} P4Haskell.Compile.Codegen.MethodCall
--- import P4Haskell.Compile.Codegen.Statement
 import P4Haskell.Compile.Codegen.Typegen
 import P4Haskell.Compile.Codegen.Utils
 import P4Haskell.Compile.Declared
 import P4Haskell.Compile.Eff
 import P4Haskell.Compile.Fetch
 import P4Haskell.Compile.Query
--- import P4Haskell.Compile.Scope
 import qualified P4Haskell.Types.AST as AST
 import P4Haskell.Utils.Drill
 import Polysemy
--- import Polysemy.Reader
 import Polysemy.State
 import Polysemy.Writer
 import Relude (error)
@@ -38,7 +30,6 @@ filterMapVec f (AST.MapVec m v) = AST.MapVec (LH.filter f m) (filter f v)
 
 -- TODO: Have params for passing table configurations
 -- TODO: Handle each type of table key
--- TODO(optimisation): move ternary expressions to the start and pack them together
 -- TODO: decide on how to implement LPM
 
 data TableMatchKind
@@ -47,7 +38,7 @@ data TableMatchKind
   | LPM
   deriving ( Generic, Show )
 
-generateTableKeys :: (CompC r, Member (Writer [C.BlockItem]) r) => [AST.KeyElement] -> Sem r [(C.Expr, TableMatchKind, Int)]
+generateTableKeys :: (CompC r, Member (Writer [C.BlockItem]) r) => [AST.KeyElement] -> Sem r [(C.Expr, C.TypeSpec, TableMatchKind, Int)]
 generateTableKeys elems =
   mapM
     ( \e -> do
@@ -63,7 +54,7 @@ generateTableKeys elems =
         (_, ty) <- generateP4Type p4ty
         expr <- generateP4Expression $ e ^. #expression
         tell [C.Decln $ C.VarDecln Nothing (C.TypeSpec ty) tmpName (Just . C.InitExpr $ expr)]
-        pure (C.Ident tmpName, matchKind, typeSize p4ty)
+        pure (C.Ident tmpName, ty, matchKind, typeSize p4ty)
     )
     elems
 
@@ -73,20 +64,26 @@ matchTreeNodeType =
     (Just "match_tree_node")
     ( fromList
         [ C.FieldDecln (C.TypeSpec $ C.TypedefName "uint16_t") "value",
-          C.FieldDecln (C.Array (C.TypeSpec $ C.TypedefName "int16_t") (Just . C.LitInt $ 2 ^ bitsPerLevel)) "offsets"
+          C.FieldDecln (C.Array (C.TypeSpec $ C.TypedefName "int16_t") (Just . C.LitInt $ 2 ^ bitsPerLevel @Int)) "offsets"
         ]
     )
 
 makeNode :: Integer -> [Integer] -> C.Expr
-makeNode val offsets = C.InitVal
-  (C.TypeName . C.TypeSpec . C.Struct $ "match_tree_node")
-  (fromList [ C.InitItem (Just "value") (C.InitExpr $ C.LitInt val)
-            , C.InitItem (Just "offsets") (C.InitMultiple . fromList . reverse $
-                                           map (C.InitItem Nothing . C.InitExpr . C.LitInt) offsets)
-            ])
+makeNode val offsets =
+  C.InitVal
+    (C.TypeName . C.TypeSpec . C.Struct $ "match_tree_node")
+    ( fromList
+        [ C.InitItem (Just "value") (C.InitExpr $ C.LitInt val),
+          C.InitItem
+            (Just "offsets")
+            ( C.InitMultiple . fromList . reverse $
+                map (C.InitItem Nothing . C.InitExpr . C.LitInt) offsets
+            )
+        ]
+    )
 
 -- TODO(optimisation): decide on the bits per level dynamically
-bitsPerLevel :: Int
+bitsPerLevel :: Num a => a
 bitsPerLevel = 4
 
 data BitChunk
@@ -102,8 +99,8 @@ typeSize p4ty = case p4ty of
 chunkVec :: V.Unbox a => Int -> V.Vector a -> [V.Vector a]
 chunkVec interval v = [V.slice i interval v | i <- [0, interval .. (V.length v - interval)]]
 
-cielDiv :: Int -> Int -> Int
-cielDiv a b = (a + b) `div` b
+cielDiv :: Integral a => a -> a -> a
+cielDiv a b = (a + b - 1) `div` b
 
 lastN :: Int -> [a] -> [a]
 lastN n xs = drop (length xs - n) xs
@@ -139,18 +136,18 @@ nodeToExpr myId (ChunkTrieNode ns) =
   let offsets = map toInteger $ map (maybe (-myId) (subtract myId)) ns
    in makeNode 0 offsets
 nodeToExpr _ (ChunkTrieLeaf v) =
-  let offsets = replicate (2 ^ bitsPerLevel) 0
+  let offsets = replicate (2 ^ bitsPerLevel @Int) 0
    in makeNode (toInteger v) offsets
 
 trieToExpr :: [(Int, ChunkTrie)] -> [C.Expr]
 trieToExpr t =
   let nodes = map (\(nid, n) -> (nid, nodeToExpr nid n)) t
-      deadNode = (0, makeNode 0 $ replicate (2 ^ bitsPerLevel) 0)
+      deadNode = (0, makeNode 0 $ replicate (2 ^ bitsPerLevel @Int) 0)
       -- sort in reverse since the C dsl orders arrays in reverse
    in map snd $ sortOn (Down . fst) (deadNode : nodes)
 
 emptyTrieNode :: [Maybe Int]
-emptyTrieNode = replicate (2 ^ bitsPerLevel) Nothing
+emptyTrieNode = replicate (2 ^ bitsPerLevel @Int) Nothing
 
 getNodeId :: Member (State Int) r => Sem r Int
 getNodeId = get <* modify (+ 1)
@@ -223,6 +220,38 @@ makeCase ((stmts, expr), caseId) =
     (C.LitInt caseId)
     (C.Block $ stmts <> [C.Stmt $ C.Expr expr, C.Stmt C.Break])
 
+selectChunk :: C.Expr -> Integer -> C.Expr -> C.Expr
+selectChunk e totalWidth n = (e C..>> (C.LitInt totalWidth C..- (n C..* C.LitInt bitsPerLevel))) C..&
+  ((C.LitInt 1 C..<< C.LitInt bitsPerLevel) C..- C.LitInt 1)
+
+generateBitDriverFor :: CompC r => C.TypeSpec -> Int -> Sem r C.Expr
+generateBitDriverFor ty width = do
+  treeNodeTy <- simplifyType matchTreeNodeType
+  let params =
+        [ C.Param (C.Ptr . C.TypeSpec $ treeNodeTy) "node",
+          C.Param (C.TypeSpec ty) "value"
+        ]
+  modify . (<>) $
+    defineFunc name (C.Ptr . C.TypeSpec $ treeNodeTy) params body
+  pure . C.Ident $ toString name
+  where
+    chunks = cielDiv width bitsPerLevel
+    totalBits = chunks * bitsPerLevel
+    idx = C.Ident "idx"
+    node = C.Ident "node"
+    name = "table_trie_driver_w" <> show chunks
+    body =
+      [ C.Decln $ C.VarDecln Nothing (C.TypeSpec $ C.TypedefName "size_t") "idx" Nothing,
+        C.Stmt $
+          C.For
+            (idx C..= (C.LitInt 0))
+            (idx C..< (C.LitInt $ fromIntegral chunks))
+            ((C..++) idx)
+            [ C.Stmt $ C.Expr (node C..+= C.Index (C.Arrow node "offsets") (selectChunk (C.Ident "value") (fromIntegral totalBits) idx))
+            ],
+        C.Stmt $ C.Return (Just node)
+      ]
+
 generateTableCall :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.TypeTable -> Text -> AST.TypeStruct -> Sem r C.Expr
 generateTableCall (AST.TypeTable table) name rty = do
   let rty' = rty & #fields %~ filterMapVec ((/= "action_run") . (^. #name))
@@ -230,14 +259,25 @@ generateTableCall (AST.TypeTable table) name rty = do
   keys <- generateTableKeys $ table ^. #keys
 
   let entries = fromMaybe (error "tables without entries are not yet supported") $ table ^. #entries
-  (searchTrie, rootNode) <- generateTableTrie (table ^. #name) entries (map (\(_, a, b) -> (b, a)) keys)
+  (searchTrie, rootNode) <- generateTableTrie (table ^. #name) entries (map (\(_, _, a, b) -> (b, a)) keys)
 
-  let resultExpr = C.LitInt 0
+  nodeVarName <- generateTempVar
+  let nodeVar = C.Ident nodeVarName
+
+  treeNodeTy <- simplifyType matchTreeNodeType
+  let nodePtrTy = C.Ptr . C.TypeSpec $ treeNodeTy
+  tell [C.Decln $ C.VarDecln Nothing nodePtrTy
+        nodeVarName (Just . C.InitExpr $ C.Index searchTrie (C.LitInt $ fromIntegral rootNode))]
+
+  forM_ keys (\(e, ty, _, w) -> do
+            fn <- generateBitDriverFor ty w
+            tell [C.Stmt . C.Expr $ nodeVar C..= C.Funcall fn [nodeVar, e]]
+        )
 
   actions <- mapM (censor (const mempty) . listen . generateP4Expression) (entries ^.. traverse . #action)
 
   let cases = [C.Default C.Break] <> map makeCase (zip actions [1 ..])
 
-  tell [C.Stmt $ C.Switch resultExpr cases]
+  tell [C.Stmt $ C.Switch (C.Arrow nodeVar "value") cases]
 
   pure $ C.LitInt 0

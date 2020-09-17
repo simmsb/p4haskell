@@ -19,9 +19,9 @@ import P4Haskell.Utils.Drill
 import Polysemy
 import Polysemy.State
 import Polysemy.Writer
-import PyF
 import Relude (error)
 import Relude.Extra (toFst)
+import Relude.Unsafe ((!!))
 
 data ExternInfo = ExternInfo
   { name :: Text,
@@ -226,7 +226,7 @@ getTypeName _ = error "can't calculate name for type"
 
 generatePacketOutEmit :: (Member (Writer [C.BlockItem]) r, CompC r) => AST.Expression -> [AST.Expression] -> Sem r (C.Type, C.Expr)
 generatePacketOutEmit instance_ params = do
-  let [param] = params
+  let param = params !! 0
   let p4ty = gdrillField @"type_" param
   let name = "emit_packet_" <> getTypeName p4ty
   (ty, _rawTy) <- generateP4Type p4ty
