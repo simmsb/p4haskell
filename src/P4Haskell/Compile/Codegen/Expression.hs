@@ -90,7 +90,7 @@ data MethodType
 
 data MethodCallType
   = ExternCall Text Text AST.Expression
-  | TableCall AST.TypeTable Text AST.TypeStruct
+  | TableCall AST.TypeTable AST.TypeStruct
   | ActionCall Text
   | MethodCall AST.Expression
   deriving (Generic)
@@ -103,9 +103,9 @@ decideMethodCallType (AST.MethodCallExpression (AST.TypeStruct'P4Type rty)
                       (AST.Member'MethodExpression
                        (AST.Member _
                          (AST.PathExpression'Expression
-                           (AST.PathExpression (AST.TypeTable'P4Type tty) tname))
+                           (AST.PathExpression (AST.TypeTable'P4Type tty) _))
                          "apply")) _ _) =
-  TableCall tty (tname ^. #name) rty
+  TableCall tty rty
 decideMethodCallType (AST.MethodCallExpression (AST.TypeAction'P4Type _)
                       (AST.PathExpression'MethodExpression
                        (AST.PathExpression _ aname)) _ _) = ActionCall (aname ^. #name)
@@ -118,8 +118,8 @@ generateMCE me = do
     ExternCall name member expr -> do
       (_, expr') <- generateExternCall name member expr (me ^.. #arguments . traverse . #expression)
       pure expr'
-    TableCall tty tname rty -> do
-      generateTableCall tty tname rty
+    TableCall tty rty -> do
+      generateTableCall tty rty
     ActionCall aname -> do
       action' <- Polysemy.Reader.asks $ findActionInScope aname
       case action' of

@@ -31,8 +31,12 @@ declareType n v = Declared (O.singleton (n, v)) mempty O.empty
 getType :: Text -> Declared -> Maybe C.TypeSpec
 getType name = (O.lookup name) . (^. #declaredTypes)
 
+fixupBody :: [C.BlockItem] -> [C.BlockItem]
+fixupBody [] = [C.Stmt . C.Expr . C.LitInt $ 0]
+fixupBody xs = xs
+
 defineFunc :: Text -> C.Type -> [C.Param] -> [C.BlockItem] -> Declared
-defineFunc n ty params body = mempty & #declaredFuncs . at n ?~ C.FunDef ty (toString n) params body
+defineFunc n ty params body = mempty & #declaredFuncs . at n ?~ C.FunDef ty (toString n) params (fixupBody body)
 
 defineStatic :: Text -> Maybe C.StorageSpec -> C.Type -> C.Init -> Declared
 defineStatic n sp ty ini = Declared O.empty mempty (O.singleton (n, C.VarDecln sp ty (toString n) (Just ini)))

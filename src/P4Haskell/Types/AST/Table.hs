@@ -142,7 +142,7 @@ parseEntriesList = D.withCursor . tryParseVal $ \c -> do
 
 data TableEntry = TableEntry
   { keys   :: [SelectKey]
-  , action :: Expression
+  , action :: MethodCallExpression
   , type_  :: P4Type
   }
   deriving ( Show, Generic, Eq, Hashable )
@@ -153,5 +153,5 @@ parseTableEntry = D.withCursor . tryParseVal $ \c -> do
   type_  <- D.fromKey "keys" (parseNestedObject "type" p4TypeDecoder) o
   keys   <- D.fromKey "keys" (parseNestedObject "components" (parseVector selectKeyDecoder)) o
   action <- D.fromKey "action" expressionDecoder o
-  pure $ TableEntry keys action type_
-
+  let action' = action ^?! _Typed @MethodCallExpression
+  pure $ TableEntry keys action' type_

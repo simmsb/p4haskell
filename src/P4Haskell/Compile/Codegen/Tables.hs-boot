@@ -10,4 +10,4 @@ import qualified P4Haskell.Types.AST as AST
 import Polysemy
 import Polysemy.Writer
 
-generateTableCall :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.TypeTable -> Text -> AST.TypeStruct -> Sem r C.Expr
+generateTableCall :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.TypeTable -> AST.TypeStruct -> Sem r C.Expr

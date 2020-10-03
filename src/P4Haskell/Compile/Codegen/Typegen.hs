@@ -47,6 +47,12 @@ simplifyType :: CompC r => C.TypeSpec -> Sem r C.TypeSpec
 simplifyType t@(C.StructDecln (Just name) _) = do
   modify . (<>) $ declareType (toText name) t
   pure $ C.Struct name
+simplifyType t@(C.UnionDecln (Just name) _) = do
+  modify . (<>) $ declareType (toText name) t
+  pure $ C.Union name
+simplifyType t@(C.EnumDecln (Just name) _) = do
+  modify . (<>) $ declareType (toText name) t
+  pure $ C.Enum name
 simplifyType t = pure t
 
 resolveP4Type :: CompC r => AST.P4Type -> Sem r AST.P4Type
