@@ -7,9 +7,7 @@ where
 import Data.Bit
 import Data.Foldable
 import Data.Generics.Sum.Typed
-import qualified Data.HashMap.Lazy as LH
 import qualified Data.Vector.Unboxed as V
-import qualified Language.C99.Pretty as PC
 import qualified Language.C99.Simple as C
 import P4Haskell.Compile.Codegen.Expression
 import P4Haskell.Compile.Codegen.Typegen
@@ -26,12 +24,8 @@ import Polysemy.Reader
 import Polysemy.State
 import Polysemy.Writer
 import Relude (error)
-import Relude.Extra (toPairs)
+import Relude.Extra (elems, toPairs)
 import Relude.Unsafe (fromJust, (!!))
-import qualified Text.PrettyPrint as TP
-
-filterMapVec :: (v -> Bool) -> AST.MapVec k v -> AST.MapVec k v
-filterMapVec f (AST.MapVec m v) = AST.MapVec (LH.filter f m) (filter f v)
 
 -- TODO: Have params for passing table configurations
 -- TODO: Handle each type of table key
@@ -227,11 +221,17 @@ generateTableTrie tableName pactions entries meta =
         modify . (<>) $ defineStatic staticName Nothing arrayTy trieInit
         pure (C.Ident . toString $ staticName, rootId)
 
-makeCase :: ([C.BlockItem], Integer) -> C.Case
-makeCase (stmts, caseId) =
+isDefaultAction :: ProcessedAction -> Bool
+isDefaultAction p = p ^. #id == 0
+
+setHitVariableCode :: C.Expr -> Bool -> C.BlockItem
+setHitVariableCode e v = C.Stmt . C.Expr $ C.AssignOp C.Assign e (C.LitBool v)
+
+makeCase :: C.Expr -> ProcessedAction -> C.Case
+makeCase resVar p =
   C.Case
-    (C.LitInt caseId)
-    (C.Block $ stmts <> [C.Stmt C.Break])
+    (C.LitInt . fromIntegral $ p ^. #id)
+    (C.Block $ [setHitVariableCode resVar . not $ isDefaultAction p] <> (p ^. #actionCode) <> [C.Stmt C.Break])
 
 selectChunk :: C.Expr -> Integer -> C.Expr -> C.Expr
 selectChunk e totalWidth n =
@@ -368,6 +368,7 @@ generateActions t argsTable argsIndex = do
 
             pure ((name, ProcessedAction i nExtraParams variantName ctor stmts'), (variantName, ty))
         )
+        -- we use [1 ..] for action IDs, then replace the ID of the default action with zero
         (zip (t ^. #actions . #actions . #vec) [1 ..])
 
   unionTy <-
@@ -395,11 +396,25 @@ generateParamTable actions ty exprs =
     )
     exprs
 
+replaceActionRun :: AST.MapVec Text AST.StructField -> AST.MapVec Text AST.StructField
+replaceActionRun = fmap inner
+  where
+    inner :: AST.StructField -> AST.StructField
+    inner (AST.StructField "action_run" a _) = AST.StructField "action_run" a (AST.TypeBits'P4Type $ AST.TypeBits 8 False)
+    inner x = x
+
+-- set the default action to have and ID of zeroy
+fixDefaultAction :: Maybe AST.MethodCallExpression -> HashMap Text ProcessedAction -> HashMap Text ProcessedAction
+fixDefaultAction Nothing p = p
+fixDefaultAction (Just m) p =
+  let name = m ^?! #method . _Typed @AST.PathExpression . #path . #name
+   in p & ix name %~ (#id .~ 0)
+
 generateTableCall :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.TypeTable -> AST.TypeStruct -> Sem r C.Expr
 generateTableCall (AST.TypeTable table) rty = do
-  let rty' = rty & #fields %~ filterMapVec ((/= "action_run") . (^. #name))
+  let rty' = rty & #fields %~ replaceActionRun
   (rty'', _) <- generateP4Type $ AST.TypeStruct'P4Type rty'
-  keys <- generateTableKeys $ table ^. #keys
+  tableKeys <- generateTableKeys $ table ^. #keys
 
   let entries = fromMaybe (error "tables without entries are not yet supported") $ table ^. #entries
 
@@ -409,7 +424,9 @@ generateTableCall (AST.TypeTable table) rty = do
   let argsTableName = "arg_table_" <> (table ^. #name) <> "_entries"
   (processedActions, paramUnion) <- generateActions table (C.Ident . toString $ argsTableName) (C.Arrow nodeVar "param_idx")
 
-  let paramTable = generateParamTable processedActions paramUnion (entries ^.. traverse . #action)
+  let processedActions' = fixDefaultAction (table ^. #defaultAction) processedActions
+  let paramTable = generateParamTable processedActions' paramUnion (entries ^.. traverse . #action)
+ 
   modify . (<>) $
     defineStatic
       argsTableName
@@ -417,7 +434,7 @@ generateTableCall (AST.TypeTable table) rty = do
       (C.Array (C.TypeSpec paramUnion) Nothing)
       (C.InitMultiple . fromList $ map (C.InitItem Nothing . C.InitExpr) (reverse paramTable))
 
-  (searchTrie, rootNode) <- generateTableTrie (table ^. #name) processedActions entries (map (\(_, _, a, b) -> (b, a)) keys)
+  (searchTrie, rootNode) <- generateTableTrie (table ^. #name) processedActions' entries (map (\(_, _, a, b) -> (b, a)) tableKeys)
 
   treeNodeTy <- simplifyType matchTreeNodeType
   let nodePtrTy = C.Ptr . C.TypeSpec $ treeNodeTy
@@ -432,14 +449,36 @@ generateTableCall (AST.TypeTable table) rty = do
     ]
 
   forM_
-    keys
+    tableKeys
     ( \(e, ty, _, w) -> do
         fn <- generateBitDriverFor ty w
         tell [C.Stmt . C.Expr $ nodeVar C..= C.Funcall fn [nodeVar, e]]
     )
 
-  let cases = [C.Default C.Break] <> map makeCase (zip (processedActions ^.. traverse . #actionCode) [1 ..])
+  isHitVarName <- generateTempVar
+  let isHitVar = C.Ident isHitVarName
+
+  tell
+    [ C.Decln $
+        C.VarDecln
+          Nothing
+          (C.TypeSpec C.Bool)
+          isHitVarName
+          Nothing
+    ]
+
+  let cases =
+        [C.Default $ C.Block [setHitVariableCode isHitVar False]]
+          <> map (makeCase isHitVar) (elems processedActions')
 
   tell [C.Stmt $ C.Switch (C.Arrow nodeVar "action_idx") cases]
 
-  pure $ C.LitInt 0
+  pure $
+    C.InitVal
+      (C.TypeName $ C.TypeSpec rty'')
+      ( fromList
+          [ C.InitItem (Just "hit") (C.InitExpr isHitVar),
+            C.InitItem (Just "miss") (C.InitExpr $ C.UnaryOp C.BoolNot isHitVar),
+            C.InitItem (Just "action_run") (C.InitExpr $ C.Arrow nodeVar "action_idx")
+          ]
+      )

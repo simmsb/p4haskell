@@ -20,6 +20,7 @@ import qualified P4Haskell.Types.AST as AST
 import Polysemy
 import Polysemy.State
 import Relude (error)
+-- import Relude.Extra.Map (keys)
 import Relude.Unsafe (fromJust)
 import qualified Rock
 
@@ -71,6 +72,7 @@ generateP4TypePure (AST.TypeBoolean'P4Type s) = generateP4BoolPure s
 generateP4TypePure (AST.TypeString'P4Type s) = generateP4StringPure s
 generateP4TypePure (AST.TypeTypedef'P4Type s) = generateP4TypeDefPure s
 generateP4TypePure (AST.TypeExtern'P4Type s) = generateP4ExternPure s
+-- generateP4TypePure (AST.TypeActionEnum'P4Type s) = generateP4ActionEnumPure s
 -- generateP4TypePure (AST.TypeParser'P4Type s) = generateP4ParserPure s
 -- generateP4TypePure (AST.TypeControl'P4Type s) = generateP4ControlPure s
 generateP4TypePure t = error $ "The type: " <> show t <> " shouldn't exist at this point"
@@ -160,6 +162,13 @@ generateP4HeaderPure h = do
   let struct = C.StructDecln (Just ident) (fromMaybe (nullField :| []) $ nonEmpty fields')
   let deps' = ((h ^. #name, struct) : deps)
   pure (C.Struct ident, struct, deps')
+
+-- generateP4ActionEnumPure :: Rock.MonadFetch Query m => AST.TypeActionEnum -> m (C.TypeSpec, C.TypeSpec, [(Text, C.TypeSpec)])
+-- generateP4ActionEnumPure e =
+--   let values = map toString $ keys (e ^. #actionList . #actions . #map)
+--       enum' = C.EnumDecln Nothing (fromList values)
+--    in -- we don't know the name so use the full version everywhere
+--       pure (enum', enum', [])
 
 generateP4EnumPure :: Rock.MonadFetch Query m => AST.TypeEnum -> m (C.TypeSpec, C.TypeSpec, [(Text, C.TypeSpec)])
 generateP4EnumPure e =

@@ -18,3 +18,6 @@ instance Show v => Show (MapVec k v) where
 instance Foldable (MapVec k) where
   foldMap f m = foldMap f (m ^. #vec)
   foldr f i m =  foldr f i (m ^. #vec)
+
+instance Functor (MapVec k) where
+  fmap f (MapVec m v) = MapVec (fmap f m) (fmap f v)
