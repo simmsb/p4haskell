@@ -15,7 +15,6 @@ import           P4Haskell.Types.AST.Expression
 import           P4Haskell.Types.AST.Statement
 import           P4Haskell.Types.AST.Method
 import           P4Haskell.Types.AST.MapVec
-import           P4Haskell.Types.AST.SelectKey
 import           P4Haskell.Types.AST.Parameter
 import           P4Haskell.Types.AST.Types
 import           P4Haskell.Types.AST.Table
@@ -56,7 +55,7 @@ topLevelDecoder :: DecompressC r => D.Decoder (Sem r) TopLevel
 topLevelDecoder = D.withCursor $ \c -> do
   res <- topLevelTypeDeclDecoderInner c
   case res of
-    Just x  -> pure $ (_Typed @TopLevelTypeDecl #) x
+    Just x  -> pure $ _Typed @TopLevelTypeDecl # x
     Nothing -> do
       nodeType <- currentNodeType c
 
@@ -167,38 +166,6 @@ parserSelectDecoder = D.withCursor $ \c -> do
     "SelectExpression" -> (_Typed @SelectExpression #) <$> tryDecoder parseSelectExpression c
     "PathExpression"   -> (_Typed @PathExpression #)   <$> tryDecoder parsePathExpression c
     _ -> throwError . D.ParseFailed $ "invalid node type for ParserSelect: " <> nodeType
-
-data SelectExpression = SelectExpression
-  { type_            :: P4Type
-  , selectType       :: P4Type
-  , selectComponents :: [Expression]
-  , cases            :: [SelectCase]
-  }
-  deriving ( Show, Generic, Eq, Hashable )
-
-parseSelectExpression :: DecompressC r => D.Decoder (Sem r) SelectExpression
-parseSelectExpression = D.withCursor . tryParseVal $ \c -> do
-  o                <- D.down c
-  type_            <- D.fromKey "type" p4TypeDecoder o
-  selectType       <- D.fromKey "select" (parseNestedObject "type" p4TypeDecoder) o
-  selectComponents <- D.fromKey "select"
-    (parseNestedObject "components"
-      (parseVector expressionDecoder)) o
-  cases            <- D.fromKey "selectCases" (parseVector parseSelectCase) o
-  pure $ SelectExpression type_ selectType selectComponents cases
-
-data SelectCase = SelectCase
-  { keyset :: SelectKey
-  , state  :: PathExpression
-  }
-  deriving ( Show, Generic, Eq, Hashable )
-
-parseSelectCase :: DecompressC r => D.Decoder (Sem r) SelectCase
-parseSelectCase = D.withCursor . tryParseVal $ \c -> do
-  o      <- D.down c
-  keyset <- D.fromKey "keyset" selectKeyDecoder o
-  state  <- D.fromKey "state" parsePathExpression o
-  pure $ SelectCase keyset state
 
 data P4Parser = P4Parser
   { name              :: Text

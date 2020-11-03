@@ -11,7 +11,6 @@ module P4Haskell.Types.AST
     module P4Haskell.Types.AST.Table,
     module P4Haskell.Types.AST.MapVec,
     module P4Haskell.Types.AST.Statement,
-    module P4Haskell.Types.AST.SelectKey,
     runDecompressor,
   )
 where
@@ -29,4 +28,3 @@ import P4Haskell.Types.AST.Path
 import P4Haskell.Types.AST.Statement
 import P4Haskell.Types.AST.Table
 import P4Haskell.Types.AST.Types
-import P4Haskell.Types.AST.SelectKey

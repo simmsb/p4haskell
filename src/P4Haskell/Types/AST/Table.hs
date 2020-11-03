@@ -22,7 +22,6 @@ import P4Haskell.Types.AST.Core
 import P4Haskell.Types.AST.DecompressJSON
 import P4Haskell.Types.AST.Expression
 import P4Haskell.Types.AST.Path
-import P4Haskell.Types.AST.SelectKey
 import P4Haskell.Types.AST.Types
 import Polysemy hiding (Member)
 import qualified Waargonaut.Decode as D

@@ -4,7 +4,7 @@ cabal-version: 1.18
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: c5c84618fcdf35355070662f071f4e5e0b723e3989419504302231a90fe4d76a
+-- hash: ad467c44ac90e42567ad1de5e9192e066fceb1be477c723295e83dcd165f5fbc
 
 name:           p4haskell
 version:        0.0.0
@@ -36,6 +36,7 @@ library
       P4Haskell.Compile.Codegen.Expression
       P4Haskell.Compile.Codegen.Extern
       P4Haskell.Compile.Codegen.MethodCall
+      P4Haskell.Compile.Codegen.Parser
       P4Haskell.Compile.Codegen.Statement
       P4Haskell.Compile.Codegen.Tables
       P4Haskell.Compile.Codegen.Typegen
@@ -58,7 +59,6 @@ library
       P4Haskell.Types.AST.Method
       P4Haskell.Types.AST.Parameter
       P4Haskell.Types.AST.Path
-      P4Haskell.Types.AST.SelectKey
       P4Haskell.Types.AST.Statement
       P4Haskell.Types.AST.Table
       P4Haskell.Types.AST.Types

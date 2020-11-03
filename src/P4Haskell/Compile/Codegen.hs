@@ -6,6 +6,7 @@ module P4Haskell.Compile.Codegen
 where
 
 import P4Haskell.Compile.Codegen.Statement
+import P4Haskell.Compile.Codegen.Parser
 import P4Haskell.Compile.Codegen.Typegen
 
 import Data.Generics.Sum
@@ -43,28 +44,37 @@ generateMain = do
     ]
   pure ()
 
+generateParser :: CompC r => AST.P4Parser -> Sem r C.Ident
+generateParser  p = do
+  (params, vars) <- generateParams $ p ^. #type_ . #applyParams . #vec
+  let scopeUpdate scope = flipfoldl' addVarToScope scope vars
+  body <- local scopeUpdate $ generateParserStates (p ^. #name) (p ^. #states)
+  let body' = removeDeadExprs body
+  modify . (<>) $ defineFunc (p ^. #name) (C.TypeSpec C.Void) params body'
+  pure $ p ^. #name . unpacked
+
 generateControl :: CompC r => AST.P4Control -> Sem r C.Ident
 generateControl c = do
-  (params, vars) <- generateControlParams c
+  (params, vars) <- generateParams $ c ^. #type_ . #applyParams . #vec
   let localVars = c ^.. #controlLocals . #vec . traverse . _Typed @AST.DeclarationVariable
   let actions = c ^.. #controlLocals . #vec . traverse . _Typed @AST.P4Action
   let scopeUpdate scope =
         let withVars = flipfoldl' addVarToScope scope vars
          in flipfoldl' addActionToScope withVars actions
-  body <- local scopeUpdate . generateStatements $ (map injectTyped localVars) <> (c ^. #body . #components)
+  body <- local scopeUpdate . generateStatements $ map injectTyped localVars <> (c ^. #body . #components)
   let body' = removeDeadExprs body
   modify . (<>) $ defineFunc (c ^. #name) (C.TypeSpec C.Void) params body'
   pure $ c ^. #name . unpacked
 
-generateControlParams :: CompC r => AST.P4Control -> Sem r ([C.Param], [Var])
-generateControlParams c =
+generateParams :: CompC r => [AST.Parameter] -> Sem r ([C.Param], [Var])
+generateParams params =
   unzip
     <$> forM
-      (c ^. #type_ . #applyParams . #vec)
+      params
       ( \param -> do
           (ty, _) <- generateP4Type (param ^. #type_)
           let isOut = param ^. #direction . #out
           var <- makeVar (param ^. #name) (C.TypeSpec ty) (param ^. #type_) isOut
-          let ty' = if isOut then C.Ptr (C.TypeSpec ty) else (C.TypeSpec ty)
+          let ty' = if isOut then C.Ptr (C.TypeSpec ty) else C.TypeSpec ty
           pure (C.Param ty' (toString $ param ^. #name), var)
       )

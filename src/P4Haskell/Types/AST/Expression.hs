@@ -26,6 +26,7 @@ data Expression
   | PathExpression'Expression PathExpression
   | BoolLiteral'Expression BoolLiteral
   | StringLiteral'Expression StringLiteral
+  | SelectExpression'Expression SelectExpression
   | TypeNameExpression'Expression TypeNameExpression
   | UnaryOp'Expression UnaryOp
   | BinaryOp'Expression BinaryOp
@@ -43,11 +44,12 @@ expressionDecoder = D.withCursor $ \c -> do
     "BoolLiteral"               -> (_Typed @BoolLiteral #)               <$> tryDecoder parseBoolLiteral c
     "StringLiteral"             -> (_Typed @StringLiteral #)             <$> tryDecoder parseStringLiteral c
     "TypeNameExpression"        -> (_Typed @TypeNameExpression #)        <$> tryDecoder parseTypeNameExpression c
+    "SelectExpression"          -> (_Typed @SelectExpression #)          <$> tryDecoder parseSelectExpression c
     IsUnaryOp t                 -> (_Typed @UnaryOp #)                   <$> tryDecoder (parseUnaryOp t) c
     IsBinaryOp t                -> (_Typed @BinaryOp #)                  <$> tryDecoder (parseBinaryOp t) c
     _ -> throwError . D.ParseFailed $ "invalid node type for Expression: " <> nodeType
 
-data TypeType = TypeType
+newtype TypeType = TypeType
   { type_ :: P4Type
   }
   deriving ( Show, Generic, Eq, Hashable )
@@ -260,3 +262,60 @@ parseStringLiteral = D.withCursor . tryParseVal $ \c -> do
   type_ <- D.fromKey "type" p4TypeDecoder o
   value <- D.fromKey "value" D.text o
   pure $ StringLiteral type_ value
+
+data SelectExpression = SelectExpression
+  { type_            :: P4Type
+  , selectType       :: P4Type
+  , selectComponents :: [Expression]
+  , cases            :: [SelectCase]
+  }
+  deriving ( Show, Generic, Eq, Hashable )
+
+parseSelectExpression :: DecompressC r => D.Decoder (Sem r) SelectExpression
+parseSelectExpression = D.withCursor . tryParseVal $ \c -> do
+  o                <- D.down c
+  type_            <- D.fromKey "type" p4TypeDecoder o
+  selectType       <- D.fromKey "select" (parseNestedObject "type" p4TypeDecoder) o
+  selectComponents <- D.fromKey "select"
+    (parseNestedObject "components"
+      (parseVector expressionDecoder)) o
+  cases            <- D.fromKey "selectCases" (parseVector parseSelectCase) o
+  pure $ SelectExpression type_ selectType selectComponents cases
+
+data SelectCase = SelectCase
+  { keyset :: SelectKey
+  , state  :: PathExpression
+  }
+  deriving ( Show, Generic, Eq, Hashable )
+
+parseSelectCase :: DecompressC r => D.Decoder (Sem r) SelectCase
+parseSelectCase = D.withCursor . tryParseVal $ \c -> do
+  o      <- D.down c
+  keyset <- D.fromKey "keyset" selectKeyDecoder o
+  state  <- D.fromKey "state" parsePathExpression o
+  pure $ SelectCase keyset state
+
+data SelectKey
+  = Constant'SelectKey Constant
+  | Default'SelectKey DefaultExpression
+  deriving ( Show, Generic, Eq, Hashable )
+
+selectKeyDecoder :: DecompressC r => D.Decoder (Sem r) SelectKey
+selectKeyDecoder = D.withCursor $ \c -> do
+  nodeType <- currentNodeType c
+
+  case nodeType of
+    "Constant"          -> (_Typed @Constant #) <$> tryDecoder parseConstant c
+    "DefaultExpression" -> (_Typed @DefaultExpression #) <$> tryDecoder parseDefaultExpression c
+    _ -> throwError . D.ParseFailed $ "invalid node type for SelectKey: " <> nodeType
+
+data DefaultExpression = DefaultExpression
+  { type_ :: P4Type
+  }
+  deriving ( Show, Generic, Eq, Hashable )
+
+parseDefaultExpression :: DecompressC r => D.Decoder (Sem r) DefaultExpression
+parseDefaultExpression = D.withCursor . tryParseVal $ \c -> do
+  o     <- D.down c
+  type_ <- D.fromKey "type" p4TypeDecoder o
+  pure $ DefaultExpression type_

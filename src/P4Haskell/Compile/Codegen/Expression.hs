@@ -33,6 +33,7 @@ generateP4Expression (AST.PathExpression'Expression pe) = generatePE pe
 generateP4Expression (AST.Constant'Expression ce) = generateCE ce
 generateP4Expression (AST.BoolLiteral'Expression ble) = generateBLE ble
 generateP4Expression (AST.StringLiteral'Expression sle) = generateSLE sle
+generateP4Expression (AST.SelectExpression'Expression se) = generateSE se
 generateP4Expression (AST.UnaryOp'Expression uoe) = generateUOE uoe
 generateP4Expression (AST.BinaryOp'Expression uoe) = generateBOE uoe
 generateP4Expression (AST.TypeNameExpression'Expression tn) =
@@ -121,7 +122,7 @@ generateMCE me = do
     TableCall tty rty -> do
       generateTableCall tty rty
     ActionCall aname -> do
-      action' <- Polysemy.Reader.asks $ findActionInScope aname
+      action' <- lookupActionInScope aname
       case action' of
         Just action -> do
           liftedAction <- liftAction action
@@ -138,3 +139,7 @@ generateMCE me = do
       let params = zip (parameters ^. #vec) (me ^.. #arguments . traverse . #expression)
       methodExpr <- generateP4Expression expr
       generateCall (methodExpr, C.TypeSpec resultTy) params
+
+generateSE :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.SelectExpression -> Sem r C.Expr
+generateSE se = do
+  undefined

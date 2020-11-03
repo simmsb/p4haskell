@@ -3,14 +3,19 @@ module P4Haskell.Compile.Scope
   ( Scope (..),
     Var (..),
     ScopeLookup (..),
+    ParserStateInfo (..),
     lookupVarInScope,
+    lookupActionInScope,
+    getParserStateInfoInScope,
     runScopeLookupReader,
     makeVar,
     findVarInScope,
     findActionInScope,
+    fetchParserStateInfoInScope,
     addVarToScope,
     addActionToScope,
     emptyScope,
+    setParserStateInfoInScope,
   )
 where
 
@@ -44,15 +49,29 @@ instance Eq Var where
 instance Hashable Var where
   hashWithSalt i a = hashWithSalt i (a ^. #varID)
 
+data ParserStateInfo = ParserStateInfo
+  { id :: Int,
+    enumTy :: C.TypeSpec,
+    states :: HashMap Text C.Expr
+  }
+  deriving (Generic, Show)
+
+instance Eq ParserStateInfo where
+  (==) = on (==) (^. #id)
+
+instance Hashable ParserStateInfo where
+  hashWithSalt i a = hashWithSalt i (a ^. #id)
+
 data Scope = Scope
   { scopeVarBindings :: HashMap VarID Var,
     scopeVarBindingsO :: HashMap Text Var,
-    scopeKnownActions :: HashMap Text AST.P4Action
+    scopeKnownActions :: HashMap Text AST.P4Action,
+    scopeParserStateInfo :: Maybe ParserStateInfo
   }
   deriving (Show, Generic, Eq, Hashable)
 
 emptyScope :: Scope
-emptyScope = Scope mempty mempty mempty
+emptyScope = Scope mempty mempty mempty Nothing
 
 addVarToScope :: Var -> Scope -> Scope
 addVarToScope var scope =
@@ -63,11 +82,17 @@ addActionToScope :: AST.P4Action -> Scope -> Scope
 addActionToScope a scope =
   scope & #scopeKnownActions . at (a ^. #name) ?~ a
 
+setParserStateInfoInScope :: ParserStateInfo -> Scope -> Scope
+setParserStateInfoInScope i scope = scope & #scopeParserStateInfo ?~ i
+
 findVarInScope :: Text -> Scope -> Maybe Var
 findVarInScope n s = s ^. #scopeVarBindingsO . at n
 
 findActionInScope :: Text -> Scope -> Maybe AST.P4Action
 findActionInScope n s = s ^. #scopeKnownActions . at n
+
+getParserStateInfoInScope :: Scope -> Maybe ParserStateInfo
+getParserStateInfoInScope s = s ^. #scopeParserStateInfo
 
 makeVar :: Member (Fresh Unique) r => Text -> C.Type -> AST.P4Type -> Bool -> Sem r Var
 makeVar n t p4t nd = do
@@ -76,6 +101,8 @@ makeVar n t p4t nd = do
 
 data ScopeLookup m a where
   LookupVarInScope :: Text -> AST.P4Type -> ScopeLookup m (Maybe Var)
+  LookupActionInScope :: Text -> ScopeLookup m (Maybe AST.P4Action)
+  FetchParserStateInfoInScope :: ScopeLookup m (Maybe ParserStateInfo)
 
 makeSem ''ScopeLookup
 
@@ -83,3 +110,7 @@ runScopeLookupReader :: Member (Reader Scope) r => Sem (ScopeLookup ': r) a -> S
 runScopeLookupReader = interpret \case
   LookupVarInScope name _ty ->
     Polysemy.Reader.asks $ findVarInScope name
+  LookupActionInScope name ->
+    Polysemy.Reader.asks $ findActionInScope name
+  FetchParserStateInfoInScope ->
+    Polysemy.Reader.asks getParserStateInfoInScope
