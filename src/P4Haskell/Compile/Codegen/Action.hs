@@ -47,6 +47,8 @@ interceptUnknownVars m = do
                   modify $ addVarToScope var
                   pure (Just var)
                 Nothing -> pure Nothing
+    inner _ (LookupActionInScope n) = lookupActionInScope n
+    inner _ FetchParserStateInfoInScope = fetchParserStateInfoInScope
 
 generateActionParams :: CompC r => AST.P4Action -> Sem r ([C.Param], [Var])
 generateActionParams a =
@@ -57,7 +59,7 @@ generateActionParams a =
           (ty, _) <- generateP4Type (param ^. #type_)
           let isOut = param ^. #direction . #out
           var <- makeVar (param ^. #name) (C.TypeSpec ty) (param ^. #type_) isOut
-          let ty' = if isOut then C.Ptr (C.TypeSpec ty) else (C.TypeSpec ty)
+          let ty' = if isOut then C.Ptr (C.TypeSpec ty) else C.TypeSpec ty
           pure (C.Param ty' (toString $ param ^. #name), var)
       )
 

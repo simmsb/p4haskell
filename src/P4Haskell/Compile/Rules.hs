@@ -31,6 +31,12 @@ rules ast GetTopLevelTypes =
     & map (\v -> (gdrillField @"name" v, v))
     & fromList
     & pure
+rules ast GetTopLevelParser =
+  (ast ^. #objects)
+    & mapMaybe (^? _Typed @AST.P4Parser)
+    & map (\v -> (v ^. #name, v))
+    & fromList
+    & pure
 rules ast GetTopLevelControl =
   (ast ^. #objects)
     & mapMaybe (^? _Typed @AST.P4Control)

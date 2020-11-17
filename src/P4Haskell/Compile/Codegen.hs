@@ -27,10 +27,15 @@ generateMain :: CompC r => Sem r ()
 generateMain = do
   main <- fetch GetMain
 
+  let parseName = main ^. #arguments . ix 0 . #expression . #constructedType . _Typed @AST.TypeName . #path . #name
   let pipeName = main ^. #arguments . ix 1 . #expression . #constructedType . _Typed @AST.TypeName . #path . #name
   let dprsName = main ^. #arguments . ix 2 . #expression . #constructedType . _Typed @AST.TypeName . #path . #name
 
+  parsers  <- fetch GetTopLevelParser
   controls <- fetch GetTopLevelControl
+
+  let prsAST = parsers ^?! ix parseName
+  prsParser <- generateParser prsAST
 
   let pipeAST = controls ^?! ix pipeName
   pipeControl <- generateControl pipeAST
@@ -39,7 +44,8 @@ generateMain = do
   dprsControl <- generateControl dprsAST
 
   modify . (<>) $ defineFunc "main" (C.TypeSpec C.Void) []
-    [ C.Stmt . C.Expr $ C.Funcall (C.Ident pipeControl) [] -- TODO: params
+    [ C.Stmt . C.Expr $ C.Funcall (C.Ident prsParser) []
+    , C.Stmt . C.Expr $ C.Funcall (C.Ident pipeControl) [] -- TODO: params
     , C.Stmt . C.Expr $ C.Funcall (C.Ident dprsControl) [] -- TODO: params
     ]
   pure ()
@@ -63,7 +69,7 @@ generateControl c = do
          in flipfoldl' addActionToScope withVars actions
   body <- local scopeUpdate . generateStatements $ map injectTyped localVars <> (c ^. #body . #components)
   let body' = removeDeadExprs body
-  modify . (<>) $ defineFunc (c ^. #name) (C.TypeSpec C.Void) params body'
+  modify . (<>) $ defineFunc (c ^. #name) (C.TypeSpec C.Bool) params body'
   pure $ c ^. #name . unpacked
 
 generateParams :: CompC r => [AST.Parameter] -> Sem r ([C.Param], [Var])

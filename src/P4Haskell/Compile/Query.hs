@@ -14,6 +14,7 @@ data Query a where
   GetMain              :: Query AST.DeclarationInstance
   GetTopLevelTypes     :: Query (HashMap Text AST.TopLevelTypeDecl)
   GetTopLevelControl   :: Query (HashMap Text AST.P4Control)
+  GetTopLevelParser    :: Query (HashMap Text AST.P4Parser)
   GetTopLevelMatchKind :: Query (HashMap Text AST.DeclarationID)
   FetchType            :: Text -> Query (Maybe AST.P4Type)
   GenerateP4Type       :: AST.P4Type -> Query (C.TypeSpec, C.TypeSpec, [(Text, C.TypeSpec)])
@@ -28,9 +29,10 @@ instance Hashable (Query a) where
       GetMain -> h 0 ()
       GetTopLevelTypes -> h 1 ()
       GetTopLevelControl -> h 2 ()
-      GetTopLevelMatchKind -> h 3 ()
-      FetchType t -> h 4 t
-      GenerateP4Type t -> h 5 t
+      GetTopLevelParser -> h 3 ()
+      GetTopLevelMatchKind -> h 4 ()
+      FetchType t -> h 5 t
+      GenerateP4Type t -> h 6 t
     where
       {-# INLINE h #-}
       h :: forall h. Hashable h => Int -> h -> Int

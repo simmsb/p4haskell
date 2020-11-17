@@ -83,19 +83,20 @@ packetInMethods =
 
 generatePacketInExtract :: (Member (Writer [C.BlockItem]) r, CompC r) => AST.Expression -> [AST.Expression] -> Sem r (C.Type, C.Expr)
 generatePacketInExtract instance_ params = do
-  undefined
+  pure (C.TypeSpec C.Int, C.LitInt 0)
+  -- error "packetextract"
 
 generatePacketInLookahead :: (Member (Writer [C.BlockItem]) r, CompC r) => AST.Expression -> [AST.Expression] -> Sem r (C.Type, C.Expr)
 generatePacketInLookahead instance_ params = do
-  undefined
+  error "packetlookahead"
 
 generatePacketInAdvance :: (Member (Writer [C.BlockItem]) r, CompC r) => AST.Expression -> [AST.Expression] -> Sem r (C.Type, C.Expr)
 generatePacketInAdvance instance_ params = do
-  undefined
+  error "packetadvance"
 
 generatePacketInLength :: (Member (Writer [C.BlockItem]) r, CompC r) => AST.Expression -> [AST.Expression] -> Sem r (C.Type, C.Expr)
 generatePacketInLength instance_ params = do
-  undefined
+  error "packetlength"
 
 defineWritePartial :: CompC r => Sem r ()
 defineWritePartial =

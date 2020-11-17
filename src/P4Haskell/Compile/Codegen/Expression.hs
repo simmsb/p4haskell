@@ -21,6 +21,7 @@ import Polysemy
 import Polysemy.Reader
 import Polysemy.Writer
 import Relude (error)
+import P4Haskell.Compile.Codegen.Utils
 
 fromJustNote :: Text -> Maybe a -> a
 fromJustNote _ (Just a) = a
@@ -54,6 +55,9 @@ generateBOE boe = do
   pure $ C.BinaryOp op left right
 
 generatePE :: CompC r => AST.PathExpression -> Sem r C.Expr
+generatePE pe@(AST.PathExpression (AST.TypeState'P4Type _) _) = do
+    stateEnumInfo <- fromJustNote "stateEnumInfo" <$> fetchParserStateInfoInScope
+    pure $ stateEnumInfo ^?! #states . ix (pe ^. #path . #name)
 generatePE pe = do
   let ident = C.Ident $ pe ^. #path . #name . unpacked
   -- the ubpf backend YOLOs this too: https://github.com/p4lang/p4c/blob/master/backends/ubpf/ubpfControl.cpp#L262
@@ -142,4 +146,20 @@ generateMCE me = do
 
 generateSE :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.SelectExpression -> Sem r C.Expr
 generateSE se = do
-  undefined
+  tempVarName <- generateTempVar
+  si <- fromJustNote "stateEnumInfo" <$> fetchParserStateInfoInScope
+  let tempVar = C.Ident tempVarName
+  let tempVarInit = [C.Decln $ C.VarDecln Nothing (C.TypeSpec $ si ^. #enumTy) tempVarName Nothing]
+  let component = case se ^. #selectComponents of
+        [c] -> c
+        _   -> error "Select expressions only support one key"
+  e <- generateP4Expression component
+  cases <- forM (se ^. #cases) \sc -> do
+    let f = case sc ^. #keyset of
+          AST.Constant'SelectKey c -> C.Case (C.LitInt . fromIntegral $ c ^. #value)
+          AST.Default'SelectKey _ -> C.Default
+    (deps, expr) <- censor (const mempty) . listen . generateP4Expression . AST.PathExpression'Expression $ sc ^. #state
+    let stmt = C.Block (deps <> [C.Stmt . C.Expr $ C.AssignOp C.Assign tempVar expr, C.Stmt C.Break])
+    pure $ f stmt
+  tell (tempVarInit <> [C.Stmt $ C.Switch e cases])
+  pure tempVar
