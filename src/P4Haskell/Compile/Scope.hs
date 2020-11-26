@@ -50,17 +50,18 @@ instance Hashable Var where
   hashWithSalt i a = hashWithSalt i (a ^. #varID)
 
 data ParserStateInfo = ParserStateInfo
-  { id :: Int,
+  { psid :: Int,
+    stateVar :: C.Expr,
     enumTy :: C.TypeSpec,
     states :: HashMap Text C.Expr
   }
   deriving (Generic, Show)
 
 instance Eq ParserStateInfo where
-  (==) = on (==) (^. #id)
+  (==) = on (==) (^. #psid)
 
 instance Hashable ParserStateInfo where
-  hashWithSalt i a = hashWithSalt i (a ^. #id)
+  hashWithSalt i a = hashWithSalt i (a ^. #psid)
 
 data Scope = Scope
   { scopeVarBindings :: HashMap VarID Var,

@@ -23,10 +23,6 @@ import Polysemy.Writer
 import Relude (error)
 import P4Haskell.Compile.Codegen.Utils
 
-fromJustNote :: Text -> Maybe a -> a
-fromJustNote _ (Just a) = a
-fromJustNote msg _ = error msg
-
 generateP4Expression :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.Expression -> Sem r C.Expr
 generateP4Expression (AST.MethodCallExpression'Expression mce) = generateMCE mce
 generateP4Expression (AST.Member'Expression me) = generateME me

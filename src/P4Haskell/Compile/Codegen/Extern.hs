@@ -8,12 +8,14 @@ module P4Haskell.Compile.Codegen.Extern
 where
 
 import Control.Monad.Extra (concatMapM)
+import Data.List.Extra (groupOn)
 import qualified Language.C99.Simple as C
 import {-# SOURCE #-} P4Haskell.Compile.Codegen.MethodCall
 import {-# SOURCE #-} P4Haskell.Compile.Codegen.Typegen
 import P4Haskell.Compile.Codegen.Utils
 import P4Haskell.Compile.Declared
 import P4Haskell.Compile.Eff
+import P4Haskell.Compile.Scope
 import qualified P4Haskell.Types.AST as AST
 import P4Haskell.Utils.Drill
 import Polysemy
@@ -43,6 +45,9 @@ data ExternMethod = ExternMethod
 uint8_t :: C.TypeSpec
 uint8_t = C.TypedefName "uint8_t"
 
+uint64_t :: C.TypeSpec
+uint64_t = C.TypedefName "uint64_t"
+
 uint32_t :: C.TypeSpec
 uint32_t = C.TypedefName "uint32_t"
 
@@ -52,6 +57,7 @@ packetStruct =
     (Just "packet")
     ( fromList
         [ C.FieldDecln (C.TypeSpec uint32_t) "idx",
+          C.FieldDecln (C.TypeSpec uint32_t) "len",
           C.FieldDecln (C.Ptr . C.TypeSpec $ C.Char) "pkt"
         ]
     )
@@ -83,8 +89,150 @@ packetInMethods =
 
 generatePacketInExtract :: (Member (Writer [C.BlockItem]) r, CompC r) => AST.Expression -> [AST.Expression] -> Sem r (C.Type, C.Expr)
 generatePacketInExtract instance_ params = do
-  pure (C.TypeSpec C.Int, C.LitInt 0)
-  -- error "packetextract"
+  let param = params !! 0
+  let p4ty = gdrillField @"type_" param
+  let name = "extract_packet_" <> getTypeName p4ty
+  (ty, _rawTy) <- generateP4Type p4ty
+  body <- generateInExtractBody (C.Ident "pkt") (C.Ident "hdr") =<< resolveP4Type p4ty
+  packetStruct' <- simplifyType packetStruct
+  modify . (<>) $
+    defineFunc
+      name
+      (C.TypeSpec C.Bool)
+      [ C.Param (C.Ptr . C.TypeSpec $ packetStruct') "pkt",
+        C.Param (C.Ptr . C.TypeSpec $ ty) "hdr"
+      ]
+      body
+
+  expr <-
+    generateCall'
+      (name, C.TypeSpec C.Bool)
+      [ (True, C.TypeSpec packetStruct', instance_),
+        (True, C.TypeSpec ty, param)
+      ]
+
+  stateEnumInfo <- fromJustNote "stateEnumInfo" <$> fetchParserStateInfoInScope
+  let stateVar = stateEnumInfo ^. #stateVar
+  let reject = stateEnumInfo ^?! #states . ix "reject"
+
+  tell
+    [ C.Stmt $
+        C.If
+          (C.UnaryOp C.BoolNot expr)
+          [ C.Stmt . C.Expr $ C.AssignOp C.Assign stateVar reject,
+            C.Stmt C.Break
+          ]
+    ]
+  pure (C.TypeSpec C.Void, C.LitInt 0)
+
+-- | map bytes to fields of the header
+-- returns list of tuples of [[(accessor, (read start, read end), (write start, write end), field size)])]
+-- where each consecutive list is the reads from each consecutive byte
+mapBytesToFields :: [(C.Expr -> C.Expr, Int)] -> [[(C.Expr -> C.Expr, (Int, Int), (Int, Int), Int)]]
+mapBytesToFields = map (map snd) . groupOn fst . go 0 0 0
+  where
+    go :: Int -> Int -> Int -> [(C.Expr -> C.Expr, Int)] -> [(Int, (C.Expr -> C.Expr, (Int, Int), (Int, Int), Int))]
+    go byteIndex byteOffset fieldOffset l@((f, width) : xs) =
+      let remaining = width - fieldOffset
+          (byteIndex', byteOffset', readEnd) =
+            if (remaining + byteOffset) > 8
+              then (byteIndex + 1, 0, 8)
+              else (byteIndex, remaining + byteOffset, remaining + byteOffset)
+          writeEnd = fieldOffset + (readEnd - byteOffset)
+          fieldOffset' = if writeEnd == width then 0 else writeEnd
+          e = (byteIndex, (f, (byteOffset, readEnd), (fieldOffset, writeEnd), width))
+       in if fieldOffset' == 0
+            then e : go byteIndex' byteOffset' fieldOffset' xs
+            else e : go byteIndex' byteOffset' fieldOffset' l
+    go _ _ _ _ = []
+
+generateExtractionForByte :: CompC r => C.Expr -> C.Expr -> Int -> [(C.Expr -> C.Expr, (Int, Int), (Int, Int), Int)] -> Sem r [C.BlockItem]
+generateExtractionForByte packetBuf targetHdr byteIndex pieces = do
+  let byte = C.Index packetBuf (C.LitInt $ fromIntegral byteIndex)
+  tmpName <- generateTempVar
+  let declns = [C.Decln $ C.VarDecln Nothing (C.TypeSpec C.Char) tmpName (Just . C.InitExpr $ byte)]
+  let tmp = C.Ident tmpName
+  let piecesStmts = map (generatePieceLoad tmp targetHdr) pieces
+  pure (declns <> piecesStmts)
+  where
+    uint64_t1 = C.Cast (C.TypeName $ C.TypeSpec uint64_t) (C.LitInt 1)
+    mask n = (uint64_t1 C..<< C.LitInt n) C..- uint64_t1
+    generatePieceLoad
+      byte
+      hdr
+      ( accessor,
+        (fromIntegral -> readStart, fromIntegral -> readEnd),
+        (fromIntegral -> writeStart, fromIntegral -> writeEnd),
+        fromIntegral -> size
+        ) =
+        let readShift = C.LitInt $ 8 - readEnd
+            readMask = mask $ readEnd - readStart
+            writeShift = C.LitInt $ size - writeEnd
+            writeMask = (C..~) (mask (writeEnd - writeStart) C..<< writeShift)
+            read = (byte C..>> readShift) C..& readMask
+            writeExpr = (accessor hdr C..& writeMask) C..| (read C..<< writeShift)
+         in C.Stmt . C.Expr $ accessor hdr C..= writeExpr
+
+generatePostProcessExtract :: C.Expr -> [(C.Expr -> C.Expr, Int)] -> [C.BlockItem]
+generatePostProcessExtract targetExpr = concatMap inner
+  where
+    inner (accessor, width) =
+      let swapFn = case find ((width <=) . fst) sizes of
+            Just (_, fn) -> fn
+            Nothing -> error $ "unsupported byte width: " <> show width
+       in case swapFn of
+            Just fn -> [C.Stmt . C.Expr $ accessor targetExpr C..= C.Funcall (C.Ident fn) [accessor targetExpr]]
+            Nothing -> []
+    sizes =
+      [ (8, Nothing),
+        (16, Just "htons"),
+        (32, Just "htonl"),
+        (64, Just "htonll")
+      ]
+
+generateInExtractBody :: forall r. CompC r => C.Expr -> C.Expr -> AST.P4Type -> Sem r [C.BlockItem]
+generateInExtractBody packet targetHdr ty = do
+  fields <- findFields ty
+  let packetSize = fromIntegral . sum $ map snd fields
+  let mapped = mapBytesToFields fields
+  let doExtract = uncurry $ generateExtractionForByte (C.Arrow packet "pkt") (C.deref targetHdr)
+  let checkStep =
+        [ C.Stmt $
+            C.If
+              (C.Arrow packet "size" C..< (C.Arrow packet "idx" C..+ C.LitInt packetSize))
+              [ C.Stmt . C.Return . Just . C.LitBool $ False
+              ]
+        ]
+  extractStep <- concat <$> forM (zip [0 ..] mapped) doExtract
+  let postProcessStep = generatePostProcessExtract (C.deref targetHdr) fields
+  let lastStep =
+        [ C.Stmt . C.Expr $ C.AssignOp C.AssignAdd (C.Arrow packet "idx") (C.LitInt packetSize),
+          C.Stmt . C.Expr $ C.AssignOp C.Assign (C.Arrow targetHdr "valid") (C.LitBool True),
+          C.Stmt . C.Return . Just . C.LitBool $ True
+        ]
+  pure (checkStep <> extractStep <> postProcessStep <> lastStep)
+
+--      0      1       2       3       4       5       6
+-- [--------++++++++--------++++++++--------++++++++--------]
+-- [---++++++---------------------------------++------------]
+--   a   b                  c                 d     e
+--
+-- load 0, store first 3 bits into a[0..3]
+--         store last 5 bits into b[1..6]
+-- load 1, store first bit into b[0..1]
+--         store last 7 bits into c[26..33]
+-- load 2, store into c[18..33]
+-- etc
+-- so, [(a, 0, (0..3), (0..3),   3)
+--     ,(b, 0, (3..8), (0..5),   6)
+--     ,(b, 1, (0..1), (5..6),   6)
+--     ,(c, 1, (1..8), (0..7),   33)
+--     ,(c, 2, (0..8), (7..15),  33)
+--     ,(c, 3, (0..8), (15..23), 33)
+--     ,(c, 4, (0..8), (23..31), 33)
+--     ,(c, 5, (0..2), (31..33), 33)
+--     ,(d, 5, (2..4), (0..2),   2)
+--     ]
 
 generatePacketInLookahead :: (Member (Writer [C.BlockItem]) r, CompC r) => AST.Expression -> [AST.Expression] -> Sem r (C.Type, C.Expr)
 generatePacketInLookahead instance_ params = do
@@ -119,6 +267,10 @@ defineWritePartial =
     uint8_t1 = C.Cast (C.TypeName $ C.TypeSpec uint8_t) (C.LitInt 1)
     mask n = (uint8_t1 C..<< n) C..- uint8_t1
 
+-- | generate a list of (attribute function, width) for a p4 header
+--
+-- where 'attribute function' is a function that given an expression accesses
+-- the C struct field corresponding to the p4 header field
 findFields :: CompC r => AST.P4Type -> Sem r [(C.Expr -> C.Expr, Int)]
 findFields (AST.TypeHeader'P4Type (AST.TypeHeader _ _ fields)) = (concat <$>) . mapM processField $ fields ^. #vec
   where
@@ -127,7 +279,7 @@ findFields (AST.TypeHeader'P4Type (AST.TypeHeader _ _ fields)) = (concat <$>) . 
       ty' <- resolveP4Type ty
       fields' <- findFields ty'
       pure $ map (updateField ident) fields'
-    updateField name (access, size) = ((\e -> access $ C.Dot e (toString name)), size)
+    updateField name (access, size) = (\e -> access $ C.Dot e (toString name), size)
 findFields (AST.TypeBits'P4Type (AST.TypeBits s _)) = pure [(id, s)]
 findFields t = error $ "unknown type for findFields: " <> show t
 

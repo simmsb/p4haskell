@@ -22,14 +22,13 @@ import Relude.Extra (keys, toPairs)
 
 generateParserStates :: CompC r => Text -> AST.MapVec Text AST.ParserState -> Sem r [C.BlockItem]
 generateParserStates n s = do
-  si <- generateStateEnum n s
   stateVarName <- generateTempVar
   let stateVar = C.Ident stateVarName
+  si <- generateStateEnum n stateVar s
   let stateVarStart = si ^?! #states . ix "start"
   let stateVarInit = [C.Decln $ C.VarDecln Nothing (C.TypeSpec $ si ^. #enumTy) stateVarName (Just . C.InitExpr $ stateVarStart)]
   let stateMap = s ^. #map & sans "accept" & sans "reject"
-  cases <- local (setParserStateInfoInScope si) $ forM (toPairs $ stateMap) \(sn, ps) -> do
-    print sn
+  cases <- local (setParserStateInfoInScope si) $ forM (toPairs stateMap) \(sn, ps) -> do
     body <- generateParserState stateVar ps
     let stateEnumVariant = si ^?! #states . ix sn
     pure $ C.Case stateEnumVariant body
@@ -39,8 +38,8 @@ generateParserStates n s = do
         ]
   pure (stateVarInit <> [C.Stmt $ C.ForInf [C.Stmt $ C.Switch stateVar (cases <> extraCases)]])
 
-generateStateEnum :: CompC r => Text -> AST.MapVec Text AST.ParserState -> Sem r ParserStateInfo
-generateStateEnum parserName s =
+generateStateEnum :: CompC r => Text -> C.Expr -> AST.MapVec Text AST.ParserState -> Sem r ParserStateInfo
+generateStateEnum parserName stateVar s =
   let states = ["accept", "reject"] <> keys (s ^. #map)
       nameGen n = "parser_state_" <> parserName <> "_" <> n
       enumName = "parser_states_" <> parserName
@@ -50,14 +49,12 @@ generateStateEnum parserName s =
    in do
         stateId <- hashUnique <$> fresh
         ty <- simplifyType stateEnum
-        pure $ ParserStateInfo stateId ty stateMap
+        pure $ ParserStateInfo stateId stateVar ty stateMap
 
 generateParserState :: CompC r => C.Expr -> AST.ParserState -> Sem r C.Stmt
 generateParserState stateVar pstate = do
   body <- generateStatements $ pstate ^. #components
   selectStmts <- concat <$> traverse (generateSelectExpr stateVar) (pstate ^. #selectExpression)
-  print (pstate ^. #components)
-  print (body <> selectStmts)
   pure $ C.Block (body <> selectStmts)
 
 generateSelectExpr :: CompC r => C.Expr -> AST.ParserSelect -> Sem r [C.BlockItem]

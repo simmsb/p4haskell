@@ -143,7 +143,7 @@ generateP4StructPure s = do
         )
   let ident = toString $ s ^. #name
   let struct = C.StructDecln (Just ident) (fromMaybe (nullField :| []) $ nonEmpty fields')
-  let deps' = ((s ^. #name, struct) : deps)
+  let deps' = (s ^. #name, struct) : deps
   pure (C.Struct ident, struct, deps')
 
 generateP4HeaderPure :: Rock.MonadFetch Query m => AST.TypeHeader -> m (C.TypeSpec, C.TypeSpec, [(Text, C.TypeSpec)])
@@ -159,7 +159,8 @@ generateP4HeaderPure h = do
             pure $ C.FieldDecln (C.TypeSpec ty) (toString $ f ^. #name)
         )
   let ident = toString $ h ^. #name
-  let struct = C.StructDecln (Just ident) (fromMaybe (nullField :| []) $ nonEmpty fields')
+  let validField = C.FieldDecln (C.TypeSpec C.Bool) "valid"
+  let struct = C.StructDecln (Just ident) (validField :|  fields')
   let deps' = ((h ^. #name, struct) : deps)
   pure (C.Struct ident, struct, deps')
 

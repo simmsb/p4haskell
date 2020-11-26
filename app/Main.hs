@@ -51,7 +51,7 @@ main' path = do
 main'' :: Text -> IO ()
 main'' t = do
   let parsed = parseAST t
-  either failWithHistory pPrint parsed
+  -- either failWithHistory pPrint parsed
 
   let Right ast = parsed
 
@@ -60,5 +60,5 @@ main'' t = do
   let out = TP.render . PC.pretty . C.translate . D.exportDeclared $ declared
   putStrLn out
 
-  where failWithHistory (err, _hist) = do
-          print err
+  -- where failWithHistory (err, _hist) = do
+  --         print err
