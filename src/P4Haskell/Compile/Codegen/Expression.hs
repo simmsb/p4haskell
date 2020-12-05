@@ -4,26 +4,25 @@ module P4Haskell.Compile.Codegen.Expression
   )
 where
 
+import Control.Lens
 import Data.Generics.Sum
 import Data.Text.Lens (unpacked)
 import qualified Generics.SOP as GS
 import qualified Language.C99.Simple as C
-import P4Haskell.Compile.Codegen.Extern
 import P4Haskell.Compile.Codegen.Action
+import P4Haskell.Compile.Codegen.Extern
 import {-# SOURCE #-} P4Haskell.Compile.Codegen.MethodCall
 import {-# SOURCE #-} P4Haskell.Compile.Codegen.Tables
 import P4Haskell.Compile.Codegen.Typegen
+import P4Haskell.Compile.Codegen.Utils
 import P4Haskell.Compile.Eff
 import P4Haskell.Compile.Scope
 import qualified P4Haskell.Types.AST as AST
 import P4Haskell.Utils.Drill
-import Polysemy
-import Polysemy.Reader
-import Polysemy.Writer
-import Relude (error)
-import P4Haskell.Compile.Codegen.Utils
+import qualified Polysemy as P
+import qualified Polysemy.Writer as P
 
-generateP4Expression :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.Expression -> Sem r C.Expr
+generateP4Expression :: (CompC r, P.Member (P.Writer [C.BlockItem]) r) => AST.Expression -> P.Sem r C.Expr
 generateP4Expression (AST.MethodCallExpression'Expression mce) = generateMCE mce
 generateP4Expression (AST.Member'Expression me) = generateME me
 generateP4Expression (AST.PathExpression'Expression pe) = generatePE pe
@@ -36,13 +35,13 @@ generateP4Expression (AST.BinaryOp'Expression uoe) = generateBOE uoe
 generateP4Expression (AST.TypeNameExpression'Expression tn) =
   error $ "type name expressions can only be part of member expressions: " <> show tn
 
-generateUOE :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.UnaryOp -> Sem r C.Expr
+generateUOE :: (CompC r, P.Member (P.Writer [C.BlockItem]) r) => AST.UnaryOp -> P.Sem r C.Expr
 generateUOE uoe = do
   expr <- generateP4Expression $ uoe ^. #expr
   pure case uoe ^. #op of
     AST.UnaryOpLNot -> C.UnaryOp C.BoolNot expr
 
-generateBOE :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.BinaryOp -> Sem r C.Expr
+generateBOE :: (CompC r, P.Member (P.Writer [C.BlockItem]) r) => AST.BinaryOp -> P.Sem r C.Expr
 generateBOE boe = do
   left <- generateP4Expression $ boe ^. #left
   right <- generateP4Expression $ boe ^. #right
@@ -50,7 +49,7 @@ generateBOE boe = do
         AST.BinaryOpAdd -> C.Add
   pure $ C.BinaryOp op left right
 
-generatePE :: CompC r => AST.PathExpression -> Sem r C.Expr
+generatePE :: CompC r => AST.PathExpression -> P.Sem r C.Expr
 generatePE pe@(AST.PathExpression (AST.TypeState'P4Type _) _) = do
     stateEnumInfo <- fromJustNote "stateEnumInfo" <$> fetchParserStateInfoInScope
     pure $ stateEnumInfo ^?! #states . ix (pe ^. #path . #name)
@@ -64,16 +63,16 @@ generatePE pe = do
       then C.deref ident
       else ident
 
-generateCE :: CompC r => AST.Constant -> Sem r C.Expr
+generateCE :: CompC r => AST.Constant -> P.Sem r C.Expr
 generateCE ce = pure . C.LitInt . fromIntegral $ ce ^. #value
 
-generateBLE :: CompC r => AST.BoolLiteral -> Sem r C.Expr
+generateBLE :: CompC r => AST.BoolLiteral -> P.Sem r C.Expr
 generateBLE ble = pure . C.LitInt $ if ble ^. #value then 1 else 0
 
-generateSLE :: CompC r => AST.StringLiteral -> Sem r C.Expr
+generateSLE :: CompC r => AST.StringLiteral -> P.Sem r C.Expr
 generateSLE sle = pure . C.LitString $ sle ^. #value . unpacked
 
-generateME :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.Member -> Sem r C.Expr
+generateME :: (CompC r, P.Member (P.Writer [C.BlockItem]) r) => AST.Member -> P.Sem r C.Expr
 generateME (AST.Member _ (AST.TypeNameExpression'Expression tn) n) = do
   (_, ty) <- generateP4Type (tn ^. #type_)
   case ty of
@@ -112,7 +111,7 @@ decideMethodCallType (AST.MethodCallExpression (AST.TypeAction'P4Type _)
                        (AST.PathExpression _ aname)) _ _) = ActionCall (aname ^. #name)
 decideMethodCallType (AST.MethodCallExpression _ expr _ _) = MethodCall $ injectSub expr
 
-generateMCE :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.MethodCallExpression -> Sem r C.Expr
+generateMCE :: (CompC r, P.Member (P.Writer [C.BlockItem]) r) => AST.MethodCallExpression -> P.Sem r C.Expr
 generateMCE me = do
   -- TODO: do some type param stuff and overloads for table apply, etc
   case decideMethodCallType me of
@@ -140,7 +139,7 @@ generateMCE me = do
       methodExpr <- generateP4Expression expr
       generateCall (methodExpr, C.TypeSpec resultTy) params
 
-generateSE :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.SelectExpression -> Sem r C.Expr
+generateSE :: (CompC r, P.Member (P.Writer [C.BlockItem]) r) => AST.SelectExpression -> P.Sem r C.Expr
 generateSE se = do
   tempVarName <- generateTempVar
   si <- fromJustNote "stateEnumInfo" <$> fetchParserStateInfoInScope
@@ -154,8 +153,8 @@ generateSE se = do
     let f = case sc ^. #keyset of
           AST.Constant'SelectKey c -> C.Case (C.LitInt . fromIntegral $ c ^. #value)
           AST.Default'SelectKey _ -> C.Default
-    (deps, expr) <- censor (const mempty) . listen . generateP4Expression . AST.PathExpression'Expression $ sc ^. #state
+    (deps, expr) <- P.censor (const mempty) . P.listen . generateP4Expression . AST.PathExpression'Expression $ sc ^. #state
     let stmt = C.Block (deps <> [C.Stmt . C.Expr $ C.AssignOp C.Assign tempVar expr, C.Stmt C.Break])
     pure $ f stmt
-  tell (tempVarInit <> [C.Stmt $ C.Switch e cases])
+  P.tell (tempVarInit <> [C.Stmt $ C.Switch e cases])
   pure tempVar

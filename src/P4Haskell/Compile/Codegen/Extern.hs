@@ -1,5 +1,3 @@
-{-# LANGUAGE QuasiQuotes #-}
-
 -- |
 module P4Haskell.Compile.Codegen.Extern
   ( generateExternCall,
@@ -7,6 +5,7 @@ module P4Haskell.Compile.Codegen.Extern
   )
 where
 
+import Control.Lens
 import Control.Monad.Extra (concatMapM)
 import Data.List.Extra (groupOn)
 import qualified Language.C99.Simple as C
@@ -18,12 +17,10 @@ import P4Haskell.Compile.Eff
 import P4Haskell.Compile.Scope
 import qualified P4Haskell.Types.AST as AST
 import P4Haskell.Utils.Drill
-import Polysemy
-import Polysemy.State
-import Polysemy.Writer
-import Relude (error)
+import qualified Polysemy as P
+import qualified Polysemy.State as P
+import qualified Polysemy.Writer as P
 import Relude.Extra (toFst)
-import Relude.Unsafe ((!!))
 
 data ExternInfo = ExternInfo
   { name :: Text,
@@ -36,10 +33,10 @@ data ExternMethod = ExternMethod
   { name :: Text,
     generate ::
       forall r.
-      (Member (Writer [C.BlockItem]) r, CompC r) =>
+      (P.Member (P.Writer [C.BlockItem]) r, CompC r) =>
       AST.Expression ->
       [AST.Expression] ->
-      Sem r (C.Type, C.Expr)
+      P.Sem r (C.Type, C.Expr)
   }
 
 uint8_t :: C.TypeSpec
@@ -87,15 +84,14 @@ packetInMethods =
       ExternMethod "length" generatePacketInLength
     ]
 
-generatePacketInExtract :: (Member (Writer [C.BlockItem]) r, CompC r) => AST.Expression -> [AST.Expression] -> Sem r (C.Type, C.Expr)
-generatePacketInExtract instance_ params = do
-  let param = params !! 0
+generatePacketInExtract :: (P.Member (P.Writer [C.BlockItem]) r, CompC r) => AST.Expression -> [AST.Expression] -> P.Sem r (C.Type, C.Expr)
+generatePacketInExtract instance_ [param] = do
   let p4ty = gdrillField @"type_" param
   let name = "extract_packet_" <> getTypeName p4ty
   (ty, _rawTy) <- generateP4Type p4ty
   body <- generateInExtractBody (C.Ident "pkt") (C.Ident "hdr") =<< resolveP4Type p4ty
   packetStruct' <- simplifyType packetStruct
-  modify . (<>) $
+  P.modify . (<>) $
     defineFunc
       name
       (C.TypeSpec C.Bool)
@@ -115,7 +111,7 @@ generatePacketInExtract instance_ params = do
   let stateVar = stateEnumInfo ^. #stateVar
   let reject = stateEnumInfo ^?! #states . ix "reject"
 
-  tell
+  P.tell
     [ C.Stmt $
         C.If
           (C.UnaryOp C.BoolNot expr)
@@ -146,7 +142,7 @@ mapBytesToFields = map (map snd) . groupOn fst . go 0 0 0
             else e : go byteIndex' byteOffset' fieldOffset' l
     go _ _ _ _ = []
 
-generateExtractionForByte :: CompC r => C.Expr -> C.Expr -> Int -> [(C.Expr -> C.Expr, (Int, Int), (Int, Int), Int)] -> Sem r [C.BlockItem]
+generateExtractionForByte :: CompC r => C.Expr -> C.Expr -> Int -> [(C.Expr -> C.Expr, (Int, Int), (Int, Int), Int)] -> P.Sem r [C.BlockItem]
 generateExtractionForByte packetBuf targetHdr byteIndex pieces = do
   let byte = C.Index packetBuf (C.LitInt $ fromIntegral byteIndex)
   tmpName <- generateTempVar
@@ -190,7 +186,7 @@ generatePostProcessExtract targetExpr = concatMap inner
         (64, Just "htonll")
       ]
 
-generateInExtractBody :: forall r. CompC r => C.Expr -> C.Expr -> AST.P4Type -> Sem r [C.BlockItem]
+generateInExtractBody :: forall r. CompC r => C.Expr -> C.Expr -> AST.P4Type -> P.Sem r [C.BlockItem]
 generateInExtractBody packet targetHdr ty = do
   fields <- findFields ty
   let packetSize = fromIntegral . sum $ map snd fields
@@ -234,21 +230,21 @@ generateInExtractBody packet targetHdr ty = do
 --     ,(d, 5, (2..4), (0..2),   2)
 --     ]
 
-generatePacketInLookahead :: (Member (Writer [C.BlockItem]) r, CompC r) => AST.Expression -> [AST.Expression] -> Sem r (C.Type, C.Expr)
+generatePacketInLookahead :: (P.Member (P.Writer [C.BlockItem]) r, CompC r) => AST.Expression -> [AST.Expression] -> P.Sem r (C.Type, C.Expr)
 generatePacketInLookahead instance_ params = do
   error "packetlookahead"
 
-generatePacketInAdvance :: (Member (Writer [C.BlockItem]) r, CompC r) => AST.Expression -> [AST.Expression] -> Sem r (C.Type, C.Expr)
+generatePacketInAdvance :: (P.Member (P.Writer [C.BlockItem]) r, CompC r) => AST.Expression -> [AST.Expression] -> P.Sem r (C.Type, C.Expr)
 generatePacketInAdvance instance_ params = do
   error "packetadvance"
 
-generatePacketInLength :: (Member (Writer [C.BlockItem]) r, CompC r) => AST.Expression -> [AST.Expression] -> Sem r (C.Type, C.Expr)
+generatePacketInLength :: (P.Member (P.Writer [C.BlockItem]) r, CompC r) => AST.Expression -> [AST.Expression] -> P.Sem r (C.Type, C.Expr)
 generatePacketInLength instance_ params = do
   error "packetlength"
 
-defineWritePartial :: CompC r => Sem r ()
+defineWritePartial :: CompC r => P.Sem r ()
 defineWritePartial =
-  modify . (<>) $
+  P.modify . (<>) $
     defineFunc
       "write_partial"
       (C.TypeSpec C.Void)
@@ -271,10 +267,10 @@ defineWritePartial =
 --
 -- where 'attribute function' is a function that given an expression accesses
 -- the C struct field corresponding to the p4 header field
-findFields :: CompC r => AST.P4Type -> Sem r [(C.Expr -> C.Expr, Int)]
+findFields :: CompC r => AST.P4Type -> P.Sem r [(C.Expr -> C.Expr, Int)]
 findFields (AST.TypeHeader'P4Type (AST.TypeHeader _ _ fields)) = (concat <$>) . mapM processField $ fields ^. #vec
   where
-    processField :: CompC r => AST.StructField -> Sem r [(C.Expr -> C.Expr, Int)]
+    processField :: CompC r => AST.StructField -> P.Sem r [(C.Expr -> C.Expr, Int)]
     processField (AST.StructField ident _ ty) = do
       ty' <- resolveP4Type ty
       fields' <- findFields ty'
@@ -283,10 +279,16 @@ findFields (AST.TypeHeader'P4Type (AST.TypeHeader _ _ fields)) = (concat <$>) . 
 findFields (AST.TypeBits'P4Type (AST.TypeBits s _)) = pure [(id, s)]
 findFields t = error $ "unknown type for findFields: " <> show t
 
-generateOutEmitBody :: forall r. CompC r => AST.P4Type -> Sem r [C.BlockItem]
+
+-- TODO on packet emit:
+-- 1. reset packet length and emit from there
+-- 2. sort moving data around when we need to (header adjustment)
+
+
+generateOutEmitBody :: forall r. CompC r => AST.P4Type -> P.Sem r [C.BlockItem]
 generateOutEmitBody ty = do
   defineWritePartial
-  (evalState @Int 0 . concatMapM generateWrite) =<< findFields ty
+  (P.evalState @Int 0 . concatMapM generateWrite) =<< findFields ty
   where
     sizes =
       [ (8, Nothing),
@@ -294,12 +296,12 @@ generateOutEmitBody ty = do
         (32, Just "htonl"),
         (64, Just "htonll")
       ]
-    generateWrite :: (C.Expr -> C.Expr, Int) -> Sem (State Int ': r) [C.BlockItem]
+    generateWrite :: (C.Expr -> C.Expr, Int) -> P.Sem (P.State Int ': r) [C.BlockItem]
     generateWrite (acc, size) = do
-      align <- get @Int
-      Polysemy.State.put $ (align + size) `mod` 8
+      align <- P.get @Int
+      P.put $ (align + size) `mod` 8
       generateWrite' (acc, size) align
-    generateWrite' :: (C.Expr -> C.Expr, Int) -> Int -> Sem (State Int ': r) [C.BlockItem]
+    generateWrite' :: (C.Expr -> C.Expr, Int) -> Int -> P.Sem (P.State Int ': r) [C.BlockItem]
     generateWrite' (acc, size) align =
       let (loadSize, swapFn) = case find ((size <=) . fst) sizes of
             Just ls -> ls
@@ -377,15 +379,14 @@ getTypeName :: AST.P4Type -> Text
 getTypeName (AST.TypeHeader'P4Type h) = h ^. #name
 getTypeName _ = error "can't calculate name for type"
 
-generatePacketOutEmit :: (Member (Writer [C.BlockItem]) r, CompC r) => AST.Expression -> [AST.Expression] -> Sem r (C.Type, C.Expr)
-generatePacketOutEmit instance_ params = do
-  let param = params !! 0
+generatePacketOutEmit :: (P.Member (P.Writer [C.BlockItem]) r, CompC r) => AST.Expression -> [AST.Expression] -> P.Sem r (C.Type, C.Expr)
+generatePacketOutEmit instance_ [param] = do
   let p4ty = gdrillField @"type_" param
   let name = "emit_packet_" <> getTypeName p4ty
   (ty, _rawTy) <- generateP4Type p4ty
   body <- generateOutEmitBody =<< resolveP4Type p4ty
   packetStruct' <- simplifyType packetStruct
-  modify . (<>) $
+  P.modify . (<>) $
     defineFunc
       name
       (C.TypeSpec C.Void)
@@ -404,7 +405,7 @@ generatePacketOutEmit instance_ params = do
 getExternType :: Text -> C.TypeSpec
 getExternType name = externs ^?! ix name . #type_
 
-generateExternCall :: (Member (Writer [C.BlockItem]) r, CompC r) => Text -> Text -> AST.Expression -> [AST.Expression] -> Sem r (C.Type, C.Expr)
+generateExternCall :: (P.Member (P.Writer [C.BlockItem]) r, CompC r) => Text -> Text -> AST.Expression -> [AST.Expression] -> P.Sem r (C.Type, C.Expr)
 generateExternCall name methodName instance_ params =
   let method = externs ^?! ix name . #methods . ix methodName
    in generate method instance_ params

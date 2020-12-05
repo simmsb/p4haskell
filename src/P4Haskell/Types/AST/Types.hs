@@ -1,28 +1,24 @@
 -- | P4 Types
 module P4Haskell.Types.AST.Types where
 
-import           Control.Monad.Error.Class          ( throwError )
-
-import           Data.Generics.Sum.Typed
-
-import {-# SOURCE #-} P4Haskell.Types.AST.Annotation
-import           P4Haskell.Types.AST.Core
-import           P4Haskell.Types.AST.DeclarationID
-import           P4Haskell.Types.AST.DecompressJSON
-import {-# SOURCE #-} P4Haskell.Types.AST.Method
-import           P4Haskell.Types.AST.MapVec
-import {-# SOURCE #-} P4Haskell.Types.AST.Parameter
+import Control.Lens
+import Control.Monad.Error.Class (throwError)
+import Data.Generics.Sum.Typed
 import {-# SOURCE #-} P4Haskell.Types.AST.ActionList
-import           P4Haskell.Types.AST.Path
+import {-# SOURCE #-} P4Haskell.Types.AST.Annotation
+import P4Haskell.Types.AST.Core
+import P4Haskell.Types.AST.DeclarationID
+import P4Haskell.Types.AST.DecompressJSON
+import P4Haskell.Types.AST.MapVec
+import {-# SOURCE #-} P4Haskell.Types.AST.Method
+import {-# SOURCE #-} P4Haskell.Types.AST.Parameter
+import P4Haskell.Types.AST.Path
 import {-# SOURCE #-} P4Haskell.Types.AST.Table
+import Polysemy
+import qualified Waargonaut.Decode as D
+import qualified Waargonaut.Decode.Error as D
 
-import           Prelude
-
-import           Polysemy
-
-import qualified Waargonaut.Decode                  as D
-import qualified Waargonaut.Decode.Error            as D
-
+import Prelude
 data P4Type
   = TypeVar'P4Type TypeVar
   | TypeVoid'P4Type TypeVoid

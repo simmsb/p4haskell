@@ -4,8 +4,8 @@ module P4Haskell.Utils.Drill
   )
 where
 
+import Control.Lens
 import Data.Generics.Product.Fields
-import Relude.Debug
 import Generics.SOP as GS
 
 class HasField'F field a s | s field -> a where
@@ -24,7 +24,7 @@ gdrillField' :: forall field a xss. GS.All2 (HasField'F field a) xss => SOP I xs
 gdrillField' (SOP sop) = hcollapse $ hcliftA (allp (Proxy @field) (Proxy @a)) (goGet @field @a) sop
 
 goGet :: forall field a xs. GS.All (HasField'F field a) xs => NP I xs -> K [a] xs
-goGet args = K . hcollapse . hcliftA (p (Proxy @field) (Proxy @a)) (K . (^. field'f @field @a) . unI) $ args
+goGet = K . hcollapse . hcliftA (p (Proxy @field) (Proxy @a)) (K . (^. field'f @field @a) . unI)
 
 p :: Proxy field -> Proxy a -> Proxy (HasField'F field a)
 p _ _ = Proxy

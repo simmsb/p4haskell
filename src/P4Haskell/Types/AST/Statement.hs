@@ -1,21 +1,16 @@
 module P4Haskell.Types.AST.Statement where
 
-import           Control.Monad.Error.Class          ( throwError )
-
-import           Data.Generics.Sum.Typed
-
-import           P4Haskell.Types.AST.Annotation
-import           P4Haskell.Types.AST.Core
-import           P4Haskell.Types.AST.DecompressJSON
-import           P4Haskell.Types.AST.Expression
-import           P4Haskell.Types.AST.Types
-
-import           Prelude
-
-import           Polysemy
-
-import qualified Waargonaut.Decode                  as D
-import qualified Waargonaut.Decode.Error            as D
+import Control.Lens
+import Control.Monad.Error.Class (throwError)
+import Data.Generics.Sum.Typed
+import P4Haskell.Types.AST.Annotation
+import P4Haskell.Types.AST.Core
+import P4Haskell.Types.AST.DecompressJSON
+import P4Haskell.Types.AST.Expression
+import P4Haskell.Types.AST.Types
+import Polysemy
+import qualified Waargonaut.Decode as D
+import qualified Waargonaut.Decode.Error as D
 
 data Statement
   = MethodCallStatement'Statement MethodCallStatement

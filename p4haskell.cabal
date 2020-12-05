@@ -1,10 +1,10 @@
-cabal-version: 1.18
+cabal-version: 2.0
 
 -- This file has been generated from package.yaml by hpack version 0.33.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ad467c44ac90e42567ad1de5e9192e066fceb1be477c723295e83dcd165f5fbc
+-- hash: 9130c53ba633dac4041f21dbc023265356174afa5d101c75bfa0364047afa7ce
 
 name:           p4haskell
 version:        0.0.0
@@ -63,7 +63,6 @@ library
       P4Haskell.Types.AST.Table
       P4Haskell.Types.AST.Types
       P4Haskell.Utils.Drill
-      Prelude
   other-modules:
       Paths_p4haskell
   hs-source-dirs:
@@ -73,7 +72,7 @@ library
   build-depends:
       PyF
     , attoparsec >=0.13 && <0.14
-    , base-noprelude >=4.12 && <5
+    , base >=4.12 && <5
     , bitvec >=1.0 && <1.1
     , bytestring >=0.10 && <0.11
     , dependent-sum-template >=0.1 && <0.2
@@ -103,6 +102,9 @@ library
     , unordered-containers >=0.2 && <0.3
     , vector >=0.12 && <0.13
     , waargonaut >=0.8 && <0.9
+  mixins:
+      base hiding (Prelude)
+    , relude (Relude as Prelude, Relude, Relude.Debug, Relude.Extra.Map, Relude.Extra, Relude.Unsafe)
   default-language: Haskell2010
 
 executable p4haskell
@@ -116,7 +118,7 @@ executable p4haskell
   build-depends:
       PyF
     , attoparsec >=0.13 && <0.14
-    , base-noprelude >=4.12 && <5
+    , base >=4.12 && <5
     , bitvec >=1.0 && <1.1
     , bytestring >=0.10 && <0.11
     , dependent-sum-template >=0.1 && <0.2
@@ -148,6 +150,9 @@ executable p4haskell
     , unordered-containers >=0.2 && <0.3
     , vector >=0.12 && <0.13
     , waargonaut >=0.8 && <0.9
+  mixins:
+      base hiding (Prelude)
+    , relude (Relude as Prelude, Relude, Relude.Debug, Relude.Extra.Map, Relude.Extra, Relude.Unsafe)
   default-language: Haskell2010
 
 test-suite p4haskell-test
@@ -162,7 +167,7 @@ test-suite p4haskell-test
   build-depends:
       PyF
     , attoparsec >=0.13 && <0.14
-    , base-noprelude >=4.12 && <5
+    , base >=4.12 && <5
     , bitvec >=1.0 && <1.1
     , bytestring >=0.10 && <0.11
     , dependent-sum-template >=0.1 && <0.2
@@ -193,4 +198,7 @@ test-suite p4haskell-test
     , unordered-containers >=0.2 && <0.3
     , vector >=0.12 && <0.13
     , waargonaut >=0.8 && <0.9
+  mixins:
+      base hiding (Prelude)
+    , relude (Relude as Prelude, Relude, Relude.Debug, Relude.Extra.Map, Relude.Extra, Relude.Unsafe)
   default-language: Haskell2010

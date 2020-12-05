@@ -8,6 +8,7 @@ module P4Haskell.Compile.Codegen.Typegen
   )
 where
 
+import Control.Lens
 import qualified Control.Monad.Writer.Strict as SW
 import Data.Text.Lens (unpacked)
 import qualified Language.C99.Simple as C
@@ -17,46 +18,44 @@ import P4Haskell.Compile.Eff
 import P4Haskell.Compile.Fetch
 import P4Haskell.Compile.Query
 import qualified P4Haskell.Types.AST as AST
-import Polysemy
-import Polysemy.State
-import Relude (error)
--- import Relude.Extra.Map (keys)
+import qualified Polysemy as P
+import qualified Polysemy.State as P
 import Relude.Unsafe (fromJust)
 import qualified Rock
 
-generateP4Type :: CompC r => AST.P4Type -> Sem r (C.TypeSpec, C.TypeSpec)
+generateP4Type :: CompC r => AST.P4Type -> P.Sem r (C.TypeSpec, C.TypeSpec)
 generateP4Type t = do
   (ty, rawTy, deps) <- embedTask $ generateP4TypePure t
-  forM_ deps (modify . (<>) . uncurry declareType)
+  forM_ deps (P.modify . (<>) . uncurry declareType)
   pure (ty, rawTy)
 
-resolveType :: CompC r => C.TypeSpec -> Sem r C.TypeSpec
+resolveType :: CompC r => C.TypeSpec -> P.Sem r C.TypeSpec
 resolveType t@(C.TypedefName name) = fetchTyByName name <&> fromMaybe t
 resolveType t@(C.Struct name) = fetchTyByName name <&> fromMaybe t
 resolveType ty = pure ty
 
-fetchTyByName :: CompC r => C.Ident -> Sem r (Maybe C.TypeSpec)
+fetchTyByName :: CompC r => C.Ident -> P.Sem r (Maybe C.TypeSpec)
 fetchTyByName name = do
-  ty <- gets $ getType (toText name)
+  ty <- P.gets $ getType (toText name)
   case ty of
     Just ty' -> pure (Just ty')
     Nothing -> do
       p4ty <- fetch $ FetchType (toText name)
       mapM ((snd <$>) . generateP4Type) p4ty
 
-simplifyType :: CompC r => C.TypeSpec -> Sem r C.TypeSpec
+simplifyType :: CompC r => C.TypeSpec -> P.Sem r C.TypeSpec
 simplifyType t@(C.StructDecln (Just name) _) = do
-  modify . (<>) $ declareType (toText name) t
+  P.modify . (<>) $ declareType (toText name) t
   pure $ C.Struct name
 simplifyType t@(C.UnionDecln (Just name) _) = do
-  modify . (<>) $ declareType (toText name) t
+  P.modify . (<>) $ declareType (toText name) t
   pure $ C.Union name
 simplifyType t@(C.EnumDecln (Just name) _) = do
-  modify . (<>) $ declareType (toText name) t
+  P.modify . (<>) $ declareType (toText name) t
   pure $ C.Enum name
 simplifyType t = pure t
 
-resolveP4Type :: CompC r => AST.P4Type -> Sem r AST.P4Type
+resolveP4Type :: CompC r => AST.P4Type -> P.Sem r AST.P4Type
 resolveP4Type (AST.TypeName'P4Type p) = fromJust <$> fetch (FetchType $ p ^. #path . #name)
 resolveP4Type t = pure t
 

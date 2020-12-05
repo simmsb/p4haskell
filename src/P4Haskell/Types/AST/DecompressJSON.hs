@@ -3,26 +3,24 @@
 -- | P4 'compresses' it's json exported AST, this module decompresses it
 -- if you're interested, it does some lazy magic to fetch the end state before the end
 module P4Haskell.Types.AST.DecompressJSON
-    ( tryParseVal
-    , tryDecoder
-    , runDecompressor
-    , currentNodeType
-    , type DecompressC ) where
+  ( tryParseVal,
+    tryDecoder,
+    runDecompressor,
+    currentNodeType,
+    type DecompressC,
+  )
+where
 
-import           Data.Dynamic
-import           Data.Typeable
+import Data.Dynamic
 import qualified Data.HashMap.Lazy as H
-
-import           Polysemy
-import           Polysemy.EndState
-import           Polysemy.Fixpoint
-import           Polysemy.State
-
+import Data.Typeable
+import qualified Polysemy as P
+import qualified Polysemy.EndState as P
+import qualified Polysemy.Fixpoint as P
+import qualified Polysemy.State as P
 -- import Text.Pretty.Simple (pShow)
 
 import qualified Waargonaut.Decode as D
-
-import Relude ( error )
 
 -- import qualified Debug.Trace as T
 -- import qualified Data.Text.Lazy as T
@@ -30,19 +28,19 @@ import Relude ( error )
 type DecompressState = HashMap Int (Dynamic, Text)
 
 type DecompressC r =
-  (Members '[Fixpoint, State DecompressState,
-  EndState DecompressState, Final Identity] r) -- , HasCallStack)
+  (P.Members '[P.Fixpoint, P.State DecompressState,
+  P.EndState DecompressState, P.Final Identity] r) -- , HasCallStack)
 
-addNode :: Member (State DecompressState) r => Int -> (Dynamic, Text) -> Sem r ()
-addNode k v = modify $ H.insert k v
+addNode :: P.Member (P.State DecompressState) r => Int -> (Dynamic, Text) -> P.Sem r ()
+addNode k v = P.modify $ H.insert k v
 
-getNode :: Members '[State DecompressState, EndState DecompressState] r => Int -> Sem r (Dynamic, Text)
+getNode :: P.Members '[P.State DecompressState, P.EndState DecompressState] r => Int -> P.Sem r (Dynamic, Text)
 getNode k = do
-  s <- get
+  s <- P.get
   case H.lookup k s of
     Just x -> pure x
     _      -> do
-      es <- getEndState
+      es <- P.getEndState
       let Just x = H.lookup k es
         in pure x
 
@@ -51,7 +49,7 @@ isReferenceNode curs = do
   ty <- D.fromKeyOptional "Node_Type" D.text curs
   pure $ isNothing ty
 
-currentNodeType :: DecompressC r => D.JCurs -> D.DecodeResult (Sem r) Text
+currentNodeType :: DecompressC r => D.JCurs -> D.DecodeResult (P.Sem r) Text
 currentNodeType curs = do
   o   <- D.down curs
   ref <- isReferenceNode o
@@ -71,9 +69,9 @@ fromJustMsg msg _ = error msg
 
 tryParseVal
   :: forall r b. (Typeable b, DecompressC r)
-  => (D.JCurs -> D.DecodeResult (Sem r) b)
+  => (D.JCurs -> D.DecodeResult (P.Sem r) b)
   -> D.JCurs
-  -> D.DecodeResult (Sem r) b
+  -> D.DecodeResult (P.Sem r) b
 tryParseVal f curs = do
   o   <- D.down curs
   ref <- isReferenceNode o
@@ -93,19 +91,19 @@ tryParseVal f curs = do
 
 tryDecoder
   :: forall r b. (Typeable b, DecompressC r)
-  => D.Decoder (Sem r) b
+  => D.Decoder (P.Sem r) b
   -> D.JCurs
-  -> D.DecodeResult (Sem r) b
+  -> D.DecodeResult (P.Sem r) b
 tryDecoder = tryParseVal . D.focus
 
 runDecompressor
   :: forall a.
-  Sem '[EndState DecompressState, State DecompressState,
-  Fixpoint, Final Identity] a
+  P.Sem '[P.EndState DecompressState, P.State DecompressState,
+  P.Fixpoint, P.Final Identity] a
   -> a
 runDecompressor =
     runIdentity
-  . runFinal
-  . fixpointToFinal @Identity
-  . evalLazyState @DecompressState H.empty
-  . runEndState @DecompressState
+  . P.runFinal
+  . P.fixpointToFinal @Identity
+  . P.evalLazyState @DecompressState H.empty
+  . P.runEndState @DecompressState

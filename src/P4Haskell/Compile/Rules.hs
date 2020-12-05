@@ -4,14 +4,15 @@ module P4Haskell.Compile.Rules
   )
 where
 
+import Control.Lens
 import Data.Generics.Sum
 import P4Haskell.Compile.Codegen.Typegen
 import P4Haskell.Compile.Query
 import qualified P4Haskell.Types.AST as AST
 import P4Haskell.Utils.Drill
+import Relude.Extra (toPairs)
 import Relude.Unsafe (fromJust)
 import qualified Rock
-import Relude.Extra (toPairs)
 
 rules :: AST.P4Program -> Rock.Rules Query
 rules ast GetMain =
@@ -50,6 +51,6 @@ rules ast GetTopLevelMatchKind =
     & fromList
     & pure
 rules _ast (FetchType name) = do
-    tl <- Rock.fetch GetTopLevelTypes
-    pure $ injectSub <$> (tl ^. at name)
+  tl <- Rock.fetch GetTopLevelTypes
+  pure $ injectSub <$> (tl ^. at name)
 rules _ast (GenerateP4Type t) = generateP4TypePure t

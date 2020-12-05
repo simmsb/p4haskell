@@ -19,12 +19,13 @@ module P4Haskell.Compile.Scope
   )
 where
 
+import Control.Lens
 import Data.Unique
 import qualified Language.C99.Simple as C
 import qualified P4Haskell.Types.AST as AST
-import Polysemy
-import Polysemy.Fresh
-import Polysemy.Reader
+import qualified Polysemy as P
+import qualified Polysemy.Fresh as P
+import qualified Polysemy.Reader as P
 import Text.Show (showsPrec)
 
 newtype VarID = VarID Int
@@ -95,9 +96,9 @@ findActionInScope n s = s ^. #scopeKnownActions . at n
 getParserStateInfoInScope :: Scope -> Maybe ParserStateInfo
 getParserStateInfoInScope s = s ^. #scopeParserStateInfo
 
-makeVar :: Member (Fresh Unique) r => Text -> C.Type -> AST.P4Type -> Bool -> Sem r Var
+makeVar :: P.Member (P.Fresh Unique) r => Text -> C.Type -> AST.P4Type -> Bool -> P.Sem r Var
 makeVar n t p4t nd = do
-  i <- VarID . hashUnique <$> fresh
+  i <- VarID . hashUnique <$> P.fresh
   pure $ Var n i t p4t nd
 
 data ScopeLookup m a where
@@ -105,13 +106,13 @@ data ScopeLookup m a where
   LookupActionInScope :: Text -> ScopeLookup m (Maybe AST.P4Action)
   FetchParserStateInfoInScope :: ScopeLookup m (Maybe ParserStateInfo)
 
-makeSem ''ScopeLookup
+P.makeSem ''ScopeLookup
 
-runScopeLookupReader :: Member (Reader Scope) r => Sem (ScopeLookup ': r) a -> Sem r a
-runScopeLookupReader = interpret \case
+runScopeLookupReader :: P.Member (P.Reader Scope) r => P.Sem (ScopeLookup ': r) a -> P.Sem r a
+runScopeLookupReader = P.interpret \case
   LookupVarInScope name _ty ->
-    Polysemy.Reader.asks $ findVarInScope name
+    P.asks $ findVarInScope name
   LookupActionInScope name ->
-    Polysemy.Reader.asks $ findActionInScope name
+    P.asks $ findActionInScope name
   FetchParserStateInfoInScope ->
-    Polysemy.Reader.asks getParserStateInfoInScope
+    P.asks getParserStateInfoInScope

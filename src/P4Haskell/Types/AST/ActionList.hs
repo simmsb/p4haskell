@@ -6,6 +6,7 @@ module P4Haskell.Types.AST.ActionList
   )
 where
 
+import Control.Lens
 import Data.Generics.Sum.Typed
 import P4Haskell.Types.AST.Annotation
 import P4Haskell.Types.AST.Core

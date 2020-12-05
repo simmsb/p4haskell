@@ -1,31 +1,24 @@
 -- | Represents the P4 AST in haskellmodule P4Haskell.Types.AST
 module P4Haskell.Types.AST.AST where
 
-import           Control.Monad.Error.Class          ( throwError )
-
+import Control.Lens
+import Control.Monad.Error.Class (throwError)
+import Data.Generics.Sum.Typed
 import qualified Generics.SOP as GS
-
-import           Data.Generics.Sum.Typed
-
-import           P4Haskell.Types.AST.Annotation
-import           P4Haskell.Types.AST.Core
-import           P4Haskell.Types.AST.DeclarationID
-import           P4Haskell.Types.AST.DecompressJSON
-import           P4Haskell.Types.AST.Expression
-import           P4Haskell.Types.AST.Statement
-import           P4Haskell.Types.AST.Method
-import           P4Haskell.Types.AST.MapVec
-import           P4Haskell.Types.AST.Parameter
-import           P4Haskell.Types.AST.Types
-import           P4Haskell.Types.AST.Table
-
-import           Prelude
-
-import           Polysemy                           hiding ( Member )
-
-import qualified Waargonaut.Decode                  as D
-import qualified Waargonaut.Decode.Error            as D
-
+import P4Haskell.Types.AST.Annotation
+import P4Haskell.Types.AST.Core
+import P4Haskell.Types.AST.DeclarationID
+import P4Haskell.Types.AST.DecompressJSON
+import P4Haskell.Types.AST.Expression
+import P4Haskell.Types.AST.MapVec
+import P4Haskell.Types.AST.Method
+import P4Haskell.Types.AST.Parameter
+import P4Haskell.Types.AST.Statement
+import P4Haskell.Types.AST.Table
+import P4Haskell.Types.AST.Types
+import Polysemy hiding (Member)
+import qualified Waargonaut.Decode as D
+import qualified Waargonaut.Decode.Error as D
 
 astDecoder :: DecompressC r => D.Decoder (Sem r) P4Program
 astDecoder = D.withCursor $ \c -> do

@@ -13,6 +13,7 @@ module P4Haskell.Types.AST.Table
   )
 where
 
+import Control.Lens
 import Control.Monad.Error.Class (MonadError, throwError)
 import Data.Generics.Product.Fields ()
 import Data.Generics.Sum.Typed

@@ -11,45 +11,45 @@ import P4Haskell.Compile.Fetch
 import P4Haskell.Compile.Query
 import P4Haskell.Compile.Scope
 import qualified P4Haskell.Types.AST as AST
-import Polysemy
-import Polysemy.Fresh
-import Polysemy.Reader
-import Polysemy.State
+import qualified Polysemy as P
+import qualified Polysemy.Fresh as P
+import qualified Polysemy.Reader as P
+import qualified Polysemy.State as P
 import qualified Rock
 
 type CompC r =
-  Members
+  P.Members
     [ Fetch Query,
-      State Declared,
-      Reader AST.P4Program,
+      P.State Declared,
+      P.Reader AST.P4Program,
       ScopeLookup,
-      Reader Scope,
-      Fresh Unique,
-      Embed IO
+      P.Reader Scope,
+      P.Fresh Unique,
+      P.Embed IO
     ]
     r
 
 runComp ::
-  Member (Embed IO) r =>
+  P.Member (P.Embed IO) r =>
   Rock.Rules Query ->
   AST.P4Program ->
-  Sem
+  P.Sem
     ( Fetch Query
-        ': State Declared
-          ': Reader AST.P4Program
+        ': P.State Declared
+          ': P.Reader AST.P4Program
             ': ScopeLookup
-              ': Reader Scope
-                ': Fresh Unique ': r
+              ': P.Reader Scope
+                ': P.Fresh Unique ': r
     )
     a ->
-  Sem r (Declared, a)
+  P.Sem r (Declared, a)
 runComp rules program m = do
-  memoVar <- embed $ newIORef mempty
+  memoVar <- P.embed $ newIORef mempty
 
-  freshToIO
-    . runReader emptyScope
+  P.freshToIO
+    . P.runReader emptyScope
     . runScopeLookupReader
-    . runReader program
-    . runState mempty
+    . P.runReader program
+    . P.runState mempty
     . runFetchToIO (Rock.runTask (Rock.memoise memoVar rules))
     $ m

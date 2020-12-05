@@ -9,12 +9,14 @@ module P4Haskell.Compile.Declared
   )
 where
 
-import qualified Language.C99.Simple as C
+import Control.Lens
+import Data.Generics.Labels ()
 import qualified Data.Map.Ordered as O
+import qualified Language.C99.Simple as C
 
 data Declared = Declared
-  { declaredTypes   :: O.OMap Text C.TypeSpec,
-    declaredFuncs   :: HashMap Text C.FunDef,
+  { declaredTypes :: O.OMap Text C.TypeSpec,
+    declaredFuncs :: HashMap Text C.FunDef,
     declaredStatics :: O.OMap Text C.Decln
   }
   deriving (Generic)
@@ -29,7 +31,7 @@ declareType :: Text -> C.TypeSpec -> Declared
 declareType n v = Declared (O.singleton (n, v)) mempty O.empty
 
 getType :: Text -> Declared -> Maybe C.TypeSpec
-getType name = (O.lookup name) . (^. #declaredTypes)
+getType name = O.lookup name . (^. #declaredTypes)
 
 fixupBody :: [C.BlockItem] -> [C.BlockItem]
 fixupBody [] = [C.Stmt . C.Expr . C.LitInt $ 0]

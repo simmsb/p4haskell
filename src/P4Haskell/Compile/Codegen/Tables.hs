@@ -4,6 +4,7 @@ module P4Haskell.Compile.Codegen.Tables
   )
 where
 
+import Control.Lens
 import Data.Bit
 import Data.Foldable
 import Data.Generics.Sum.Typed
@@ -19,11 +20,10 @@ import P4Haskell.Compile.Query
 import P4Haskell.Compile.Scope
 import qualified P4Haskell.Types.AST as AST
 import P4Haskell.Utils.Drill
-import Polysemy
-import Polysemy.Reader
-import Polysemy.State
-import Polysemy.Writer
-import Relude (error)
+import qualified Polysemy as P
+import qualified Polysemy.Reader as P
+import qualified Polysemy.State as P
+import qualified Polysemy.Writer as P
 import Relude.Extra (elems, toPairs)
 import Relude.Unsafe (fromJust, (!!))
 
@@ -37,12 +37,12 @@ data TableMatchKind
   | LPM
   deriving (Generic, Show)
 
-generateTableKeys :: (CompC r, Member (Writer [C.BlockItem]) r) => [AST.KeyElement] -> Sem r [(C.Expr, C.TypeSpec, TableMatchKind, Int)]
-generateTableKeys elems =
+generateTableKeys :: (CompC r, P.Member (P.Writer [C.BlockItem]) r) => [AST.KeyElement] -> P.Sem r [(C.Expr, C.TypeSpec, TableMatchKind, Int)]
+generateTableKeys =
   mapM
     ( \e -> do
         matchKinds <- fetch GetTopLevelMatchKind
-        let kind = fromJust $ matchKinds ^. at (e ^. #matchType ^. #name)
+        let kind = fromJust $ matchKinds ^. at (e ^. #matchType . #name)
         let matchKind = case kind ^. #name of
               "exact" -> Exact
               "ternary" -> Ternary
@@ -52,10 +52,9 @@ generateTableKeys elems =
         let p4ty = gdrillField @"type_" $ e ^. #expression
         (_, ty) <- generateP4Type p4ty
         expr <- generateP4Expression $ e ^. #expression
-        tell [C.Decln $ C.VarDecln Nothing (C.TypeSpec ty) tmpName (Just . C.InitExpr $ expr)]
+        P.tell [C.Decln $ C.VarDecln Nothing (C.TypeSpec ty) tmpName (Just . C.InitExpr $ expr)]
         pure (C.Ident tmpName, ty, matchKind, typeSize p4ty)
     )
-    elems
 
 matchTreeNodeType :: C.TypeSpec
 matchTreeNodeType =
@@ -132,11 +131,11 @@ isNode :: ChunkTrie -> Bool
 isNode (ChunkTrieNode _) = True
 isNode _ = False
 
-type TrieBuildC r = Members [State (HashMap Int ChunkTrie), State Int] r
+type TrieBuildC r = P.Members [P.State (HashMap Int ChunkTrie), P.State Int] r
 
 nodeToExpr :: Int -> ChunkTrie -> C.Expr
 nodeToExpr myId (ChunkTrieNode ns) =
-  let offsets = map toInteger $ map (maybe (- myId) (subtract myId)) ns
+  let offsets = map (toInteger . maybe (- myId) (subtract myId)) ns
    in makeNode 0 0 offsets
 nodeToExpr _ (ChunkTrieLeaf (aid, pid)) =
   let offsets = replicate (2 ^ bitsPerLevel @Int) 0
@@ -152,16 +151,16 @@ trieToExpr t =
 emptyTrieNode :: [Maybe Int]
 emptyTrieNode = replicate (2 ^ bitsPerLevel @Int) Nothing
 
-getNodeId :: Member (State Int) r => Sem r Int
-getNodeId = get <* modify (+ 1)
+getNodeId :: P.Member (P.State Int) r => P.Sem r Int
+getNodeId = P.get <* P.modify (+ 1)
 
-nameNode :: TrieBuildC r => ChunkTrie -> Sem r (Int, ChunkTrie)
+nameNode :: TrieBuildC r => ChunkTrie -> P.Sem r (Int, ChunkTrie)
 nameNode n = do
   nid <- getNodeId
-  modify @(HashMap Int ChunkTrie) . (<>) $ fromList [(nid, n)]
+  P.modify @(HashMap Int ChunkTrie) . (<>) $ fromList [(nid, n)]
   pure (nid, n)
 
-makeTrieTail :: TrieBuildC r => [BitChunk] -> (Int, Int) -> Sem r ChunkTrie
+makeTrieTail :: TrieBuildC r => [BitChunk] -> (Int, Int) -> P.Sem r ChunkTrie
 makeTrieTail cs v = foldrM go (ChunkTrieLeaf v) cs
   where
     go (BitChunk bp) n =
@@ -174,39 +173,39 @@ makeTrieTail cs v = foldrM go (ChunkTrieLeaf v) cs
 isEmptyAt :: Int -> [Maybe a] -> Bool
 isEmptyAt n l = isNothing (l !! n)
 
-addEntry :: TrieBuildC r => [BitChunk] -> (Int, Int) -> ChunkTrie -> Sem r ChunkTrie
+addEntry :: TrieBuildC r => [BitChunk] -> (Int, Int) -> ChunkTrie -> P.Sem r ChunkTrie
 addEntry (BitChunk bp : cs) v (ChunkTrieNode xs@(isEmptyAt bp -> True)) = do
   (tid, _) <- nameNode =<< makeTrieTail cs v
   pure $ ChunkTrieNode (xs & ix bp ?~ tid)
 addEntry (BitChunk bp : cs) v (ChunkTrieNode xs@((!! bp) -> Just nid)) = do
-  n <- gets @(HashMap Int ChunkTrie) (^?! ix nid)
+  n <- P.gets @(HashMap Int ChunkTrie) (^?! ix nid)
   n' <- addEntry cs v n
-  modify @(HashMap Int ChunkTrie) (at nid ?~ n')
+  P.modify @(HashMap Int ChunkTrie) (at nid ?~ n')
   pure $ ChunkTrieNode xs
 addEntry (AcceptAll : cs) v (ChunkTrieNode xs) = do
   (tid, _) <- nameNode =<< makeTrieTail cs v
   xs' <- mapM ((Just <$>) . maybe (pure tid) insertOverlapping) xs
   pure $ ChunkTrieNode xs'
   where
-    insertOverlapping :: TrieBuildC r => Int -> Sem r Int
+    insertOverlapping :: TrieBuildC r => Int -> P.Sem r Int
     insertOverlapping nid = do
-      n <- gets @(HashMap Int ChunkTrie) (^?! ix nid)
+      n <- P.gets @(HashMap Int ChunkTrie) (^?! ix nid)
       when (isNode n) do
         n' <- addEntry cs v n
-        modify @(HashMap Int ChunkTrie) (at nid ?~ n')
+        P.modify @(HashMap Int ChunkTrie) (at nid ?~ n')
       pure nid
 addEntry bp v n = error $ "failed to insert entry into search trie: bp=" <> show bp <> ", v=" <> show v <> ", n=" <> show n
 
--- logState :: (Show s, Member (State s) r) => Sem r a -> Sem r a
--- logState m = get >>= \s -> trace (toString $ pShow s) m
+-- logState :: (Show s, P.Member (P.State s) r) => P.Sem r a -> P.Sem r a
+-- logState m = P.get >>= \s -> trace (toString $ pShow s) m
 
 buildTrie :: [([BitChunk], (Int, Int))] -> (HashMap Int ChunkTrie, Int)
-buildTrie inp = run . runState @(HashMap Int ChunkTrie) mempty . evalState @Int 1 $ do
+buildTrie inp = P.run . P.runState @(HashMap Int ChunkTrie) mempty . P.evalState @Int 1 $ do
   let root = ChunkTrieNode emptyTrieNode
   (rid, _) <- nameNode =<< foldlM (flip $ uncurry addEntry) root inp
   pure rid
 
-generateTableTrie :: CompC r => Text -> HashMap Text ProcessedAction -> [AST.TableEntry] -> [(Int, TableMatchKind)] -> Sem r (C.Expr, Int)
+generateTableTrie :: CompC r => Text -> HashMap Text ProcessedAction -> [AST.TableEntry] -> [(Int, TableMatchKind)] -> P.Sem r (C.Expr, Int)
 generateTableTrie tableName pactions entries meta =
   let chunks = map (generateBitChunks meta) entries
       paramIds = [0 ..]
@@ -218,7 +217,7 @@ generateTableTrie tableName pactions entries meta =
    in do
         treeNodeTy <- simplifyType matchTreeNodeType
         let arrayTy = C.Array (C.TypeSpec treeNodeTy) (Just . C.LitInt . fromIntegral $ length trieInits)
-        modify . (<>) $ defineStatic staticName Nothing arrayTy trieInit
+        P.modify . (<>) $ defineStatic staticName Nothing arrayTy trieInit
         pure (C.Ident . toString $ staticName, rootId)
 
 isDefaultAction :: ProcessedAction -> Bool
@@ -238,14 +237,14 @@ selectChunk e totalWidth n =
   (e C..>> (C.LitInt totalWidth C..- (n C..* C.LitInt bitsPerLevel)))
     C..& ((C.LitInt 1 C..<< C.LitInt bitsPerLevel) C..- C.LitInt 1)
 
-generateBitDriverFor :: CompC r => C.TypeSpec -> Int -> Sem r C.Expr
+generateBitDriverFor :: CompC r => C.TypeSpec -> Int -> P.Sem r C.Expr
 generateBitDriverFor ty width = do
   treeNodeTy <- simplifyType matchTreeNodeType
   let params =
         [ C.Param (C.Ptr . C.TypeSpec $ treeNodeTy) "node",
           C.Param (C.TypeSpec ty) "value"
         ]
-  modify . (<>) $
+  P.modify . (<>) $
     defineFunc name (C.Ptr . C.TypeSpec $ treeNodeTy) params body
   pure . C.Ident $ toString name
   where
@@ -258,8 +257,8 @@ generateBitDriverFor ty width = do
       [ C.Decln $ C.VarDecln Nothing (C.TypeSpec $ C.TypedefName "size_t") "idx" Nothing,
         C.Stmt $
           C.For
-            (idx C..= (C.LitInt 0))
-            (idx C..< (C.LitInt $ fromIntegral chunks))
+            (idx C..= C.LitInt 0)
+            (idx C..< C.LitInt (fromIntegral chunks))
             ((C..++) idx)
             [ C.Stmt $ C.Expr (node C..+= C.Index (C.Arrow node "offsets") (selectChunk (C.Ident "value") (fromIntegral totalBits) idx))
             ],
@@ -281,7 +280,7 @@ data ProcessedAction = ProcessedAction
 fixEmptyFields :: [C.FieldDecln] -> NonEmpty C.FieldDecln
 fixEmptyFields = fromMaybe (C.FieldDecln (C.TypeSpec C.Char) "unused" :| []) . nonEmpty
 
-structForRuntimeParams :: CompC r => Text -> [AST.Parameter] -> Sem r C.TypeSpec
+structForRuntimeParams :: CompC r => Text -> [AST.Parameter] -> P.Sem r C.TypeSpec
 structForRuntimeParams name params = do
   types <-
     mapM
@@ -292,7 +291,7 @@ structForRuntimeParams name params = do
       params
   pure . C.StructDecln (Just . toString $ name) . fixEmptyFields . map (\(t, n) -> C.FieldDecln t $ toString n) $ types
 
-generateActions :: CompC r => AST.P4Table -> C.Expr -> C.Expr -> Sem r (HashMap Text ProcessedAction, C.TypeSpec)
+generateActions :: CompC r => AST.P4Table -> C.Expr -> C.Expr -> P.Sem r (HashMap Text ProcessedAction, C.TypeSpec)
 generateActions t argsTable argsIndex = do
   -- bit of a hack since we generate this later
   let unionName = (t ^. #name) <> "_param_union"
@@ -303,7 +302,7 @@ generateActions t argsTable argsIndex = do
         ( \(a, i) -> do
             let name = a ^?! #expression . #method . _Typed @AST.PathExpression . #path . #name
             let args = a ^. #expression . #arguments
-            action' <- fromJust <$> (Polysemy.Reader.asks $ findActionInScope name)
+            action' <- fromJust <$> P.asks (findActionInScope name)
             let nExtraParams = length (action' ^. #parameters . #vec) - length args
             let runtimeParams = drop (length args) (action' ^. #parameters . #vec)
             let runtimeParamNames = runtimeParams ^.. traverse . #name
@@ -350,17 +349,19 @@ generateActions t argsTable argsIndex = do
                         Nothing
                         (C.TypeSpec ty)
                         temp
-                        ( Just . C.InitExpr $
-                            (C.Index argsTable argsIndex)
-                              `C.Dot` (toString variantName)
-                              `C.Dot` (toString $ p ^. #name)
+                        ( Just $
+                            C.InitExpr
+                              ( C.Index argsTable argsIndex
+                                  `C.Dot` toString variantName
+                                  `C.Dot` toString (p ^. #name)
+                              )
                         )
                 )
                 $ zip runtimeParams extraVars
 
             (stmts, expr) <-
-              runWriterAssocR
-                . local updatedScope
+              P.runWriterAssocR
+                . P.local updatedScope
                 . generateP4Expression
                 $ AST.MethodCallExpression'Expression patchedExpr
 
@@ -410,7 +411,7 @@ fixDefaultAction (Just m) p =
   let name = m ^?! #method . _Typed @AST.PathExpression . #path . #name
    in p & ix name %~ (#id .~ 0)
 
-generateTableCall :: (CompC r, Member (Writer [C.BlockItem]) r) => AST.TypeTable -> AST.TypeStruct -> Sem r C.Expr
+generateTableCall :: (CompC r, P.Member (P.Writer [C.BlockItem]) r) => AST.TypeTable -> AST.TypeStruct -> P.Sem r C.Expr
 generateTableCall (AST.TypeTable table) rty = do
   let rty' = rty & #fields %~ replaceActionRun
   (rty'', _) <- generateP4Type $ AST.TypeStruct'P4Type rty'
@@ -427,7 +428,7 @@ generateTableCall (AST.TypeTable table) rty = do
   let processedActions' = fixDefaultAction (table ^. #defaultAction) processedActions
   let paramTable = generateParamTable processedActions' paramUnion (entries ^.. traverse . #action)
  
-  modify . (<>) $
+  P.modify . (<>) $
     defineStatic
       argsTableName
       Nothing
@@ -439,7 +440,7 @@ generateTableCall (AST.TypeTable table) rty = do
   treeNodeTy <- simplifyType matchTreeNodeType
   let nodePtrTy = C.Ptr . C.TypeSpec $ treeNodeTy
 
-  tell
+  P.tell
     [ C.Decln $
         C.VarDecln
           Nothing
@@ -452,13 +453,13 @@ generateTableCall (AST.TypeTable table) rty = do
     tableKeys
     ( \(e, ty, _, w) -> do
         fn <- generateBitDriverFor ty w
-        tell [C.Stmt . C.Expr $ nodeVar C..= C.Funcall fn [nodeVar, e]]
+        P.tell [C.Stmt . C.Expr $ nodeVar C..= C.Funcall fn [nodeVar, e]]
     )
 
   isHitVarName <- generateTempVar
   let isHitVar = C.Ident isHitVarName
 
-  tell
+  P.tell
     [ C.Decln $
         C.VarDecln
           Nothing
@@ -471,7 +472,7 @@ generateTableCall (AST.TypeTable table) rty = do
         [C.Default $ C.Block [setHitVariableCode isHitVar False]]
           <> map (makeCase isHitVar) (elems processedActions')
 
-  tell [C.Stmt $ C.Switch (C.Arrow nodeVar "action_idx") cases]
+  P.tell [C.Stmt $ C.Switch (C.Arrow nodeVar "action_idx") cases]
 
   pure $
     C.InitVal
