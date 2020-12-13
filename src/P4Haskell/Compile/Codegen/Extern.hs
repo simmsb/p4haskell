@@ -2,6 +2,7 @@
 module P4Haskell.Compile.Codegen.Extern
   ( generateExternCall,
     getExternType,
+    packetStruct,
   )
 where
 
@@ -18,7 +19,9 @@ import P4Haskell.Compile.Scope
 import qualified P4Haskell.Types.AST as AST
 import P4Haskell.Utils.Drill
 import qualified Polysemy as P
+import qualified Polysemy.Membership as P
 import qualified Polysemy.State as P
+import qualified Polysemy.Tagged as P
 import qualified Polysemy.Writer as P
 import Relude.Extra (toFst)
 
@@ -59,10 +62,19 @@ packetStruct =
         ]
     )
 
+ptrPacketStruct :: C.TypeSpec
+ptrPacketStruct =
+  C.StructDecln
+    (Just "ppacket")
+    ( fromList
+        [ C.FieldDecln (C.Ptr . C.TypeSpec $ packetStruct) "ppkt"
+        ]
+    )
+
 externs :: HashMap Text ExternInfo
 externs =
   fromList . map (toFst (^. #name)) $
-    [ ExternInfo "packet_out" packetStruct packetOutMethods,
+    [ ExternInfo "packet_out" ptrPacketStruct packetOutMethods,
       ExternInfo "packet_in" packetStruct packetInMethods
     ]
 
@@ -89,6 +101,14 @@ generatePacketInExtract instance_ [param] = do
   let p4ty = gdrillField @"type_" param
   let name = "extract_packet_" <> getTypeName p4ty
   (ty, _rawTy) <- generateP4Type p4ty
+
+  case P.tryMembership @(P.Tagged "packet-size" (P.Writer (Sum Int))) of
+    Just pr ->
+      P.subsumeUsing pr $ do
+        outSize <- sum . map snd <$> findFields p4ty
+        P.tagged @"packet-size" $ P.tell $ Sum outSize
+    _ -> pure ()
+
   body <- generateInExtractBody (C.Ident "pkt") (C.Ident "hdr") =<< resolveP4Type p4ty
   packetStruct' <- simplifyType packetStruct
   P.modify . (<>) $
@@ -279,17 +299,16 @@ findFields (AST.TypeHeader'P4Type (AST.TypeHeader _ _ fields)) = (concat <$>) . 
 findFields (AST.TypeBits'P4Type (AST.TypeBits s _)) = pure [(id, s)]
 findFields t = error $ "unknown type for findFields: " <> show t
 
-
 -- TODO on packet emit:
 -- 1. reset packet length and emit from there
 -- 2. sort moving data around when we need to (header adjustment)
-
 
 generateOutEmitBody :: forall r. CompC r => AST.P4Type -> P.Sem r [C.BlockItem]
 generateOutEmitBody ty = do
   defineWritePartial
   (P.evalState @Int 0 . concatMapM generateWrite) =<< findFields ty
   where
+    pkt = C.Arrow (C.Ident "pkt") "ppkt"
     sizes =
       [ (8, Nothing),
         (16, Just "htons"),
@@ -327,10 +346,10 @@ generateOutEmitBody ty = do
                 tmpVar = C.Ident tmpName
                 tmpRefVar = C.Ident tmpRefName
                 writes = generateIndividualWrites (fromIntegral size) (fromIntegral numBytes) shiftAmt tmpRefVar (fromIntegral align)
-                after = [C.Stmt $ C.Expr (C.Arrow (C.Ident "pkt") "idx" C..+= C.LitInt (fromIntegral size))]
+                after = [C.Stmt $ C.Expr (C.Arrow pkt "idx" C..+= C.LitInt (fromIntegral size))]
              in pure $ declns <> writes <> after
 
-    loadPacketWOffset i = C.Arrow (C.Ident "pkt") "pkt" C..+ (C.Arrow (C.Ident "pkt") "idx" C..* C.LitInt 8) C..+ C.LitInt i
+    loadPacketWOffset i = C.Arrow pkt "pkt" C..+ (C.Arrow pkt "idx" C..* C.LitInt 8) C..+ C.LitInt i
     generateIndividualWrites size numBytes shiftAmt tmpRefVar align = go 0 shiftAmt size align
       where
         go i shift left align
@@ -384,20 +403,28 @@ generatePacketOutEmit instance_ [param] = do
   let p4ty = gdrillField @"type_" param
   let name = "emit_packet_" <> getTypeName p4ty
   (ty, _rawTy) <- generateP4Type p4ty
+
+  case P.tryMembership @(P.Tagged "packet-size" (P.Writer (Sum Int))) of
+    Just pr ->
+      P.subsumeUsing pr $ do
+        outSize <- sum . map snd <$> findFields p4ty
+        P.tagged @"packet-size" $ P.tell $ Sum outSize
+    _ -> pure ()
+
   body <- generateOutEmitBody =<< resolveP4Type p4ty
-  packetStruct' <- simplifyType packetStruct
+  ptrPacketStruct' <- simplifyType ptrPacketStruct
   P.modify . (<>) $
     defineFunc
       name
       (C.TypeSpec C.Void)
-      [ C.Param (C.Ptr . C.TypeSpec $ packetStruct') "pkt",
+      [ C.Param (C.TypeSpec ptrPacketStruct') "pkt",
         C.Param (C.Ptr . C.TypeSpec $ ty) "value"
       ]
       body
   expr <-
     generateCall'
       (name, C.TypeSpec C.Void)
-      [ (True, C.TypeSpec packetStruct', instance_),
+      [ (False, C.TypeSpec ptrPacketStruct', instance_),
         (True, C.TypeSpec ty, param)
       ]
   pure (C.TypeSpec C.Void, expr)

@@ -15,19 +15,22 @@ import qualified Polysemy as P
 import qualified Polysemy.Fresh as P
 import qualified Polysemy.Reader as P
 import qualified Polysemy.State as P
+import qualified Polysemy.Membership as P
 import qualified Rock
 
 type CompC r =
-  P.Members
-    [ Fetch Query,
-      P.State Declared,
-      P.Reader AST.P4Program,
-      ScopeLookup,
-      P.Reader Scope,
-      P.Fresh Unique,
-      P.Embed IO
-    ]
-    r
+  ( P.Members
+      [ Fetch Query,
+        P.State Declared,
+        P.Reader AST.P4Program,
+        ScopeLookup,
+        P.Reader Scope,
+        P.Fresh Unique,
+        P.Embed IO
+      ]
+      r,
+    P.KnownRow r
+  )
 
 runComp ::
   P.Member (P.Embed IO) r =>
