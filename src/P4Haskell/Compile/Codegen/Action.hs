@@ -70,14 +70,14 @@ liftAction action = do
   (params, vars) <- generateActionParams action
   let scopeUpdate scope = flipfoldl' addVarToScope scope vars
   (extraVars, body) <-
-    P.local scopeUpdate . interceptUnknownVars . generateStatements $
+    interceptUnknownVars . P.local scopeUpdate . generateStatements $
       action ^. #body . #components
   let body' = removeDeadExprs body
   let (extraCParams, extraP4Params, paramExprs) =
         unzip3 $
           map
             ( \v ->
-                ( C.Param (v ^. #varType) (toString $ v ^. #varOriginalName),
+                ( C.Param (C.Ptr $ v ^. #varType) (toString $ v ^. #varOriginalName),
                   AST.Parameter [] (AST.Direction True True) (v ^. #varOriginalName) (v ^. #varP4Type),
                   AST.PathExpression'Expression $ AST.PathExpression (v ^. #varP4Type) (AST.Path False $ v ^. #varOriginalName)
                 )
