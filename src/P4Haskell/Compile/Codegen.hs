@@ -38,7 +38,7 @@ generateMain = do
   controls <- fetch GetTopLevelControl
 
   let prsAST = parsers ^?! ix parseName
-  (prsParser, inPktSize) <- generateParser prsAST
+  (prsParser, inPktSize, hdrStruct) <- generateParser prsAST
 
   let pipeAST = controls ^?! ix pipeName
   pipeControl <- generateControl pipeAST
@@ -46,28 +46,100 @@ generateMain = do
   let dprsAST = controls ^?! ix dprsName
   dprsControl <- generateDeparse inPktSize dprsAST
 
+  packetStruct' <- simplifyType packetStruct
+  ptrPacketStruct' <- simplifyType packetStruct
+
+  let u64 = C.TypeSpec $ C.TypedefName "uint64_t"
+
   P.modify . (<>) $
     defineFunc
       "main"
       (C.TypeSpec C.Void)
-      []
-      [ C.Stmt . C.Expr $ C.Funcall (C.Ident prsParser) [],
-        C.Stmt . C.Expr $ C.Funcall (C.Ident pipeControl) [], -- TODO: params
-        C.Stmt . C.Expr $ C.Funcall (C.Ident dprsControl) [] -- TODO: params
+      [ C.Param (C.Ptr . C.Ptr . C.TypeSpec $ C.Char) "pkts",
+        C.Param (C.Ptr u64) "lengths",
+        C.Param u64 "pkt_count"
+      ]
+      [ C.Decln $
+          C.VarDecln
+            Nothing
+            u64
+            "i"
+            ( Just . C.InitExpr $
+                (C.Ident "blockIdx" `C.Dot` "x")
+                  C..* (C.Ident "blockDim" `C.Dot` "x")
+                  C..+ (C.Ident "threadIdx" `C.Dot` "x")
+            ),
+        C.Stmt $ C.If (C.Ident "i" C..>= C.Ident "pkt_count") [C.Stmt $ C.Return Nothing],
+        C.Decln $
+          C.VarDecln
+            Nothing
+            (C.TypeSpec packetStruct')
+            "pkt"
+            ( Just . C.InitExpr $
+                C.InitVal
+                  (C.TypeName (C.TypeSpec packetStruct'))
+                  ( fromList
+                      [ C.InitItem (Just "offset") (C.InitExpr $ C.LitInt 0),
+                        C.InitItem (Just "base") (C.InitExpr $ C.LitInt 0),
+                        C.InitItem
+                          (Just "end")
+                          (C.InitExpr $ C.Index (C.Ident "lengths") (C.Ident "i")),
+                        C.InitItem
+                          (Just "pkt")
+                          (C.InitExpr $ C.Index (C.Ident "pkts") (C.Ident "i"))
+                      ]
+                  )
+            ),
+        C.Decln $
+          C.VarDecln
+            Nothing
+            hdrStruct
+            "hdr"
+            ( Just . C.InitExpr $
+                C.InitVal
+                  (C.TypeName hdrStruct)
+                  (fromList [C.InitItem (Just "valid") (C.InitExpr $ C.LitBool False)])
+            ),
+        C.Decln $
+          C.VarDecln
+            Nothing
+            (C.TypeSpec ptrPacketStruct')
+            "ppkt"
+            ( Just . C.InitExpr $
+                C.InitVal
+                  (C.TypeName (C.TypeSpec ptrPacketStruct'))
+                  (fromList [C.InitItem (Just "ppkt") (C.InitExpr . C.ref $ C.Ident "pkt")])
+            ),
+        C.Decln $
+          C.VarDecln
+            Nothing
+            (C.TypeSpec ptrPacketStruct')
+            "ppkt"
+            ( Just . C.InitExpr $
+                C.InitVal
+                  (C.TypeName (C.TypeSpec ptrPacketStruct'))
+                  (fromList [C.InitItem (Just "ppkt") (C.InitExpr . C.ref $ C.Ident "pkt")])
+            ),
+        C.Stmt . C.Expr $ C.Funcall (C.Ident prsParser) [C.Ident "ppkt", C.ref $ C.Ident "hdr", C.Ident "NULL", C.Ident "NULL"],
+        C.Stmt . C.Expr $ C.Funcall (C.Ident pipeControl) [C.ref $ C.Ident "hdr", C.Ident "NULL", C.Ident "NULL"],
+        C.Stmt . C.Expr $ C.Funcall (C.Ident dprsControl) [C.Ident "ppkt", C.Ident "hdr"]
       ]
   pure ()
 
 getPktSize :: P.Sem (P.Tagged "packet-size" (P.Writer (Sum Int)) ': r) a -> P.Sem r (Int, a)
 getPktSize = ((_1 %~ getSum) <$>) . P.runWriter @(Sum Int) . P.untag @"packet-size"
 
-generateParser :: CompC r => AST.P4Parser -> P.Sem r (C.Ident, Int)
+generateParser :: CompC r => AST.P4Parser -> P.Sem r (C.Ident, Int, C.Type)
 generateParser p = do
   (params, vars) <- generateParams $ p ^. #type_ . #applyParams . #vec
+
+  let hdrType = vars ^?! ix 1 . #varType
+
   let scopeUpdate scope = flipfoldl' addVarToScope scope vars
   (inPktSize, body) <- getPktSize . P.local scopeUpdate $ generateParserStates (p ^. #name) (p ^. #states)
   let body' = removeDeadExprs body
   P.modify . (<>) $ defineFunc (p ^. #name) (C.TypeSpec C.Void) params body'
-  pure (p ^. #name . unpacked, inPktSize)
+  pure (p ^. #name . unpacked, inPktSize, hdrType)
 
 generateControl :: CompC r => AST.P4Control -> P.Sem r C.Ident
 generateControl c = do
@@ -93,8 +165,27 @@ generatePacketAdjust inPktSize newPktSize pkt = do
         C.Param (C.TypeSpec C.Int) "current_size",
         C.Param (C.TypeSpec C.Int) "final_size"
       ]
-      []
-  -- TODO: body
+      [ C.Stmt $
+          C.If
+            (currentSize C..== finalSize)
+            [ C.Stmt $ C.Return Nothing
+            ],
+        C.Stmt $
+          C.IfElse
+            (finalSize C..< currentSize)
+            [ C.Stmt . C.Expr $ (C.Arrow pktE "base" C..= (currentSize C..- finalSize)),
+              C.Stmt . C.Expr $ (C.Arrow pktE "offset" C..= (currentSize C..- finalSize))
+            ]
+            [ C.Stmt . C.Expr $
+                C.Funcall
+                  (C.Ident "memmove")
+                  [ C.Arrow pktE "pkt" C..+ finalSize,
+                    C.Arrow pktE "pkt" C..+ currentSize,
+                    C.Arrow pktE "end" C..- currentSize
+                  ],
+              C.Stmt . C.Expr $ C.Arrow pktE "end" C..+= (finalSize C..- currentSize)
+            ]
+      ]
 
   pure
     [ C.Stmt . C.Expr $
@@ -105,6 +196,10 @@ generatePacketAdjust inPktSize newPktSize pkt = do
             C.LitInt $ fromIntegral newPktSize
           ]
     ]
+  where
+    currentSize = C.Ident "current_size"
+    finalSize = C.Ident "final_size"
+    pktE = C.Ident "pkt"
 
 generateDeparse :: forall r. CompC r => Int -> AST.P4Control -> P.Sem r C.Ident
 generateDeparse inPktSize c = do

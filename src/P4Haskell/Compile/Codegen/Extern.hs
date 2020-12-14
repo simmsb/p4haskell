@@ -48,6 +48,9 @@ uint8_t = C.TypedefName "uint8_t"
 uint64_t :: C.TypeSpec
 uint64_t = C.TypedefName "uint64_t"
 
+uint16_t :: C.TypeSpec
+uint16_t = C.TypedefName "uint16_t"
+
 uint32_t :: C.TypeSpec
 uint32_t = C.TypedefName "uint32_t"
 
@@ -56,8 +59,9 @@ packetStruct =
   C.StructDecln
     (Just "packet")
     ( fromList
-        [ C.FieldDecln (C.TypeSpec uint32_t) "idx",
-          C.FieldDecln (C.TypeSpec uint32_t) "len",
+        [ C.FieldDecln (C.TypeSpec uint16_t) "offset",
+          C.FieldDecln (C.TypeSpec uint16_t) "end",
+          C.FieldDecln (C.TypeSpec uint16_t) "base",
           C.FieldDecln (C.Ptr . C.TypeSpec $ C.Char) "pkt"
         ]
     )
@@ -75,7 +79,7 @@ externs :: HashMap Text ExternInfo
 externs =
   fromList . map (toFst (^. #name)) $
     [ ExternInfo "packet_out" ptrPacketStruct packetOutMethods,
-      ExternInfo "packet_in" packetStruct packetInMethods
+      ExternInfo "packet_in" ptrPacketStruct packetInMethods
     ]
 
 r :: (r -> a) -> r -> a
@@ -109,13 +113,14 @@ generatePacketInExtract instance_ [param] = do
         P.tagged @"packet-size" $ P.tell $ Sum outSize
     _ -> pure ()
 
-  body <- generateInExtractBody (C.Ident "pkt") (C.Ident "hdr") =<< resolveP4Type p4ty
+  body <- generateInExtractBody (C.Arrow (C.Ident "ppkt") "ppkt") (C.Ident "hdr") =<< resolveP4Type p4ty
   packetStruct' <- simplifyType packetStruct
+  ptrPacketStruct' <- simplifyType ptrPacketStruct
   P.modify . (<>) $
     defineFunc
       name
       (C.TypeSpec C.Bool)
-      [ C.Param (C.Ptr . C.TypeSpec $ packetStruct') "pkt",
+      [ C.Param (C.Ptr . C.TypeSpec $ ptrPacketStruct') "ppkt",
         C.Param (C.Ptr . C.TypeSpec $ ty) "hdr"
       ]
       body
@@ -123,7 +128,7 @@ generatePacketInExtract instance_ [param] = do
   expr <-
     generateCall'
       (name, C.TypeSpec C.Bool)
-      [ (True, C.TypeSpec packetStruct', instance_),
+      [ (False, C.TypeSpec packetStruct', instance_),
         (True, C.TypeSpec ty, param)
       ]
 
@@ -215,14 +220,14 @@ generateInExtractBody packet targetHdr ty = do
   let checkStep =
         [ C.Stmt $
             C.If
-              (C.Arrow packet "size" C..< (C.Arrow packet "idx" C..+ C.LitInt packetSize))
+              (C.Arrow packet "end" C..< (C.Arrow packet "offset" C..+ C.LitInt packetSize))
               [ C.Stmt . C.Return . Just . C.LitBool $ False
               ]
         ]
   extractStep <- concat <$> forM (zip [0 ..] mapped) doExtract
   let postProcessStep = generatePostProcessExtract (C.deref targetHdr) fields
   let lastStep =
-        [ C.Stmt . C.Expr $ C.AssignOp C.AssignAdd (C.Arrow packet "idx") (C.LitInt packetSize),
+        [ C.Stmt . C.Expr $ C.AssignOp C.AssignAdd (C.Arrow packet "offset") (C.LitInt packetSize),
           C.Stmt . C.Expr $ C.AssignOp C.Assign (C.Arrow targetHdr "valid") (C.LitBool True),
           C.Stmt . C.Return . Just . C.LitBool $ True
         ]
@@ -308,7 +313,7 @@ generateOutEmitBody ty = do
   defineWritePartial
   (P.evalState @Int 0 . concatMapM generateWrite) =<< findFields ty
   where
-    pkt = C.Arrow (C.Ident "pkt") "ppkt"
+    pkt = C.Arrow (C.Ident "ppkt") "ppkt"
     sizes =
       [ (8, Nothing),
         (16, Just "htons"),
@@ -346,10 +351,10 @@ generateOutEmitBody ty = do
                 tmpVar = C.Ident tmpName
                 tmpRefVar = C.Ident tmpRefName
                 writes = generateIndividualWrites (fromIntegral size) (fromIntegral numBytes) shiftAmt tmpRefVar (fromIntegral align)
-                after = [C.Stmt $ C.Expr (C.Arrow pkt "idx" C..+= C.LitInt (fromIntegral size))]
+                after = [C.Stmt $ C.Expr (C.Arrow pkt "offset" C..+= C.LitInt (fromIntegral size))]
              in pure $ declns <> writes <> after
 
-    loadPacketWOffset i = C.Arrow pkt "pkt" C..+ (C.Arrow pkt "idx" C..* C.LitInt 8) C..+ C.LitInt i
+    loadPacketWOffset i = C.Arrow pkt "pkt" C..+ (C.Arrow pkt "offset" C..* C.LitInt 8) C..+ C.LitInt i
     generateIndividualWrites size numBytes shiftAmt tmpRefVar align = go 0 shiftAmt size align
       where
         go i shift left align
@@ -417,7 +422,7 @@ generatePacketOutEmit instance_ [param] = do
     defineFunc
       name
       (C.TypeSpec C.Void)
-      [ C.Param (C.TypeSpec ptrPacketStruct') "pkt",
+      [ C.Param (C.TypeSpec ptrPacketStruct') "ppkt",
         C.Param (C.Ptr . C.TypeSpec $ ty) "value"
       ]
       body
