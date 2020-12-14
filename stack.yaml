@@ -29,6 +29,6 @@ extra-deps:
   - github: nitros12/language-c99-simple
     commit: 178fafda9680278d49fe71304ab09d6b913cf3f1
   - github: fdedden/language-c99
-    commit: e9a4f42155690f0461a1dfed824f164ff480adb4
+    commit: fa5d557a90b89c4e6d4d4ba983df045ce300882e
   - github: fdedden/language-c99-util
     commit: e5a123b27867e5a235d6ab8ea5217b18b6faf621

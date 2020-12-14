@@ -188,16 +188,16 @@ packages:
   original:
     url: https://github.com/nitros12/language-c99-simple/archive/178fafda9680278d49fe71304ab09d6b913cf3f1.tar.gz
 - completed:
-    size: 11223
-    url: https://github.com/fdedden/language-c99/archive/e9a4f42155690f0461a1dfed824f164ff480adb4.tar.gz
+    size: 11220
+    url: https://github.com/fdedden/language-c99/archive/fa5d557a90b89c4e6d4d4ba983df045ce300882e.tar.gz
     name: language-c99
     version: 0.1.2
-    sha256: 8ddfac86734ae90708e89ef993ca598cc2a3d77b3243bf2797173471b5983b87
+    sha256: b871eee5f718a3df5fe6482ffe8782ee66b282bfc28c90382133f6d42cc51b2c
     pantry-tree:
       size: 399
-      sha256: 9cea97f2724f27b2abc70a5cf58f36a4f30505f950f722e52957015e78a8c0bf
+      sha256: f7e14a1e14e2947d4fdf7b9fcbe3c96975d6c81a087bfd1d3375ae7652fc370e
   original:
-    url: https://github.com/fdedden/language-c99/archive/e9a4f42155690f0461a1dfed824f164ff480adb4.tar.gz
+    url: https://github.com/fdedden/language-c99/archive/fa5d557a90b89c4e6d4d4ba983df045ce300882e.tar.gz
 - completed:
     size: 5020
     url: https://github.com/fdedden/language-c99-util/archive/e5a123b27867e5a235d6ab8ea5217b18b6faf621.tar.gz
