@@ -165,7 +165,8 @@ generatePacketAdjust inPktSize newPktSize pkt = do
         C.Param (C.TypeSpec C.Int) "current_size",
         C.Param (C.TypeSpec C.Int) "final_size"
       ]
-      [ C.Stmt $
+      [ C.Stmt . C.Expr $ (C.Arrow pktE "offset" C..= C.LitInt 0),
+        C.Stmt $
           C.If
             (currentSize C..== finalSize)
             [ C.Stmt $ C.Return Nothing

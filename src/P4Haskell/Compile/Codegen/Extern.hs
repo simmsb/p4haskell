@@ -304,10 +304,6 @@ findFields (AST.TypeHeader'P4Type (AST.TypeHeader _ _ fields)) = (concat <$>) . 
 findFields (AST.TypeBits'P4Type (AST.TypeBits s _)) = pure [(id, s)]
 findFields t = error $ "unknown type for findFields: " <> show t
 
--- TODO on packet emit:
--- 1. reset packet length and emit from there
--- 2. sort moving data around when we need to (header adjustment)
-
 generateOutEmitBody :: forall r. CompC r => AST.P4Type -> P.Sem r [C.BlockItem]
 generateOutEmitBody ty = do
   defineWritePartial

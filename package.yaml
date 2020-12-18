@@ -38,7 +38,7 @@ dependencies:
   - di-polysemy ^>= 0.2
   - di ^>= 1.3
   - df1 >= 0.3 && < 0.5
-  - polysemy ^>= 1.3
+  - polysemy ^>= 1.4
   - polysemy-zoo ^>= 0.7
   - polysemy-plugin ^>= 0.2
   - text ^>= 1.2
@@ -100,6 +100,8 @@ library:
       - -fhide-source-paths
       - -Wmissing-export-lists
       - -Wpartial-fields
+      - -fwrite-ide-info
+      - -haddock
     source-dirs: src
 
 tests:
