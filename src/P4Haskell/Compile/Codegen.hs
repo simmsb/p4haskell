@@ -25,6 +25,7 @@ import qualified Polysemy.Reader as P
 import qualified Polysemy.State as P
 import qualified Polysemy.Tagged as P
 import qualified Polysemy.Writer as P
+import Relude
 
 generateMain :: CompC r => P.Sem r ()
 generateMain = do

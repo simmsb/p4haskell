@@ -7,6 +7,7 @@ where
 
 import Control.Lens
 import Data.Generics.Labels ()
+import Relude
 import Text.Show
 
 data MapVec k v = MapVec

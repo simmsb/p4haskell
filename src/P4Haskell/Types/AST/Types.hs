@@ -15,10 +15,10 @@ import {-# SOURCE #-} P4Haskell.Types.AST.Parameter
 import P4Haskell.Types.AST.Path
 import {-# SOURCE #-} P4Haskell.Types.AST.Table
 import Polysemy
+import Relude
 import qualified Waargonaut.Decode as D
 import qualified Waargonaut.Decode.Error as D
 
-import Prelude
 data P4Type
   = TypeVar'P4Type TypeVar
   | TypeVoid'P4Type TypeVoid

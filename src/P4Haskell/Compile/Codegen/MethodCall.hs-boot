@@ -5,6 +5,7 @@ module P4Haskell.Compile.Codegen.MethodCall
   )
 where
 
+import Relude
 import qualified Language.C99.Simple as C
 import P4Haskell.Compile.Eff
 import qualified P4Haskell.Types.AST as AST

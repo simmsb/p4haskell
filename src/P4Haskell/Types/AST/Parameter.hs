@@ -1,19 +1,18 @@
 -- | P4 Parameters
 module P4Haskell.Types.AST.Parameter
-    ( Parameter(..)
-    , Direction(..)
-    , parseParameter
-    , parseDirection ) where
+  ( Parameter (..),
+    Direction (..),
+    parseParameter,
+    parseDirection,
+  )
+where
 
-import           P4Haskell.Types.AST.Annotation
-import           P4Haskell.Types.AST.Types
-import           P4Haskell.Types.AST.DecompressJSON
-
-import           Prelude
-
-import           Polysemy
-
-import qualified Waargonaut.Decode                  as D
+import P4Haskell.Types.AST.Annotation
+import P4Haskell.Types.AST.DecompressJSON
+import P4Haskell.Types.AST.Types
+import Polysemy
+import Relude
+import qualified Waargonaut.Decode as D
 
 data Direction = Direction
   { in_ :: Bool

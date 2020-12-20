@@ -21,6 +21,7 @@ import qualified P4Haskell.Types.AST as AST
 import P4Haskell.Utils.Drill
 import qualified Polysemy as P
 import qualified Polysemy.Writer as P
+import Relude
 
 generateP4Expression :: (CompC r, P.Member (P.Writer [C.BlockItem]) r) => AST.Expression -> P.Sem r C.Expr
 generateP4Expression (AST.MethodCallExpression'Expression mce) = generateMCE mce
@@ -51,8 +52,8 @@ generateBOE boe = do
 
 generatePE :: CompC r => AST.PathExpression -> P.Sem r C.Expr
 generatePE pe@(AST.PathExpression (AST.TypeState'P4Type _) _) = do
-    stateEnumInfo <- fromJustNote "stateEnumInfo" <$> fetchParserStateInfoInScope
-    pure $ stateEnumInfo ^?! #states . ix (pe ^. #path . #name)
+  stateEnumInfo <- fromJustNote "stateEnumInfo" <$> fetchParserStateInfoInScope
+  pure $ stateEnumInfo ^?! #states . ix (pe ^. #path . #name)
 generatePE pe = do
   let ident = C.Ident $ pe ^. #path . #name . unpacked
   -- the ubpf backend YOLOs this too: https://github.com/p4lang/p4c/blob/master/backends/ubpf/ubpfControl.cpp#L262
@@ -99,16 +100,31 @@ decideMethodCallType :: AST.MethodCallExpression -> MethodCallType
 decideMethodCallType (AST.MethodCallExpression _ (AST.Member'MethodExpression (AST.Member _ expr member)) _ _)
   | AST.TypeExtern'P4Type ty <- gdrillField @"type_" expr =
     ExternCall (ty ^. #name) member expr
-decideMethodCallType (AST.MethodCallExpression (AST.TypeStruct'P4Type rty)
-                      (AST.Member'MethodExpression
-                       (AST.Member _
-                         (AST.PathExpression'Expression
-                           (AST.PathExpression (AST.TypeTable'P4Type tty) _))
-                         "apply")) _ _) =
-  TableCall tty rty
-decideMethodCallType (AST.MethodCallExpression (AST.TypeAction'P4Type _)
-                      (AST.PathExpression'MethodExpression
-                       (AST.PathExpression _ aname)) _ _) = ActionCall (aname ^. #name)
+decideMethodCallType
+  ( AST.MethodCallExpression
+      (AST.TypeStruct'P4Type rty)
+      ( AST.Member'MethodExpression
+          ( AST.Member
+              _
+              ( AST.PathExpression'Expression
+                  (AST.PathExpression (AST.TypeTable'P4Type tty) _)
+                )
+              "apply"
+            )
+        )
+      _
+      _
+    ) =
+    TableCall tty rty
+decideMethodCallType
+  ( AST.MethodCallExpression
+      (AST.TypeAction'P4Type _)
+      ( AST.PathExpression'MethodExpression
+          (AST.PathExpression _ aname)
+        )
+      _
+      _
+    ) = ActionCall (aname ^. #name)
 decideMethodCallType (AST.MethodCallExpression _ expr _ _) = MethodCall $ injectSub expr
 
 generateMCE :: (CompC r, P.Member (P.Writer [C.BlockItem]) r) => AST.MethodCallExpression -> P.Sem r C.Expr
@@ -147,7 +163,7 @@ generateSE se = do
   let tempVarInit = [C.Decln $ C.VarDecln Nothing (C.TypeSpec $ si ^. #enumTy) tempVarName Nothing]
   let component = case se ^. #selectComponents of
         [c] -> c
-        _   -> error "Select expressions only support one key"
+        _ -> error "Select expressions only support one key"
   e <- generateP4Expression component
   cases <- forM (se ^. #cases) \sc -> do
     let f = case sc ^. #keyset of

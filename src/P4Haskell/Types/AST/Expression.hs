@@ -9,10 +9,10 @@ import P4Haskell.Types.AST.DecompressJSON
 import P4Haskell.Types.AST.Path
 import P4Haskell.Types.AST.Types
 import Polysemy hiding (Member)
+import Relude
 import Relude.Extra.Map ((!?))
 import qualified Waargonaut.Decode as D
 import qualified Waargonaut.Decode.Error as D
-import Prelude
 
 data Expression
   = MethodCallExpression'Expression MethodCallExpression
@@ -304,7 +304,7 @@ selectKeyDecoder = D.withCursor $ \c -> do
     "DefaultExpression" -> (_Typed @DefaultExpression #) <$> tryDecoder parseDefaultExpression c
     _ -> throwError . D.ParseFailed $ "invalid node type for SelectKey: " <> nodeType
 
-data DefaultExpression = DefaultExpression
+newtype DefaultExpression = DefaultExpression
   { type_ :: P4Type
   }
   deriving ( Show, Generic, Eq, Hashable )

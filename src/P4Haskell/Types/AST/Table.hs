@@ -25,6 +25,7 @@ import P4Haskell.Types.AST.Expression
 import P4Haskell.Types.AST.Path
 import P4Haskell.Types.AST.Types
 import Polysemy hiding (Member)
+import Relude
 import qualified Waargonaut.Decode as D
 import qualified Waargonaut.Decode.Error as D
 

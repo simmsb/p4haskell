@@ -13,9 +13,10 @@ import P4Haskell.Compile.Scope
 import qualified P4Haskell.Types.AST as AST
 import qualified Polysemy as P
 import qualified Polysemy.Fresh as P
+import qualified Polysemy.Membership as P
 import qualified Polysemy.Reader as P
 import qualified Polysemy.State as P
-import qualified Polysemy.Membership as P
+import Relude
 import qualified Rock
 
 type CompC r =

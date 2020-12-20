@@ -24,6 +24,7 @@ import qualified Polysemy as P
 import qualified Polysemy.Reader as P
 import qualified Polysemy.State as P
 import qualified Polysemy.Writer as P
+import Relude
 import Relude.Extra (elems, toPairs)
 import Relude.Unsafe (fromJust, (!!))
 
@@ -427,7 +428,7 @@ generateTableCall (AST.TypeTable table) rty = do
 
   let processedActions' = fixDefaultAction (table ^. #defaultAction) processedActions
   let paramTable = generateParamTable processedActions' paramUnion (entries ^.. traverse . #action)
- 
+
   P.modify . (<>) $
     defineStatic
       argsTableName

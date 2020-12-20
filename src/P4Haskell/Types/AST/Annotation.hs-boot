@@ -8,11 +8,10 @@ module P4Haskell.Types.AST.Annotation
     , parseAnnotatedToken
     , parseNamedExpression ) where
 
+import Relude
 import           P4Haskell.Types.AST.DecompressJSON
 
 import           Polysemy
-
-import           Prelude
 
 import qualified Waargonaut.Decode                  as D
 

@@ -1,18 +1,17 @@
 -- | Core stuff for parsing the P4 AST
 module P4Haskell.Types.AST.Core
-    ( parseVectorPure
-    , parseVector
-    , parseIndexedVector
-    , parseNestedObject ) where
+  ( parseVectorPure,
+    parseVector,
+    parseIndexedVector,
+    parseNestedObject,
+  )
+where
 
-import           P4Haskell.Types.AST.DecompressJSON
-import           P4Haskell.Types.AST.MapVec
-
-import           Prelude
-
-import           Polysemy
-
-import qualified Waargonaut.Decode              as D
+import P4Haskell.Types.AST.DecompressJSON
+import P4Haskell.Types.AST.MapVec
+import Polysemy
+import Relude
+import qualified Waargonaut.Decode as D
 
 -- ^ Like 'parseVector' but doesn't perform lookups on the decompression state.
 parseVectorPure :: Monad m => D.Decoder m a -> D.Decoder m [a]

@@ -4,6 +4,7 @@ module P4Haskell.Types.AST.Parameter
     , parseParameter
     , parseDirection ) where
 
+import Relude
 import           P4Haskell.Types.AST.DecompressJSON
 
 import           Polysemy

@@ -13,6 +13,7 @@ import Control.Lens
 import Data.Generics.Labels ()
 import qualified Data.Map.Ordered as O
 import qualified Language.C99.Simple as C
+import Relude
 
 data Declared = Declared
   { declaredTypes :: O.OMap Text C.TypeSpec,

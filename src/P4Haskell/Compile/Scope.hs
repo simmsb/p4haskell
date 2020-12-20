@@ -26,6 +26,7 @@ import qualified P4Haskell.Types.AST as AST
 import qualified Polysemy as P
 import qualified Polysemy.Fresh as P
 import qualified Polysemy.Reader as P
+import Relude
 import Text.Show (showsPrec)
 
 newtype VarID = VarID Int

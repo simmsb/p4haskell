@@ -1,19 +1,21 @@
 -- |
 module P4Haskell.Compile.Codegen.Statement
-    ( generateStatements
-     ) where
+  ( generateStatements,
+  )
+where
 
 import Control.Lens
 import Data.Text.Lens (unpacked)
 import qualified Language.C99.Simple as C
-import P4Haskell.Compile.Codegen.Typegen
 import P4Haskell.Compile.Codegen.Expression
+import P4Haskell.Compile.Codegen.Typegen
 import P4Haskell.Compile.Eff
 import P4Haskell.Compile.Scope
 import qualified P4Haskell.Types.AST as AST
 import qualified Polysemy as P
 import qualified Polysemy.Reader as P
 import qualified Polysemy.Writer as P
+import Relude
 
 generateStatements :: CompC r => [AST.Statement] -> P.Sem r [C.BlockItem]
 generateStatements (x : xs) = generateStatement x (generateStatements xs)

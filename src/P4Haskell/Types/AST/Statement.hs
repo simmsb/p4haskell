@@ -9,6 +9,7 @@ import P4Haskell.Types.AST.DecompressJSON
 import P4Haskell.Types.AST.Expression
 import P4Haskell.Types.AST.Types
 import Polysemy
+import Relude
 import qualified Waargonaut.Decode as D
 import qualified Waargonaut.Decode.Error as D
 

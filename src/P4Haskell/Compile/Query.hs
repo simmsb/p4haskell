@@ -7,17 +7,18 @@ where
 import Data.GADT.Compare.TH (deriveGEq)
 import Data.Hashable
 import Data.Some
-import qualified P4Haskell.Types.AST as AST
 import qualified Language.C99.Simple as C
+import qualified P4Haskell.Types.AST as AST
+import Relude
 
 data Query a where
-  GetMain              :: Query AST.DeclarationInstance
-  GetTopLevelTypes     :: Query (HashMap Text AST.TopLevelTypeDecl)
-  GetTopLevelControl   :: Query (HashMap Text AST.P4Control)
-  GetTopLevelParser    :: Query (HashMap Text AST.P4Parser)
+  GetMain :: Query AST.DeclarationInstance
+  GetTopLevelTypes :: Query (HashMap Text AST.TopLevelTypeDecl)
+  GetTopLevelControl :: Query (HashMap Text AST.P4Control)
+  GetTopLevelParser :: Query (HashMap Text AST.P4Parser)
   GetTopLevelMatchKind :: Query (HashMap Text AST.DeclarationID)
-  FetchType            :: Text -> Query (Maybe AST.P4Type)
-  GenerateP4Type       :: AST.P4Type -> Query (C.TypeSpec, C.TypeSpec, [(Text, C.TypeSpec)])
+  FetchType :: Text -> Query (Maybe AST.P4Type)
+  GenerateP4Type :: AST.P4Type -> Query (C.TypeSpec, C.TypeSpec, [(Text, C.TypeSpec)])
 
 deriving instance Show (Query a)
 

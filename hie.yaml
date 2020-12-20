@@ -1,2 +1,13 @@
 cradle:
   stack:
+    - path: "./src"
+      component: "p4haskell:lib"
+      stackYaml: "./stack.yaml"
+
+    - path: "./app/Main.hs"
+      component: "p4haskell:exe:p4haskell"
+      stackYaml: "./stack.yaml"
+
+    - path: "./app/Paths_p4haskell.hs"
+      component: "p4haskell:exe:p4haskell"
+      stackYaml: "./stack.yaml"

@@ -10,6 +10,7 @@ import P4Haskell.Compile.Codegen.Typegen
 import P4Haskell.Compile.Query
 import qualified P4Haskell.Types.AST as AST
 import P4Haskell.Utils.Drill
+import Relude
 import Relude.Extra (toPairs)
 import Relude.Unsafe (fromJust)
 import qualified Rock

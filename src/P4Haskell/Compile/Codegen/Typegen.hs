@@ -20,6 +20,7 @@ import P4Haskell.Compile.Query
 import qualified P4Haskell.Types.AST as AST
 import qualified Polysemy as P
 import qualified Polysemy.State as P
+import Relude
 import Relude.Unsafe (fromJust)
 import qualified Rock
 
@@ -159,7 +160,7 @@ generateP4HeaderPure h = do
         )
   let ident = toString $ h ^. #name
   let validField = C.FieldDecln (C.TypeSpec C.Bool) "valid"
-  let struct = C.StructDecln (Just ident) (validField :|  fields')
+  let struct = C.StructDecln (Just ident) (validField :| fields')
   let deps' = ((h ^. #name, struct) : deps)
   pure (C.Struct ident, struct, deps')
 

@@ -7,6 +7,7 @@ where
 import Control.Lens
 import Data.Generics.Product.Fields
 import Generics.SOP as GS
+import Relude
 
 class HasField'F field a s | s field -> a where
   field'f :: Lens s s a a

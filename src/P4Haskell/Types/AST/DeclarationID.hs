@@ -1,12 +1,13 @@
 module P4Haskell.Types.AST.DeclarationID
-    ( DeclarationID(..)
-    , parseDeclarationID ) where
+  ( DeclarationID (..),
+    parseDeclarationID,
+  )
+where
 
-import           P4Haskell.Types.AST.DecompressJSON
-
-import           Polysemy
-
-import qualified Waargonaut.Decode                  as D
+import P4Haskell.Types.AST.DecompressJSON
+import Polysemy
+import Relude
+import qualified Waargonaut.Decode as D
 
 data DeclarationID = DeclarationID
   { name   :: Text

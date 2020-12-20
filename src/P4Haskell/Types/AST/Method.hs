@@ -1,14 +1,15 @@
 module P4Haskell.Types.AST.Method
-    ( Method(..)
-    , parseMethod ) where
+  ( Method (..),
+    parseMethod,
+  )
+where
 
-import           P4Haskell.Types.AST.Annotation
-import           P4Haskell.Types.AST.DecompressJSON
-import           P4Haskell.Types.AST.Types
-
-import           Polysemy
-
-import qualified Waargonaut.Decode                  as D
+import P4Haskell.Types.AST.Annotation
+import P4Haskell.Types.AST.DecompressJSON
+import P4Haskell.Types.AST.Types
+import Polysemy
+import Relude
+import qualified Waargonaut.Decode as D
 
 data Method = Method
   { annotations :: [Annotation]

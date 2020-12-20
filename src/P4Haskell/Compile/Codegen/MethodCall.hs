@@ -14,6 +14,7 @@ import P4Haskell.Compile.Eff
 import qualified P4Haskell.Types.AST as AST
 import qualified Polysemy as P
 import qualified Polysemy.Writer as P
+import Relude
 
 processParam ::
   (CompC r, P.Member (P.Writer [C.BlockItem]) r) =>

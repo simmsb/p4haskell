@@ -19,6 +19,7 @@ import qualified Polysemy as P
 import qualified Polysemy.Fresh as P
 import qualified Polysemy.Reader as P
 import qualified Polysemy.Writer as P
+import Relude
 import Relude.Extra (keys, toPairs)
 
 generateParserStates :: CompC r => Text -> AST.MapVec Text AST.ParserState -> P.Sem r [C.BlockItem]

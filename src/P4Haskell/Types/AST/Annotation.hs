@@ -1,35 +1,33 @@
 -- | P4 Annotations
 module P4Haskell.Types.AST.Annotation
-    ( Annotation(..)
-    , parseAnnotations
-    , parseAnnotation
-    , AnnotatedToken
-    , NamedExpression
-    , parseAnnotatedToken
-    , parseNamedExpression ) where
+  ( Annotation (..),
+    parseAnnotations,
+    parseAnnotation,
+    AnnotatedToken,
+    NamedExpression,
+    parseAnnotatedToken,
+    parseNamedExpression,
+  )
+where
 
-import           P4Haskell.Types.AST.Core
-import           P4Haskell.Types.AST.Expression
-import           P4Haskell.Types.AST.MapVec
-import           P4Haskell.Types.AST.DecompressJSON
-
-import           Prelude
-
-import           Polysemy
-
-import qualified Data.Text.Lazy                     as T
-
-import qualified Waargonaut.Decode                  as D
-import qualified Waargonaut.Encode                  as E
+import qualified Data.Text.Lazy as T
+import P4Haskell.Types.AST.Core
+import P4Haskell.Types.AST.DecompressJSON
+import P4Haskell.Types.AST.Expression
+import P4Haskell.Types.AST.MapVec
+import Polysemy
+import Relude
+import qualified Waargonaut.Decode as D
+import qualified Waargonaut.Encode as E
 
 data Annotation = Annotation
-  { name         :: Text
-  , body         :: [AnnotatedToken]
-  , needsParsing :: Bool
-  , expr         :: [Expression]
-  , kv           :: MapVec Text NamedExpression
+  { name :: Text,
+    body :: [AnnotatedToken],
+    needsParsing :: Bool,
+    expr :: [Expression],
+    kv :: MapVec Text NamedExpression
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving (Show, Generic, Eq, Hashable)
 
 parseAnnotations :: DecompressC r => D.Decoder (Sem r) [Annotation]
 parseAnnotations = D.withCursor . tryParseVal $ \c -> do
@@ -38,12 +36,12 @@ parseAnnotations = D.withCursor . tryParseVal $ \c -> do
 
 parseAnnotation :: DecompressC r => D.Decoder (Sem r) Annotation
 parseAnnotation = D.withCursor . tryParseVal $ \c -> do
-  o            <- D.down c
-  name         <- D.fromKey "name" D.text o
-  body         <- D.fromKey "body" (parseVector parseAnnotatedToken) o
+  o <- D.down c
+  name <- D.fromKey "name" D.text o
+  body <- D.fromKey "body" (parseVector parseAnnotatedToken) o
   needsParsing <- D.fromKey "needsParsing" D.bool o
-  expr         <- D.fromKey "expr" (parseVector expressionDecoder) o
-  kv           <- D.fromKey "kv" (parseIndexedVector parseNamedExpression) o
+  expr <- D.fromKey "expr" (parseVector expressionDecoder) o
+  kv <- D.fromKey "kv" (parseIndexedVector parseNamedExpression) o
   pure $ Annotation name body needsParsing expr kv
 
 type AnnotatedToken = Text

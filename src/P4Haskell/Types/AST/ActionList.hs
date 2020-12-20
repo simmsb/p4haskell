@@ -15,7 +15,7 @@ import P4Haskell.Types.AST.Expression
 import P4Haskell.Types.AST.MapVec
 import Polysemy
 import qualified Waargonaut.Decode as D
-import Prelude
+import Relude
 
 newtype ActionList = ActionList
   { actions :: MapVec Text ActionListElement

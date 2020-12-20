@@ -9,6 +9,7 @@ module P4Haskell.Types.AST.Table
   , ExpressionValue
   , parseExpressionValue ) where
 
+import Relude
 import           P4Haskell.Types.AST.DecompressJSON
 
 import Polysemy hiding (Member)

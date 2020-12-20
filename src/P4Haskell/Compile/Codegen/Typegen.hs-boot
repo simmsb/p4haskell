@@ -8,6 +8,7 @@ module P4Haskell.Compile.Codegen.Typegen
   )
 where
 
+import Relude
 import qualified Language.C99.Simple as C
 import P4Haskell.Compile.Eff
 import P4Haskell.Compile.Query

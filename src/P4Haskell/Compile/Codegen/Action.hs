@@ -18,6 +18,7 @@ import qualified P4Haskell.Types.AST as AST
 import qualified Polysemy as P
 import qualified Polysemy.Reader as P
 import qualified Polysemy.State as P
+import Relude
 
 data LiftedAction = LiftedAction
   { nameExpr :: C.Expr,

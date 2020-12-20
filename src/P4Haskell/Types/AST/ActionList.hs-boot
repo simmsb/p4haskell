@@ -1,14 +1,15 @@
 module P4Haskell.Types.AST.ActionList
-    ( ActionList
-    , ActionListElement
-    , parseActionList
-    , parseActionListElement ) where
+  ( ActionList,
+    ActionListElement,
+    parseActionList,
+    parseActionListElement,
+  )
+where
 
-import           P4Haskell.Types.AST.DecompressJSON
-
-import           Polysemy
-
-import qualified Waargonaut.Decode                  as D
+import P4Haskell.Types.AST.DecompressJSON
+import Polysemy
+import Relude
+import qualified Waargonaut.Decode as D
 
 data ActionList
 

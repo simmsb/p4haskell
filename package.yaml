@@ -23,12 +23,13 @@ description:         P4 backend in haskell
 dependencies:
   - name: base
     version: ">= 4.12 && < 5"
-    mixin:
-      - hiding (Prelude)
+    # mixin:
+    #   - hiding (Prelude)
   - name: relude
     version: "^>= 0.7"
-    mixin:
-      - (Relude as Prelude, Relude, Relude.Debug, Relude.Extra.Map, Relude.Extra, Relude.Unsafe)
+    # add back when stack/5077 is ok
+    # mixin:
+    #   - (Relude as Prelude, Relude, Relude.Debug, Relude.Extra.Map, Relude.Extra, Relude.Unsafe)
   - waargonaut ^>= 0.8
   - lens >= 4.18 && < 4.20
   - generic-lens ^>= 2
@@ -101,6 +102,7 @@ library:
       - -Wmissing-export-lists
       - -Wpartial-fields
       - -fwrite-ide-info
+      - -hiedir .hie
       - -haddock
     source-dirs: src
 
@@ -126,6 +128,7 @@ tests:
       - p4haskell
 
 default-extensions:
+  - NoImplicitPrelude # remove when stack/5077 is ok
   - IncoherentInstances
   - TemplateHaskell
   - RecursiveDo
