@@ -42,7 +42,7 @@ generateParserStates n s = do
 
 generateStateEnum :: CompC r => Text -> C.Expr -> AST.MapVec Text AST.ParserState -> P.Sem r ParserStateInfo
 generateStateEnum parserName stateVar s =
-  let states = ["accept", "reject"] <> keys (s ^. #map)
+  let states = keys (s ^. #map)
       nameGen n = "parser_state_" <> parserName <> "_" <> n
       enumName = "parser_states_" <> parserName
       enumVariants = map (toString . nameGen) states

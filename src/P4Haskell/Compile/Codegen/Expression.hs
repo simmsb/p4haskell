@@ -40,7 +40,7 @@ generateUOE :: (CompC r, P.Member (P.Writer [C.BlockItem]) r) => AST.UnaryOp -> 
 generateUOE uoe = do
   expr <- generateP4Expression $ uoe ^. #expr
   pure case uoe ^. #op of
-    AST.UnaryOpLNot -> C.UnaryOp C.BoolNot expr
+    AST.UnaryOpLNot -> C.UnaryOp C.Not expr
 
 generateBOE :: (CompC r, P.Member (P.Writer [C.BlockItem]) r) => AST.BinaryOp -> P.Sem r C.Expr
 generateBOE boe = do

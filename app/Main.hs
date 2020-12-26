@@ -55,6 +55,24 @@ main'' t = do
   (declared, ()) <- P.runFinal . P.embedToFinal . E.runComp (R.rules ast) ast $ CG.generateMain
 
   let out = TP.render . PC.pretty . C.translate . D.exportDeclared $ declared
+  putTextLn $
+    unlines
+      [ "#include <stdint.h>",
+        "#include <stdlib.h>",
+        "#include <stdbool.h>",
+        "#include <arpa/inet.h>",
+        "#include <endian.h>",
+        "#include <byteswap.h>",
+        "#include <string.h>",
+        "uint64_t htonll(uint64_t in) {",
+        "#if __BYTE_ORDER == __LITTLE_ENDIAN",
+        "  return bswap_64(in);",
+        "#else",
+        "  return in;",
+        "#endif",
+        "}",
+        "int main(){}"
+      ]
   putStrLn out
 
 -- where failWithHistory (err, _hist) = do

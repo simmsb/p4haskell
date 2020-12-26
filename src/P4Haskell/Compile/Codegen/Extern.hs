@@ -3,6 +3,7 @@ module P4Haskell.Compile.Codegen.Extern
   ( generateExternCall,
     getExternType,
     packetStruct,
+    ptrPacketStruct,
   )
 where
 
@@ -114,14 +115,14 @@ generatePacketInExtract instance_ [param] = do
         P.tagged @"packet-size" $ P.tell $ Sum outSize
     _ -> pure ()
 
-  body <- generateInExtractBody (C.Arrow (C.Ident "ppkt") "ppkt") (C.Ident "hdr") =<< resolveP4Type p4ty
+  body <- generateInExtractBody (C.Dot (C.Ident "ppkt") "ppkt") (C.Ident "hdr") =<< resolveP4Type p4ty
   packetStruct' <- simplifyType packetStruct
   ptrPacketStruct' <- simplifyType ptrPacketStruct
-  P.modify . (<>) $
+  P.modify . flip (<>) $
     defineFunc
       name
       (C.TypeSpec C.Bool)
-      [ C.Param (C.Ptr . C.TypeSpec $ ptrPacketStruct') "ppkt",
+      [ C.Param (C.TypeSpec ptrPacketStruct') "ppkt",
         C.Param (C.Ptr . C.TypeSpec $ ty) "hdr"
       ]
       body
@@ -129,7 +130,7 @@ generatePacketInExtract instance_ [param] = do
   expr <-
     generateCall'
       (name, C.TypeSpec C.Bool)
-      [ (False, C.TypeSpec packetStruct', instance_),
+      [ (False, C.TypeSpec ptrPacketStruct', instance_),
         (True, C.TypeSpec ty, param)
       ]
 
@@ -140,7 +141,7 @@ generatePacketInExtract instance_ [param] = do
   P.tell
     [ C.Stmt $
         C.If
-          (C.UnaryOp C.BoolNot expr)
+          (C.UnaryOp C.Not expr)
           [ C.Stmt . C.Expr $ C.AssignOp C.Assign stateVar reject,
             C.Stmt C.Break
           ]
@@ -270,7 +271,7 @@ generatePacketInLength instance_ params = do
 
 defineWritePartial :: CompC r => P.Sem r ()
 defineWritePartial =
-  P.modify . (<>) $
+  P.modify . flip (<>) $
     defineFunc
       "write_partial"
       (C.TypeSpec C.Void)
@@ -310,7 +311,7 @@ generateOutEmitBody ty = do
   defineWritePartial
   (P.evalState @Int 0 . concatMapM generateWrite) =<< findFields ty
   where
-    pkt = C.Arrow (C.Ident "ppkt") "ppkt"
+    pkt = C.Dot (C.Ident "ppkt") "ppkt"
     sizes =
       [ (8, Nothing),
         (16, Just "htons"),
@@ -343,7 +344,12 @@ generateOutEmitBody ty = do
             tmpRefName <- generateTempVar
             let declns =
                   [ C.Decln $ C.VarDecln Nothing tmpType tmpName (Just . C.InitExpr $ expr),
-                    C.Decln $ C.VarDecln Nothing (C.Ptr . C.TypeSpec $ C.Char) tmpRefName (Just . C.InitExpr . C.ref $ tmpVar)
+                    C.Decln $
+                      C.VarDecln
+                        Nothing
+                        (C.Ptr . C.TypeSpec $ C.Char)
+                        tmpRefName
+                        (Just . C.InitExpr . C.Cast (C.TypeName . C.Ptr . C.TypeSpec $ C.Char) . C.ref $ tmpVar)
                   ]
                 tmpVar = C.Ident tmpName
                 tmpRefVar = C.Ident tmpRefName
@@ -351,7 +357,7 @@ generateOutEmitBody ty = do
                 after = [C.Stmt $ C.Expr (C.Arrow pkt "offset" C..+= C.LitInt (fromIntegral size))]
              in pure $ declns <> writes <> after
 
-    loadPacketWOffset i = C.Arrow pkt "pkt" C..+ (C.Arrow pkt "offset" C..* C.LitInt 8) C..+ C.LitInt i
+    loadPacketWOffset i = C.deref (C.Arrow pkt "pkt" C..+ (C.Arrow pkt "offset" C..* C.LitInt 8) C..+ C.LitInt i)
     generateIndividualWrites size numBytes shiftAmt tmpRefVar align = go 0 shiftAmt size align
       where
         go i shift left align
@@ -415,7 +421,7 @@ generatePacketOutEmit instance_ [param] = do
 
   body <- generateOutEmitBody =<< resolveP4Type p4ty
   ptrPacketStruct' <- simplifyType ptrPacketStruct
-  P.modify . (<>) $
+  P.modify . flip (<>) $
     defineFunc
       name
       (C.TypeSpec C.Void)

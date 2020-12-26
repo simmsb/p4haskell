@@ -44,15 +44,26 @@ fetchTyByName name = do
       p4ty <- fetch $ FetchType (toText name)
       mapM ((snd <$>) . generateP4Type) p4ty
 
+simplifyType' :: CompC r => C.Type -> P.Sem r C.Type
+simplifyType' (C.Type t) = C.Type <$> simplifyType' t
+simplifyType' (C.TypeSpec t) = C.TypeSpec <$> simplifyType t
+simplifyType' (C.Ptr t) = C.Ptr <$> simplifyType' t
+simplifyType' (C.Array t e) = flip C.Array e <$> simplifyType' t
+simplifyType' (C.Const t) = C.Const <$> simplifyType' t
+simplifyType' (C.Restrict t) = C.Restrict <$> simplifyType' t
+simplifyType' (C.Volatile t) = C.Volatile <$> simplifyType' t
+
 simplifyType :: CompC r => C.TypeSpec -> P.Sem r C.TypeSpec
-simplifyType t@(C.StructDecln (Just name) _) = do
-  P.modify . (<>) $ declareType (toText name) t
+simplifyType (C.StructDecln (Just name) fields) = do
+  fields' <- forM fields (\(C.FieldDecln t i) ->
+                            flip C.FieldDecln i <$> simplifyType' t)
+  P.modify (<> declareType (toText name) (C.StructDecln (Just name) fields'))
   pure $ C.Struct name
 simplifyType t@(C.UnionDecln (Just name) _) = do
-  P.modify . (<>) $ declareType (toText name) t
+  P.modify (<> declareType (toText name) t)
   pure $ C.Union name
 simplifyType t@(C.EnumDecln (Just name) _) = do
-  P.modify . (<>) $ declareType (toText name) t
+  P.modify (<> declareType (toText name) t)
   pure $ C.Enum name
 simplifyType t = pure t
 

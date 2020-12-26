@@ -48,13 +48,13 @@ generateMain = do
   dprsControl <- generateDeparse inPktSize dprsAST
 
   packetStruct' <- simplifyType packetStruct
-  ptrPacketStruct' <- simplifyType packetStruct
+  ptrPacketStruct' <- simplifyType ptrPacketStruct
 
   let u64 = C.TypeSpec $ C.TypedefName "uint64_t"
 
-  P.modify . (<>) $
+  P.modify . flip (<>) $
     defineFunc
-      "main"
+      "process"
       (C.TypeSpec C.Void)
       [ C.Param (C.Ptr . C.Ptr . C.TypeSpec $ C.Char) "pkts",
         C.Param (C.Ptr u64) "lengths",
@@ -99,17 +99,7 @@ generateMain = do
             ( Just . C.InitExpr $
                 C.InitVal
                   (C.TypeName hdrStruct)
-                  (fromList [C.InitItem (Just "valid") (C.InitExpr $ C.LitBool False)])
-            ),
-        C.Decln $
-          C.VarDecln
-            Nothing
-            (C.TypeSpec ptrPacketStruct')
-            "ppkt"
-            ( Just . C.InitExpr $
-                C.InitVal
-                  (C.TypeName (C.TypeSpec ptrPacketStruct'))
-                  (fromList [C.InitItem (Just "ppkt") (C.InitExpr . C.ref $ C.Ident "pkt")])
+                  (fromList [C.InitItem Nothing (C.InitExpr $ C.LitInt 0)])
             ),
         C.Decln $
           C.VarDecln
@@ -139,7 +129,7 @@ generateParser p = do
   let scopeUpdate scope = flipfoldl' addVarToScope scope vars
   (inPktSize, body) <- getPktSize . P.local scopeUpdate $ generateParserStates (p ^. #name) (p ^. #states)
   let body' = removeDeadExprs body
-  P.modify . (<>) $ defineFunc (p ^. #name) (C.TypeSpec C.Void) params body'
+  P.modify . flip (<>) $ defineFunc (p ^. #name) (C.TypeSpec C.Bool) params body'
   pure (p ^. #name . unpacked, inPktSize, hdrType)
 
 generateControl :: CompC r => AST.P4Control -> P.Sem r C.Ident
@@ -152,13 +142,13 @@ generateControl c = do
          in flipfoldl' addActionToScope withVars actions
   body <- P.local scopeUpdate . generateStatements $ map injectTyped localVars <> (c ^. #body . #components)
   let body' = removeDeadExprs body
-  P.modify . (<>) $ defineFunc (c ^. #name) (C.TypeSpec C.Bool) params body'
+  P.modify . flip (<>) $ defineFunc (c ^. #name) (C.TypeSpec C.Void) params body'
   pure $ c ^. #name . unpacked
 
 generatePacketAdjust :: CompC r => Int -> Int -> C.Expr -> P.Sem r [C.BlockItem]
 generatePacketAdjust inPktSize newPktSize pkt = do
   packetStruct' <- simplifyType packetStruct
-  P.modify . (<>) $
+  P.modify . flip (<>) $
     defineFunc
       "adjust_packet"
       (C.TypeSpec C.Void)
@@ -219,10 +209,10 @@ generateDeparse inPktSize c = do
 
   let pktVarName = toString $ vars ^?! ix 0 . #varOriginalName
 
-  adjustBody <- generatePacketAdjust inPktSize outPacketSize (C.Ident pktVarName)
+  adjustBody <- generatePacketAdjust inPktSize outPacketSize (C.Ident pktVarName `C.Dot` "ppkt")
 
   let body' = adjustBody <> removeDeadExprs body
-  P.modify . (<>) $ defineFunc (c ^. #name) (C.TypeSpec C.Bool) params body'
+  P.modify . flip (<>) $ defineFunc (c ^. #name) (C.TypeSpec C.Void) params body'
   pure $ c ^. #name . unpacked
 
 generateParams :: CompC r => [AST.Parameter] -> P.Sem r ([C.Param], [Var])

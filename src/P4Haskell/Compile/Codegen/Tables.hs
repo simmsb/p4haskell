@@ -218,7 +218,7 @@ generateTableTrie tableName pactions entries meta =
    in do
         treeNodeTy <- simplifyType matchTreeNodeType
         let arrayTy = C.Array (C.TypeSpec treeNodeTy) (Just . C.LitInt . fromIntegral $ length trieInits)
-        P.modify . (<>) $ defineStatic staticName Nothing arrayTy trieInit
+        P.modify . flip (<>) $ defineStatic staticName Nothing arrayTy trieInit
         pure (C.Ident . toString $ staticName, rootId)
 
 isDefaultAction :: ProcessedAction -> Bool
@@ -245,8 +245,7 @@ generateBitDriverFor ty width = do
         [ C.Param (C.Ptr . C.TypeSpec $ treeNodeTy) "node",
           C.Param (C.TypeSpec ty) "value"
         ]
-  P.modify . (<>) $
-    defineFunc name (C.Ptr . C.TypeSpec $ treeNodeTy) params body
+  P.modify (<> defineFunc name (C.Ptr . C.TypeSpec $ treeNodeTy) params body)
   pure . C.Ident $ toString name
   where
     chunks = cielDiv width bitsPerLevel
@@ -429,7 +428,7 @@ generateTableCall (AST.TypeTable table) rty = do
   let processedActions' = fixDefaultAction (table ^. #defaultAction) processedActions
   let paramTable = generateParamTable processedActions' paramUnion (entries ^.. traverse . #action)
 
-  P.modify . (<>) $
+  P.modify . flip (<>) $
     defineStatic
       argsTableName
       Nothing
@@ -447,7 +446,7 @@ generateTableCall (AST.TypeTable table) rty = do
           Nothing
           nodePtrTy
           nodeVarName
-          (Just . C.InitExpr $ C.Index searchTrie (C.LitInt $ fromIntegral rootNode))
+          (Just . C.InitExpr . C.ref $ C.Index searchTrie (C.LitInt $ fromIntegral rootNode))
     ]
 
   forM_
@@ -480,7 +479,7 @@ generateTableCall (AST.TypeTable table) rty = do
       (C.TypeName $ C.TypeSpec rty'')
       ( fromList
           [ C.InitItem (Just "hit") (C.InitExpr isHitVar),
-            C.InitItem (Just "miss") (C.InitExpr $ C.UnaryOp C.BoolNot isHitVar),
+            C.InitItem (Just "miss") (C.InitExpr $ C.UnaryOp C.Not isHitVar),
             C.InitItem (Just "action_run") (C.InitExpr $ C.Arrow nodeVar "action_idx")
           ]
       )
