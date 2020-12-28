@@ -87,14 +87,15 @@ generateME me = do
 data MethodType
   = TypeMethod'MethodType AST.TypeMethod
   | TypeAction'MethodType AST.TypeAction
-  deriving (Show, Generic, GS.Generic, Eq, Hashable)
+  deriving stock (Show, Generic, Eq)
+  deriving anyclass (GS.Generic, Hashable)
 
 data MethodCallType
   = ExternCall Text Text AST.Expression
   | TableCall AST.TypeTable AST.TypeStruct
   | ActionCall Text
   | MethodCall AST.Expression
-  deriving (Generic)
+  deriving stock (Generic)
 
 decideMethodCallType :: AST.MethodCallExpression -> MethodCallType
 decideMethodCallType (AST.MethodCallExpression _ (AST.Member'MethodExpression (AST.Member _ expr member)) _ _)

@@ -13,7 +13,8 @@ data Path = Path
   { absolute :: Bool
   , name     :: Text
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq )
+  deriving anyclass ( Hashable )
 
 parsePath :: DecompressC r => D.Decoder (Sem r) Path
 parsePath = D.withCursor . tryParseVal $ \c -> do

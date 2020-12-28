@@ -30,8 +30,8 @@ import Relude
 import Text.Show (showsPrec)
 
 newtype VarID = VarID Int
-  deriving (Show, Eq, Generic)
-  deriving (Hashable)
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (Hashable)
 
 data Var = Var
   { varOriginalName :: Text,
@@ -40,7 +40,7 @@ data Var = Var
     varP4Type :: AST.P4Type,
     needsDeref :: Bool
   }
-  deriving (Generic)
+  deriving stock (Generic)
 
 instance Show Var where
   showsPrec i (Var name vid _ _ _) = showsPrec i $ name <> ":" <> show vid
@@ -57,7 +57,7 @@ data ParserStateInfo = ParserStateInfo
     enumTy :: C.TypeSpec,
     states :: HashMap Text C.Expr
   }
-  deriving (Generic, Show)
+  deriving stock (Generic, Show)
 
 instance Eq ParserStateInfo where
   (==) = on (==) (^. #psid)
@@ -71,7 +71,8 @@ data Scope = Scope
     scopeKnownActions :: HashMap Text AST.P4Action,
     scopeParserStateInfo :: Maybe ParserStateInfo
   }
-  deriving (Show, Generic, Eq, Hashable)
+  deriving stock (Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 emptyScope :: Scope
 emptyScope = Scope mempty mempty mempty Nothing

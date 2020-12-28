@@ -20,7 +20,7 @@ data Declared = Declared
     declaredFuncs :: O.OMap Text C.FunDef,
     declaredStatics :: O.OMap Text C.Decln
   }
-  deriving (Generic)
+  deriving stock (Generic)
 
 instance Semigroup Declared where
   Declared lt lf ls <> Declared rt rf rs = Declared (lt O.|<> rt) (lf O.|<> rf) (ls O.|<> rs)

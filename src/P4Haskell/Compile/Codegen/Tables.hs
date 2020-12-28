@@ -36,7 +36,7 @@ data TableMatchKind
   = Exact
   | Ternary
   | LPM
-  deriving (Generic, Show)
+  deriving stock (Generic, Show)
 
 generateTableKeys :: (CompC r, P.Member (P.Writer [C.BlockItem]) r) => [AST.KeyElement] -> P.Sem r [(C.Expr, C.TypeSpec, TableMatchKind, Int)]
 generateTableKeys =
@@ -90,7 +90,7 @@ bitsPerLevel = 4
 data BitChunk
   = BitChunk Int
   | AcceptAll
-  deriving (Show, Generic)
+  deriving stock (Show, Generic)
 
 typeSize :: AST.P4Type -> Int
 typeSize p4ty = case p4ty of
@@ -122,7 +122,7 @@ generateBitChunks meta (AST.TableEntry keys _ _) = concatMap (uncurry inner) (zi
 data ChunkTrie
   = ChunkTrieLeaf (Int, Int)
   | ChunkTrieNode [Maybe Int]
-  deriving (Show, Generic)
+  deriving stock (Show, Generic)
 
 -- isLeaf :: ChunkTrie -> Bool
 -- isLeaf (ChunkTrieLeaf _) = True
@@ -275,7 +275,7 @@ data ProcessedAction = ProcessedAction
     paramCtor :: [C.Expr] -> C.Expr,
     actionCode :: [C.BlockItem]
   }
-  deriving (Generic)
+  deriving stock (Generic)
 
 fixEmptyFields :: [C.FieldDecln] -> NonEmpty C.FieldDecln
 fixEmptyFields = fromMaybe (C.FieldDecln (C.TypeSpec C.Char) "unused" :| []) . nonEmpty

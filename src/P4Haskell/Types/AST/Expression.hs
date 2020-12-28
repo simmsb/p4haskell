@@ -25,7 +25,8 @@ data Expression
   | TypeNameExpression'Expression TypeNameExpression
   | UnaryOp'Expression UnaryOp
   | BinaryOp'Expression BinaryOp
-  deriving ( Show, Generic, GS.Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable, GS.Generic )
 
 expressionDecoder :: DecompressC r => D.Decoder (Sem r) Expression
 expressionDecoder = D.withCursor $ \c -> do
@@ -47,7 +48,8 @@ expressionDecoder = D.withCursor $ \c -> do
 newtype TypeType = TypeType
   { type_ :: P4Type
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeType :: DecompressC r => D.Decoder (Sem r) TypeType
 parseTypeType = D.withCursor . tryParseVal $ \c -> do
@@ -59,7 +61,8 @@ data TypeNameExpression = TypeNameExpression
   { type_    :: P4Type
   , typeName :: TypeName
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeNameExpression :: DecompressC r => D.Decoder (Sem r) TypeNameExpression
 parseTypeNameExpression = D.withCursor . tryParseVal $ \c -> do
@@ -71,7 +74,8 @@ parseTypeNameExpression = D.withCursor . tryParseVal $ \c -> do
 data MethodExpression
   = Member'MethodExpression Member
   | PathExpression'MethodExpression PathExpression
-  deriving ( Show, Generic, GS.Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable, GS.Generic )
 
 methodExpressionDecoder :: DecompressC r => D.Decoder (Sem r) MethodExpression
 methodExpressionDecoder = D.withCursor $ \c -> do
@@ -88,7 +92,8 @@ data MethodCallExpression = MethodCallExpression
   , typeArguments :: [P4Type]
   , arguments     :: [Argument Expression]
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseMethodCallExpression :: DecompressC r => D.Decoder (Sem r) MethodCallExpression
 parseMethodCallExpression = D.withCursor . tryParseVal $ \c -> do
@@ -104,7 +109,8 @@ data Member = Member
   , expr  :: Expression
   , member :: Text
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseMember :: DecompressC r => D.Decoder (Sem r) Member
 parseMember = D.withCursor . tryParseVal $ \c -> do
@@ -118,7 +124,8 @@ data Argument a = Argument
   { name       :: Maybe Text
   , expression :: a
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseArgument :: (DecompressC r, Typeable a) => D.Decoder (Sem r) a -> D.Decoder (Sem r) (Argument a)
 parseArgument inner = D.withCursor . tryParseVal $ \c -> do
@@ -130,7 +137,8 @@ parseArgument inner = D.withCursor . tryParseVal $ \c -> do
 data ControlOrParser
   = Parser'ControlOrParser TypeParser
   | Control'ControlOrParser TypeControl
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 controlOrParserDecoder :: DecompressC r => D.Decoder (Sem r) ControlOrParser
 controlOrParserDecoder = D.withCursor $ \c -> do
@@ -146,7 +154,8 @@ data ConstructorCallExpression = ConstructorCallExpression
   , constructedType :: P4Type
   , arguments       :: [Argument Expression]
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseConstructorCallExpression :: DecompressC r => D.Decoder (Sem r) ConstructorCallExpression
 parseConstructorCallExpression = D.withCursor . tryParseVal $ \c -> do
@@ -161,7 +170,8 @@ data Constant = Constant
   , value :: Int
   , base  :: Int
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseConstant :: DecompressC r => D.Decoder (Sem r) Constant
 parseConstant = D.withCursor . tryParseVal $ \c -> do
@@ -175,7 +185,8 @@ data PathExpression = PathExpression
   { type_ :: P4Type
   , path  :: Path
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parsePathExpression :: DecompressC r => D.Decoder (Sem r) PathExpression
 parsePathExpression = D.withCursor . tryParseVal $ \c -> do
@@ -188,7 +199,8 @@ data BoolLiteral = BoolLiteral
   { type_ :: P4Type
   , value :: Bool
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseBoolLiteral :: DecompressC r => D.Decoder (Sem r) BoolLiteral
 parseBoolLiteral = D.withCursor . tryParseVal $ \c -> do
@@ -198,7 +210,8 @@ parseBoolLiteral = D.withCursor . tryParseVal $ \c -> do
   pure $ BoolLiteral type_ value
 
 data UnaryOpType = UnaryOpLNot
-  deriving ( Show, Generic, Eq, Enum, Hashable )
+  deriving stock ( Show, Generic, Eq, Enum)
+  deriving anyclass ( Hashable )
 
 unaryOpTypes :: HashMap Text UnaryOpType
 unaryOpTypes = fromList [("LNot", UnaryOpLNot)]
@@ -211,7 +224,8 @@ data UnaryOp = UnaryOp
   , expr  :: Expression
   , op    :: UnaryOpType
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseUnaryOp :: UnaryOpType -> DecompressC r => D.Decoder (Sem r) UnaryOp
 parseUnaryOp t = D.withCursor . tryParseVal $ \c -> do
@@ -221,7 +235,8 @@ parseUnaryOp t = D.withCursor . tryParseVal $ \c -> do
   pure $ UnaryOp type_ expr t
 
 data BinaryOpType = BinaryOpAdd
-  deriving ( Show, Generic, Eq, Enum, Hashable )
+  deriving stock ( Show, Generic, Eq, Enum)
+  deriving anyclass ( Hashable )
 
 binaryOpTypes :: HashMap Text BinaryOpType
 binaryOpTypes = fromList [("Add", BinaryOpAdd)]
@@ -235,7 +250,8 @@ data BinaryOp = BinaryOp
   , right :: Expression
   , op    :: BinaryOpType
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseBinaryOp :: BinaryOpType -> DecompressC r => D.Decoder (Sem r) BinaryOp
 parseBinaryOp t = D.withCursor . tryParseVal $ \c -> do
@@ -249,7 +265,8 @@ data StringLiteral = StringLiteral
   { type_ :: P4Type
   , value :: Text
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseStringLiteral :: DecompressC r => D.Decoder (Sem r) StringLiteral
 parseStringLiteral = D.withCursor . tryParseVal $ \c -> do
@@ -264,7 +281,8 @@ data SelectExpression = SelectExpression
   , selectComponents :: [Expression]
   , cases            :: [SelectCase]
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseSelectExpression :: DecompressC r => D.Decoder (Sem r) SelectExpression
 parseSelectExpression = D.withCursor . tryParseVal $ \c -> do
@@ -281,7 +299,8 @@ data SelectCase = SelectCase
   { keyset :: SelectKey
   , state  :: PathExpression
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseSelectCase :: DecompressC r => D.Decoder (Sem r) SelectCase
 parseSelectCase = D.withCursor . tryParseVal $ \c -> do
@@ -293,7 +312,8 @@ parseSelectCase = D.withCursor . tryParseVal $ \c -> do
 data SelectKey
   = Constant'SelectKey Constant
   | Default'SelectKey DefaultExpression
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 selectKeyDecoder :: DecompressC r => D.Decoder (Sem r) SelectKey
 selectKeyDecoder = D.withCursor $ \c -> do
@@ -307,7 +327,8 @@ selectKeyDecoder = D.withCursor $ \c -> do
 newtype DefaultExpression = DefaultExpression
   { type_ :: P4Type
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseDefaultExpression :: DecompressC r => D.Decoder (Sem r) DefaultExpression
 parseDefaultExpression = D.withCursor . tryParseVal $ \c -> do

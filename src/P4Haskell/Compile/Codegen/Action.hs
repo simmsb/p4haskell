@@ -26,7 +26,7 @@ data LiftedAction = LiftedAction
     liftedParamExprs :: [AST.Expression],
     originalParams :: [AST.Parameter]
   }
-  deriving (Generic)
+  deriving stock (Generic)
 
 interceptUnknownVars :: CompC r => P.Sem r a -> P.Sem r (Scope, a)
 interceptUnknownVars m = do

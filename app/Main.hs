@@ -12,7 +12,6 @@ import qualified P4Haskell.Compile.Eff as E
 import qualified P4Haskell.Compile.Rules as R
 import qualified Polysemy as P
 import Relude
-import Text.Pretty.Simple (pPrint)
 import qualified Text.PrettyPrint as TP
 
 -- import qualified Waargonaut.Decode    as D
@@ -20,7 +19,7 @@ import qualified Text.PrettyPrint as TP
 newtype Opts = Opts
   { input :: Text
   }
-  deriving (Generic)
+  deriving stock (Generic)
 
 inputFile :: Parser Text
 inputFile =
@@ -48,7 +47,6 @@ main' path = do
 main'' :: Text -> IO ()
 main'' t = do
   let parsed = parseAST t
-  -- either failWithHistory pPrint parsed
 
   let Right ast = parsed
 

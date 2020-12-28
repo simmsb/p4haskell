@@ -4,7 +4,7 @@ cabal-version: 1.18
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 614aea42a181778cfbea5d4e1a1225c1e3bce191fd4acf5fa7db03929be1d90a
+-- hash: daec3d77b6ed90523695cf5466bec803025d183200a1fb61956d140a6a31ad32
 
 name:           p4haskell
 version:        0.0.0
@@ -68,20 +68,15 @@ library
   hs-source-dirs:
       src
   default-extensions: NoImplicitPrelude IncoherentInstances TemplateHaskell RecursiveDo AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
-  ghc-options: -fplugin=Polysemy.Plugin -O2 -fexpose-all-unfoldings -fspecialise-aggressively -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wpartial-fields -fwrite-ide-info -hiedir .hie -haddock
+  ghc-options: -fplugin=Polysemy.Plugin -O2 -fexpose-all-unfoldings -fspecialise-aggressively -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wmissing-deriving-strategies -Wpartial-fields -fwrite-ide-info -hiedir=.hie -Wunused-packages -haddock
   build-depends:
-      PyF
-    , attoparsec >=0.13 && <0.14
+      attoparsec >=0.13 && <0.14
     , base >=4.12 && <5
     , bitvec >=1.0 && <1.1
     , bytestring >=0.10 && <0.11
     , dependent-sum-template >=0.1 && <0.2
-    , df1 >=0.3 && <0.5
-    , di >=1.3 && <1.4
-    , di-polysemy >=0.2 && <0.3
     , extra >=1.7 && <1.8
     , generic-lens >=2 && <2.1
-    , generic-monoid >=0.1 && <0.2
     , generics-sop >=0.5 && <0.6
     , hashable >=1.3 && <1.4
     , language-c99 >=0.1 && <0.2
@@ -93,10 +88,8 @@ library
     , polysemy-plugin >=0.2 && <0.3
     , polysemy-zoo >=0.7 && <0.8
     , pretty
-    , pretty-simple >=3.3 && <3.4
     , relude >=0.7 && <0.8
     , rock >=0.3 && <0.4
-    , semigroupoids
     , some >=1.0 && <1.1
     , text >=1.2 && <1.3
     , unordered-containers >=0.2 && <0.3
@@ -111,20 +104,15 @@ executable p4haskell
   hs-source-dirs:
       app
   default-extensions: NoImplicitPrelude IncoherentInstances TemplateHaskell RecursiveDo AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
-  ghc-options: -fplugin=Polysemy.Plugin -O2 -fexpose-all-unfoldings -fspecialise-aggressively -Wall -threaded -rtsopts -with-rtsopts=-N -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
+  ghc-options: -fplugin=Polysemy.Plugin -O2 -fexpose-all-unfoldings -fspecialise-aggressively -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wmissing-deriving-strategies -Wpartial-fields -fwrite-ide-info -hiedir=.hie -Wunused-packages -haddock
   build-depends:
-      PyF
-    , attoparsec >=0.13 && <0.14
+      attoparsec >=0.13 && <0.14
     , base >=4.12 && <5
     , bitvec >=1.0 && <1.1
     , bytestring >=0.10 && <0.11
     , dependent-sum-template >=0.1 && <0.2
-    , df1 >=0.3 && <0.5
-    , di >=1.3 && <1.4
-    , di-polysemy >=0.2 && <0.3
     , extra >=1.7 && <1.8
     , generic-lens >=2 && <2.1
-    , generic-monoid >=0.1 && <0.2
     , generics-sop >=0.5 && <0.6
     , hashable >=1.3 && <1.4
     , language-c99 >=0.1 && <0.2
@@ -138,10 +126,8 @@ executable p4haskell
     , polysemy-plugin >=0.2 && <0.3
     , polysemy-zoo >=0.7 && <0.8
     , pretty
-    , pretty-simple >=3.3 && <3.4
     , relude >=0.7 && <0.8
     , rock >=0.3 && <0.4
-    , semigroupoids
     , some >=1.0 && <1.1
     , text >=1.2 && <1.3
     , unordered-containers >=0.2 && <0.3
@@ -159,18 +145,13 @@ test-suite p4haskell-test
   default-extensions: NoImplicitPrelude IncoherentInstances TemplateHaskell RecursiveDo AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
   ghc-options: -fplugin=Polysemy.Plugin -Wall -threaded -rtsopts -with-rtsopts=-N -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
   build-depends:
-      PyF
-    , attoparsec >=0.13 && <0.14
+      attoparsec >=0.13 && <0.14
     , base >=4.12 && <5
     , bitvec >=1.0 && <1.1
     , bytestring >=0.10 && <0.11
     , dependent-sum-template >=0.1 && <0.2
-    , df1 >=0.3 && <0.5
-    , di >=1.3 && <1.4
-    , di-polysemy >=0.2 && <0.3
     , extra >=1.7 && <1.8
     , generic-lens >=2 && <2.1
-    , generic-monoid >=0.1 && <0.2
     , generics-sop >=0.5 && <0.6
     , hashable >=1.3 && <1.4
     , language-c99 >=0.1 && <0.2
@@ -183,10 +164,8 @@ test-suite p4haskell-test
     , polysemy-plugin >=0.2 && <0.3
     , polysemy-zoo >=0.7 && <0.8
     , pretty
-    , pretty-simple >=3.3 && <3.4
     , relude >=0.7 && <0.8
     , rock >=0.3 && <0.4
-    , semigroupoids
     , some >=1.0 && <1.1
     , text >=1.2 && <1.3
     , unordered-containers >=0.2 && <0.3

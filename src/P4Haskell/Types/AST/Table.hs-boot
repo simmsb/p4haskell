@@ -1,4 +1,5 @@
 -- |
+
 module P4Haskell.Types.AST.Table
   ( P4Table
   , parseP4Table

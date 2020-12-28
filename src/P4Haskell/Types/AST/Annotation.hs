@@ -27,7 +27,8 @@ data Annotation = Annotation
     expr :: [Expression],
     kv :: MapVec Text NamedExpression
   }
-  deriving (Show, Generic, Eq, Hashable)
+  deriving stock (Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseAnnotations :: DecompressC r => D.Decoder (Sem r) [Annotation]
 parseAnnotations = D.withCursor . tryParseVal $ \c -> do

@@ -20,7 +20,8 @@ import Relude
 newtype ActionList = ActionList
   { actions :: MapVec Text ActionListElement
   }
-  deriving (Show, Generic, Eq, Hashable)
+  deriving stock (Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseActionList :: DecompressC r => D.Decoder (Sem r) ActionList
 parseActionList = D.withCursor . tryParseVal $ \c -> do
@@ -32,7 +33,8 @@ data ActionListElement = ActionListElement
   { annotations :: [Annotation],
     expression :: MethodCallExpression
   }
-  deriving (Show, Generic, Eq, Hashable)
+  deriving stock (Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseActionListElement :: DecompressC r => D.Decoder (Sem r) ActionListElement
 parseActionListElement = D.withCursor . tryParseVal $ \c -> do

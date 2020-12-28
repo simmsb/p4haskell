@@ -18,7 +18,8 @@ data Direction = Direction
   { in_ :: Bool
   , out :: Bool
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseDirection :: Monad m => D.Decoder m Direction
 parseDirection = D.text <&> \case
@@ -33,7 +34,8 @@ data Parameter = Parameter
   , name        :: Text
   , type_       :: P4Type
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseParameter :: DecompressC r => D.Decoder (Sem r) Parameter
 parseParameter = D.withCursor . tryParseVal $ \c -> do

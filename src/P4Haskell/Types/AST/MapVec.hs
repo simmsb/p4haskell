@@ -14,7 +14,8 @@ data MapVec k v = MapVec
   { map :: HashMap k v,
     vec :: [v]
   }
-  deriving (Generic, Eq, Hashable)
+  deriving stock (Generic, Eq)
+  deriving anyclass (Hashable)
 
 instance Show v => Show (MapVec k v) where
   showsPrec i (MapVec _ vec) = showsPrec i vec

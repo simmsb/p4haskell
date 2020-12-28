@@ -32,7 +32,7 @@ data ExternInfo = ExternInfo
     type_ :: C.TypeSpec,
     methods :: HashMap Text ExternMethod
   }
-  deriving (Generic)
+  deriving stock (Generic)
 
 data ExternMethod = ExternMethod
   { name :: Text,

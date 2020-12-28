@@ -20,7 +20,7 @@ data Query a where
   FetchType :: Text -> Query (Maybe AST.P4Type)
   GenerateP4Type :: AST.P4Type -> Query (C.TypeSpec, C.TypeSpec, [(Text, C.TypeSpec)])
 
-deriving instance Show (Query a)
+deriving stock instance Show (Query a)
 
 deriveGEq ''Query
 

@@ -42,7 +42,8 @@ data P4Type
   | TypeList'P4Type TypeList
   | TypeState'P4Type TypeState
   | TypeDontCare'P4Type TypeDontCare
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 p4TypeDecoder :: DecompressC r => D.Decoder (Sem r) P4Type
 p4TypeDecoder = D.withCursor $ \c -> do
@@ -78,7 +79,8 @@ data TypeEnum = TypeEnum
   , annotations :: [Annotation]
   , members     :: MapVec Text DeclarationID
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeEnum :: DecompressC r => D.Decoder (Sem r) TypeEnum
 parseTypeEnum = D.withCursor . tryParseVal $ \c -> do
@@ -93,7 +95,8 @@ data TypeStruct = TypeStruct
   , annotations :: [Annotation]
   , fields      :: MapVec Text StructField
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeStruct :: DecompressC r => D.Decoder (Sem r) TypeStruct
 parseTypeStruct = D.withCursor . tryParseVal $ \c -> do
@@ -108,7 +111,8 @@ data StructField = StructField
   , annotations :: [Annotation]
   , type_ :: P4Type
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseStructField :: DecompressC r => D.Decoder (Sem r) StructField
 parseStructField = D.withCursor . tryParseVal $ \c -> do
@@ -123,7 +127,8 @@ data TypeHeader = TypeHeader
   , annotations :: [Annotation]
   , fields      :: MapVec Text StructField
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeHeader :: DecompressC r => D.Decoder (Sem r) TypeHeader
 parseTypeHeader = D.withCursor . tryParseVal $ \c -> do
@@ -138,7 +143,8 @@ data TypeTypedef = TypeTypedef
   , annotations :: [Annotation]
   , type_       :: P4Type
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeTypedef :: DecompressC r => D.Decoder (Sem r) TypeTypedef
 parseTypeTypedef = D.withCursor . tryParseVal $ \c -> do
@@ -152,7 +158,8 @@ data TypeSpecialized = TypeSpecialized
   { baseType  :: P4Type
   , arguments :: [P4Type]
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeSpecialized :: DecompressC r => D.Decoder (Sem r) TypeSpecialized
 parseTypeSpecialized = D.withCursor . tryParseVal $ \c -> do
@@ -167,7 +174,8 @@ data TypePackage = TypePackage
   , typeParameters    :: MapVec Text TypeVar
   , constructorParams :: MapVec Text Parameter
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypePackage :: DecompressC r => D.Decoder (Sem r) TypePackage
 parseTypePackage = D.withCursor . tryParseVal $ \c -> do
@@ -188,7 +196,8 @@ data TypeControl = TypeControl
   , typeParameters :: MapVec Text TypeVar
   , applyParams    :: MapVec Text Parameter
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeControl :: DecompressC r => D.Decoder (Sem r) TypeControl
 parseTypeControl = D.withCursor . tryParseVal $ \c -> do
@@ -207,43 +216,50 @@ parseTypeControl = D.withCursor . tryParseVal $ \c -> do
 --       which will mean when we have a reference node it will never resolve
 
 data TypeMatchKind = TypeMatchKind
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeMatchKind :: DecompressC r => D.Decoder (Sem r) TypeMatchKind
 parseTypeMatchKind = D.withCursor . tryParseVal $ \_c -> pure TypeMatchKind
 
 data TypeString = TypeString
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeString :: DecompressC r => D.Decoder (Sem r) TypeString
 parseTypeString = D.withCursor . tryParseVal $ \_c -> pure TypeString
 
 data TypeBoolean = TypeBoolean
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeBoolean :: DecompressC r => D.Decoder (Sem r) TypeBoolean
 parseTypeBoolean = D.withCursor . tryParseVal $ \_c -> pure TypeBoolean
 
 data TypeUnknown = TypeUnknown
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeUnknown :: DecompressC r => D.Decoder (Sem r) TypeUnknown
 parseTypeUnknown = D.withCursor . tryParseVal $ \_c -> pure TypeUnknown
 
 data TypeVoid = TypeVoid
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeVoid :: DecompressC r => D.Decoder (Sem r) TypeVoid
 parseTypeVoid = D.withCursor . tryParseVal $ \_c -> pure TypeVoid
 
 data TypeState = TypeState
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeState :: DecompressC r => D.Decoder (Sem r) TypeState
 parseTypeState = D.withCursor . tryParseVal $ \_c -> pure TypeState
 
 data TypeDontCare = TypeDontCare
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeDontCare :: DecompressC r => D.Decoder (Sem r) TypeDontCare
 parseTypeDontCare = D.withCursor . tryParseVal $ \_c -> pure TypeDontCare
@@ -252,7 +268,8 @@ data TypeBits = TypeBits
   { size     :: Int
   , isSigned :: Bool
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeBits :: DecompressC r => D.Decoder (Sem r) TypeBits
 parseTypeBits = D.withCursor . tryParseVal $ \c -> do
@@ -265,7 +282,8 @@ data TypeVar = TypeVar
   { name   :: Text
   , declID :: Int
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeVar :: DecompressC r => D.Decoder (Sem r) TypeVar
 parseTypeVar = D.withCursor . tryParseVal $ \c -> do
@@ -278,7 +296,8 @@ data TypeAction = TypeAction
   { typeParameters :: MapVec Text TypeVar
   , parameters     :: MapVec Text Parameter
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeAction :: DecompressC r => D.Decoder (Sem r) TypeAction
 parseTypeAction = D.withCursor . tryParseVal $ \c -> do
@@ -294,7 +313,8 @@ parseTypeAction = D.withCursor . tryParseVal $ \c -> do
 newtype TypeName = TypeName
   { path :: Path
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeName :: DecompressC r => D.Decoder (Sem r) TypeName
 parseTypeName = D.withCursor . tryParseVal $ \c -> do
@@ -307,7 +327,8 @@ data TypeParser = TypeParser
   , typeParameters :: MapVec Text TypeVar
   , applyParams    :: MapVec Text Parameter
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeParser :: DecompressC r => D.Decoder (Sem r) TypeParser
 parseTypeParser = D.withCursor . tryParseVal $ \c -> do
@@ -327,7 +348,8 @@ data TypeMethod = TypeMethod
   , parameters     :: MapVec Text Parameter
   , returnType     :: Maybe P4Type
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeMethod :: DecompressC r => D.Decoder (Sem r) TypeMethod
 parseTypeMethod = D.withCursor . tryParseVal $ \c -> do
@@ -350,7 +372,8 @@ data TypeExtern = TypeExtern
   , name           :: Text
   --, attributes     :: MapVec Text Attribute
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeExtern :: DecompressC r => D.Decoder (Sem r) TypeExtern
 parseTypeExtern = D.withCursor . tryParseVal $ \c -> do
@@ -369,7 +392,8 @@ data TypeError = TypeError
   , name    :: Text
   , declID  :: Int
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeError :: DecompressC r => D.Decoder (Sem r) TypeError
 parseTypeError = D.withCursor . tryParseVal $ \c -> do
@@ -382,7 +406,8 @@ parseTypeError = D.withCursor . tryParseVal $ \c -> do
 newtype TypeActionEnum = TypeActionEnum
   { actionList :: ActionList
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeActionEnum :: DecompressC r => D.Decoder (Sem r) TypeActionEnum
 parseTypeActionEnum = D.withCursor . tryParseVal $ \c -> do
@@ -393,7 +418,8 @@ parseTypeActionEnum = D.withCursor . tryParseVal $ \c -> do
 newtype TypeTable = TypeTable
   { table :: P4Table
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeTable :: DecompressC r => D.Decoder (Sem r) TypeTable
 parseTypeTable = D.withCursor . tryParseVal $ \c -> do
@@ -404,7 +430,8 @@ parseTypeTable = D.withCursor . tryParseVal $ \c -> do
 newtype TypeList = TypeList
   { types :: [P4Type]
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseTypeList :: DecompressC r => D.Decoder (Sem r) TypeList
 parseTypeList = D.withCursor . tryParseVal $ \c -> do

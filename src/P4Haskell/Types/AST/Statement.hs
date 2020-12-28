@@ -18,7 +18,8 @@ data Statement
   | AssignmentStatement'Statement AssignmentStatement
   | DeclarationVariable'Statement DeclarationVariable
   | IfStatement'Statement IfStatement
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 statementDecoderInner :: DecompressC r => D.JCurs -> D.DecodeResult (Sem r) (Maybe Statement)
 statementDecoderInner c = do
@@ -43,7 +44,8 @@ statementDecoder = D.withCursor $ \c -> do
 newtype MethodCallStatement = MethodCallStatement
   { methodCall :: MethodCallExpression
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseMethodCallStatement :: DecompressC r => D.Decoder (Sem r) MethodCallStatement
 parseMethodCallStatement = D.withCursor . tryParseVal $ \c -> do
@@ -55,7 +57,8 @@ data AssignmentStatement = AssignmentStatement
   { left  :: Expression
   , right :: Expression
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseAssignmentStatement :: DecompressC r => D.Decoder (Sem r) AssignmentStatement
 parseAssignmentStatement = D.withCursor . tryParseVal $ \c -> do
@@ -70,7 +73,8 @@ data DeclarationVariable = DeclarationVariable
   , type_ :: P4Type
   , initializer :: Maybe Expression
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseDeclarationVariable :: DecompressC r => D.Decoder (Sem r) DeclarationVariable
 parseDeclarationVariable = D.withCursor . tryParseVal $ \c -> do
@@ -86,7 +90,8 @@ data IfStatement = IfStatement
   , ifTrue    :: Statement
   , ifFalse   :: Maybe Statement
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseIfStatement :: DecompressC r => D.Decoder (Sem r) IfStatement
 parseIfStatement = D.withCursor . tryParseVal $ \c -> do
@@ -100,7 +105,8 @@ data BlockStatement = BlockStatement
   { annotations :: [Annotation]
   , components  :: [Statement]
   }
-  deriving ( Show, Generic, Eq, Hashable )
+  deriving stock ( Show, Generic, Eq)
+  deriving anyclass ( Hashable )
 
 parseBlockStatement :: DecompressC r => D.Decoder (Sem r) BlockStatement
 parseBlockStatement = D.withCursor . tryParseVal $ \c -> do
@@ -112,7 +118,8 @@ parseBlockStatement = D.withCursor . tryParseVal $ \c -> do
 -- data StatOrDecl
 --   = DeclarationVariable'StatOrDecl DeclarationVariable
 --   | Statement'StatOrDecl Statement
---   deriving ( Show, Generic, Eq, Hashable )
+--   deriving stock ( Show, Generic, Eq)
+--   deriving anyclass ( Hashable )
 
 -- statOrDeclDecoder :: DecompressC r => D.Decoder (Sem r) StatOrDecl
 -- statOrDeclDecoder = D.withCursor $ \c -> do
