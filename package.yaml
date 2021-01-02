@@ -132,6 +132,7 @@ tests:
       - p4haskell
 
 default-extensions:
+  - StrictData
   - NoImplicitPrelude # remove when stack/5077 is ok
   - IncoherentInstances
   - TemplateHaskell
