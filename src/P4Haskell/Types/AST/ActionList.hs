@@ -1,10 +1,9 @@
-module P4Haskell.Types.AST.ActionList
-  ( ActionList (..),
-    ActionListElement (..),
-    parseActionList,
-    parseActionListElement,
-  )
-where
+module P4Haskell.Types.AST.ActionList (
+  ActionList (..),
+  ActionListElement (..),
+  parseActionList,
+  parseActionListElement,
+) where
 
 import Control.Lens
 import Data.Generics.Sum.Typed
@@ -14,14 +13,14 @@ import P4Haskell.Types.AST.DecompressJSON
 import P4Haskell.Types.AST.Expression
 import P4Haskell.Types.AST.MapVec
 import Polysemy
-import qualified Waargonaut.Decode as D
 import Relude
+import qualified Waargonaut.Decode as D
 
 newtype ActionList = ActionList
   { actions :: MapVec Text ActionListElement
   }
   deriving stock (Show, Generic, Eq)
-  deriving anyclass ( Hashable )
+  deriving anyclass (Hashable)
 
 parseActionList :: DecompressC r => D.Decoder (Sem r) ActionList
 parseActionList = D.withCursor . tryParseVal $ \c -> do
@@ -30,11 +29,11 @@ parseActionList = D.withCursor . tryParseVal $ \c -> do
   pure $ ActionList elems
 
 data ActionListElement = ActionListElement
-  { annotations :: [Annotation],
-    expression :: MethodCallExpression
+  { annotations :: [Annotation]
+  , expression :: MethodCallExpression
   }
   deriving stock (Show, Generic, Eq)
-  deriving anyclass ( Hashable )
+  deriving anyclass (Hashable)
 
 parseActionListElement :: DecompressC r => D.Decoder (Sem r) ActionListElement
 parseActionListElement = D.withCursor . tryParseVal $ \c -> do

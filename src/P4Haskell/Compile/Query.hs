@@ -1,8 +1,7 @@
 -- | Queries
-module P4Haskell.Compile.Query
-  ( Query (..),
-  )
-where
+module P4Haskell.Compile.Query (
+  Query (..),
+) where
 
 import Data.GADT.Compare.TH (deriveGEq)
 import Data.Hashable
@@ -34,11 +33,11 @@ instance Hashable (Query a) where
       GetTopLevelMatchKind -> h 4 ()
       FetchType t -> h 5 t
       GenerateP4Type t -> h 6 t
-    where
-      {-# INLINE h #-}
-      h :: forall h. Hashable h => Int -> h -> Int
-      h tag payload =
-        hashWithSalt salt (tag, payload)
+   where
+    {-# INLINE h #-}
+    h :: forall h. Hashable h => Int -> h -> Int
+    h tag payload =
+      hashWithSalt salt (tag, payload)
 
 instance Hashable (Some Query) where
   {-# INLINE hash #-}

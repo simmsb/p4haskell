@@ -1,12 +1,11 @@
 -- |
-module P4Haskell.Compile.Codegen.Typegen
-  ( generateP4Type,
-    generateP4TypePure,
-    resolveType,
-    simplifyType,
-    resolveP4Type,
-  )
-where
+module P4Haskell.Compile.Codegen.Typegen (
+  generateP4Type,
+  generateP4TypePure,
+  resolveType,
+  simplifyType,
+  resolveP4Type,
+) where
 
 import Control.Lens
 import qualified Control.Monad.Writer.Strict as SW
@@ -55,8 +54,8 @@ simplifyType' (C.Volatile t) = C.Volatile <$> simplifyType' t
 
 simplifyType :: CompC r => C.TypeSpec -> P.Sem r C.TypeSpec
 simplifyType (C.StructDecln (Just name) fields) = do
-  fields' <- forM fields (\(C.FieldDecln t i) ->
-                            flip C.FieldDecln i <$> simplifyType' t)
+  fields' <-
+    mapM (\(C.FieldDecln t i) -> flip C.FieldDecln i <$> simplifyType' t) fields
   P.modify (<> declareType (toText name) (C.StructDecln (Just name) fields'))
   pure $ C.Struct name
 simplifyType t@(C.UnionDecln (Just name) _) = do
@@ -96,9 +95,9 @@ generateP4ExternPure e =
   pure
     let ty = getExternType $ e ^. #name
      in (extractInfo ty, ty, [])
-  where
-    extractInfo (C.StructDecln (Just name) _) = C.Struct name
-    extractInfo x = x
+ where
+  extractInfo (C.StructDecln (Just name) _) = C.Struct name
+  extractInfo x = x
 
 generateP4VoidPure :: Rock.MonadFetch Query m => AST.TypeVoid -> m (C.TypeSpec, C.TypeSpec, [(Text, C.TypeSpec)])
 generateP4VoidPure _ = pure $ dupFst (C.Void, [])
@@ -124,8 +123,8 @@ stringStruct =
   C.StructDecln
     (Just "p4string")
     ( fromList
-        [ C.FieldDecln (C.Const . C.Ptr . C.Const $ C.TypeSpec C.Char) "str",
-          C.FieldDecln (C.Const . C.TypeSpec $ C.TypedefName "size_t") "len"
+        [ C.FieldDecln (C.Const . C.Ptr . C.Const $ C.TypeSpec C.Char) "str"
+        , C.FieldDecln (C.Const . C.TypeSpec $ C.TypedefName "size_t") "len"
         ]
     )
 
@@ -153,8 +152,8 @@ generateP4StructPure s = do
             pure $ C.FieldDecln (C.TypeSpec ty) (toString $ f ^. #name)
         )
   let ident = toString $ s ^. #name
-  let struct = C.StructDecln (Just ident) (fromMaybe (nullField :| []) $ nonEmpty fields')
-  let deps' = (s ^. #name, struct) : deps
+      struct = C.StructDecln (Just ident) (fromMaybe (nullField :| []) $ nonEmpty fields')
+      deps' = (s ^. #name, struct) : deps
   pure (C.Struct ident, struct, deps')
 
 generateP4HeaderPure :: Rock.MonadFetch Query m => AST.TypeHeader -> m (C.TypeSpec, C.TypeSpec, [(Text, C.TypeSpec)])
@@ -170,9 +169,9 @@ generateP4HeaderPure h = do
             pure $ C.FieldDecln (C.TypeSpec ty) (toString $ f ^. #name)
         )
   let ident = toString $ h ^. #name
-  let validField = C.FieldDecln (C.TypeSpec C.Bool) "valid"
-  let struct = C.StructDecln (Just ident) (validField :| fields')
-  let deps' = ((h ^. #name, struct) : deps)
+      validField = C.FieldDecln (C.TypeSpec C.Bool) "valid"
+      struct = C.StructDecln (Just ident) (validField :| fields')
+      deps' = (h ^. #name, struct) : deps
   pure (C.Struct ident, struct, deps')
 
 -- generateP4ActionEnumPure :: Rock.MonadFetch Query m => AST.TypeActionEnum -> m (C.TypeSpec, C.TypeSpec, [(Text, C.TypeSpec)])

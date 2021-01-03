@@ -1,8 +1,7 @@
 -- |
-module P4Haskell.Compile.Rules
-  ( rules,
-  )
-where
+module P4Haskell.Compile.Rules (
+  rules,
+) where
 
 import Control.Lens
 import Data.Generics.Sum

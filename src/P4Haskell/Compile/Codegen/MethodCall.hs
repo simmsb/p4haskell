@@ -1,9 +1,8 @@
 -- |
-module P4Haskell.Compile.Codegen.MethodCall
-  ( generateCall,
-    generateCall',
-  )
-where
+module P4Haskell.Compile.Codegen.MethodCall (
+  generateCall,
+  generateCall',
+) where
 
 import Control.Lens
 import qualified Language.C99.Simple as C
@@ -35,8 +34,8 @@ processParam' (asRef, paramTy, e) = do
     then do
       tmpName <- generateTempVar
       P.tell
-        [ C.Decln $ C.VarDecln Nothing (C.Ptr paramTy) varName (Just . C.InitExpr $ C.ref expr),
-          C.Decln $ C.VarDecln Nothing paramTy tmpName (Just . C.InitExpr . C.deref $ C.Ident varName)
+        [ C.Decln $ C.VarDecln Nothing (C.Ptr paramTy) varName (Just . C.InitExpr $ C.ref expr)
+        , C.Decln $ C.VarDecln Nothing paramTy tmpName (Just . C.InitExpr . C.deref $ C.Ident varName)
         ]
       let afterOp = C.Expr $ C.AssignOp C.Assign (C.deref . C.Ident $ varName) (C.Ident tmpName)
       pure (C.ref . C.Ident $ tmpName, Just afterOp)

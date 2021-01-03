@@ -1,8 +1,7 @@
 -- |
-module P4Haskell.Compile.Codegen.Statement
-  ( generateStatements,
-  )
-where
+module P4Haskell.Compile.Codegen.Statement (
+  generateStatements,
+) where
 
 import Control.Lens
 import Data.Text.Lens (unpacked)
@@ -24,11 +23,11 @@ generateStatements _ = pure []
 generateStatement :: CompC r => AST.Statement -> P.Sem r [C.BlockItem] -> P.Sem r [C.BlockItem]
 generateStatement (AST.DeclarationVariable'Statement dv) = generateDV dv
 generateStatement n = liftA2 (<>) (generateStatementInner n)
-  where
-    generateStatementInner (AST.AssignmentStatement'Statement as) = generateAS as
-    generateStatementInner (AST.IfStatement'Statement is) = generateIS is
-    generateStatementInner (AST.MethodCallStatement'Statement ms) = generateMS ms
-    generateStatementInner _ = error "unreachable"
+ where
+  generateStatementInner (AST.AssignmentStatement'Statement as) = generateAS as
+  generateStatementInner (AST.IfStatement'Statement is) = generateIS is
+  generateStatementInner (AST.MethodCallStatement'Statement ms) = generateMS ms
+  generateStatementInner _ = error "unreachable"
 
 generateDV :: CompC r => AST.DeclarationVariable -> P.Sem r [C.BlockItem] -> P.Sem r [C.BlockItem]
 generateDV dv rM = do

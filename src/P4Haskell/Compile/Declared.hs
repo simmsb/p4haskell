@@ -1,13 +1,12 @@
 -- | Things that are declared while compiling
-module P4Haskell.Compile.Declared
-  ( Declared (..),
-    declareType,
-    getType,
-    defineFunc,
-    defineStatic,
-    exportDeclared,
-  )
-where
+module P4Haskell.Compile.Declared (
+  Declared (..),
+  declareType,
+  getType,
+  defineFunc,
+  defineStatic,
+  exportDeclared,
+) where
 
 import Control.Lens
 import Data.Generics.Labels ()
@@ -16,9 +15,9 @@ import qualified Language.C99.Simple as C
 import Relude
 
 data Declared = Declared
-  { declaredTypes :: O.OMap Text C.TypeSpec,
-    declaredFuncs :: O.OMap Text C.FunDef,
-    declaredStatics :: O.OMap Text C.Decln
+  { declaredTypes :: O.OMap Text C.TypeSpec
+  , declaredFuncs :: O.OMap Text C.FunDef
+  , declaredStatics :: O.OMap Text C.Decln
   }
   deriving stock (Generic)
 

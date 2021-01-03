@@ -1,12 +1,11 @@
 -- | Some monad to operate in while compiling
-module P4Haskell.Compile.Fetch
-  ( Fetch (..),
-    fetch,
-    embedTask,
-    runFetchToTask,
-    runFetchToIO,
-  )
-where
+module P4Haskell.Compile.Fetch (
+  Fetch (..),
+  fetch,
+  embedTask,
+  runFetchToTask,
+  runFetchToIO,
+) where
 
 import Polysemy
 import Polysemy.Embed (runEmbedded)

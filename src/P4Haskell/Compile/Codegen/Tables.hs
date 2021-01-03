@@ -1,8 +1,7 @@
 -- |
-module P4Haskell.Compile.Codegen.Tables
-  ( generateTableCall,
-  )
-where
+module P4Haskell.Compile.Codegen.Tables (
+  generateTableCall,
+) where
 
 import Control.Lens
 import Data.Bit
@@ -62,9 +61,9 @@ matchTreeNodeType =
   C.StructDecln
     (Just "match_tree_node")
     ( fromList
-        [ C.FieldDecln (C.TypeSpec $ C.TypedefName "uint16_t") "param_idx",
-          C.FieldDecln (C.TypeSpec $ C.TypedefName "uint16_t") "action_idx",
-          C.FieldDecln (C.Array (C.TypeSpec $ C.TypedefName "int16_t") (Just . C.LitInt $ 2 ^ bitsPerLevel @Int)) "offsets"
+        [ C.FieldDecln (C.TypeSpec $ C.TypedefName "uint16_t") "param_idx"
+        , C.FieldDecln (C.TypeSpec $ C.TypedefName "uint16_t") "action_idx"
+        , C.FieldDecln (C.Array (C.TypeSpec $ C.TypedefName "int16_t") (Just . C.LitInt $ 2 ^ bitsPerLevel @Int)) "offsets"
         ]
     )
 
@@ -73,9 +72,9 @@ makeNode actionIdx paramIdx offsets =
   C.InitVal
     (C.TypeName . C.TypeSpec . C.Struct $ "match_tree_node")
     ( fromList
-        [ C.InitItem (Just "param_idx") (C.InitExpr $ C.LitInt paramIdx),
-          C.InitItem (Just "action_idx") (C.InitExpr $ C.LitInt actionIdx),
-          C.InitItem
+        [ C.InitItem (Just "param_idx") (C.InitExpr $ C.LitInt paramIdx)
+        , C.InitItem (Just "action_idx") (C.InitExpr $ C.LitInt actionIdx)
+        , C.InitItem
             (Just "offsets")
             ( C.InitMultiple . fromList . reverse $
                 map (C.InitItem Nothing . C.InitExpr . C.LitInt) offsets
@@ -108,16 +107,16 @@ lastN n xs = drop (length xs - n) xs
 
 generateBitChunks :: [(Int, TableMatchKind)] -> AST.TableEntry -> [BitChunk]
 generateBitChunks meta (AST.TableEntry keys _ _) = concatMap (uncurry inner) (zip keys meta)
-  where
-    inner (AST.Constant'SelectKey (AST.Constant _ v _)) (width, _matchKind) =
-      let vec = fromIntegral @_ @Word v & V.singleton & castFromWords & V.reverse
-          chunks =
-            map (V.head . cloneToWords8 . V.reverse)
-              . lastN (cielDiv width bitsPerLevel)
-              $ chunkVec bitsPerLevel vec
-       in map (BitChunk . fromIntegral) chunks
-    inner (AST.Default'SelectKey (AST.DefaultExpression _)) (width, _matchKind) =
-      replicate (cielDiv width bitsPerLevel) AcceptAll
+ where
+  inner (AST.Constant'SelectKey (AST.Constant _ v _)) (width, _matchKind) =
+    let vec = fromIntegral @_ @Word v & V.singleton & castFromWords & V.reverse
+        chunks =
+          map (V.head . cloneToWords8 . V.reverse)
+            . lastN (cielDiv width bitsPerLevel)
+            $ chunkVec bitsPerLevel vec
+     in map (BitChunk . fromIntegral) chunks
+  inner (AST.Default'SelectKey (AST.DefaultExpression _)) (width, _matchKind) =
+    replicate (cielDiv width bitsPerLevel) AcceptAll
 
 data ChunkTrie
   = ChunkTrieLeaf (Int, Int)
@@ -163,13 +162,13 @@ nameNode n = do
 
 makeTrieTail :: TrieBuildC r => [BitChunk] -> (Int, Int) -> P.Sem r ChunkTrie
 makeTrieTail cs v = foldrM go (ChunkTrieLeaf v) cs
-  where
-    go (BitChunk bp) n =
-      nameNode n
-        <&> \(nid, _) -> ChunkTrieNode (emptyTrieNode & ix bp ?~ nid)
-    go AcceptAll n =
-      nameNode n
-        <&> \(nid, _) -> ChunkTrieNode (emptyTrieNode $> Just nid)
+ where
+  go (BitChunk bp) n =
+    nameNode n
+      <&> \(nid, _) -> ChunkTrieNode (emptyTrieNode & ix bp ?~ nid)
+  go AcceptAll n =
+    nameNode n
+      <&> \(nid, _) -> ChunkTrieNode (emptyTrieNode $> Just nid)
 
 isEmptyAt :: Int -> [Maybe a] -> Bool
 isEmptyAt n l = isNothing (l !! n)
@@ -187,14 +186,14 @@ addEntry (AcceptAll : cs) v (ChunkTrieNode xs) = do
   (tid, _) <- nameNode =<< makeTrieTail cs v
   xs' <- mapM ((Just <$>) . maybe (pure tid) insertOverlapping) xs
   pure $ ChunkTrieNode xs'
-  where
-    insertOverlapping :: TrieBuildC r => Int -> P.Sem r Int
-    insertOverlapping nid = do
-      n <- P.gets @(HashMap Int ChunkTrie) (^?! ix nid)
-      when (isNode n) do
-        n' <- addEntry cs v n
-        P.modify @(HashMap Int ChunkTrie) (at nid ?~ n')
-      pure nid
+ where
+  insertOverlapping :: TrieBuildC r => Int -> P.Sem r Int
+  insertOverlapping nid = do
+    n <- P.gets @(HashMap Int ChunkTrie) (^?! ix nid)
+    when (isNode n) do
+      n' <- addEntry cs v n
+      P.modify @(HashMap Int ChunkTrie) (at nid ?~ n')
+    pure nid
 addEntry bp v n = error $ "failed to insert entry into search trie: bp=" <> show bp <> ", v=" <> show v <> ", n=" <> show n
 
 -- logState :: (Show s, P.Member (P.State s) r) => P.Sem r a -> P.Sem r a
@@ -242,38 +241,38 @@ generateBitDriverFor :: CompC r => C.TypeSpec -> Int -> P.Sem r C.Expr
 generateBitDriverFor ty width = do
   treeNodeTy <- simplifyType matchTreeNodeType
   let params =
-        [ C.Param (C.Ptr . C.TypeSpec $ treeNodeTy) "node",
-          C.Param (C.TypeSpec ty) "value"
+        [ C.Param (C.Ptr . C.TypeSpec $ treeNodeTy) "node"
+        , C.Param (C.TypeSpec ty) "value"
         ]
   P.modify (<> defineFunc name (C.Ptr . C.TypeSpec $ treeNodeTy) params body)
   pure . C.Ident $ toString name
-  where
-    chunks = cielDiv width bitsPerLevel
-    totalBits = chunks * bitsPerLevel
-    idx = C.Ident "idx"
-    node = C.Ident "node"
-    name = "table_trie_driver_w" <> show chunks
-    body =
-      [ C.Decln $ C.VarDecln Nothing (C.TypeSpec $ C.TypedefName "size_t") "idx" Nothing,
-        C.Stmt $
-          C.For
-            (idx C..= C.LitInt 0)
-            (idx C..< C.LitInt (fromIntegral chunks))
-            ((C..++) idx)
-            [ C.Stmt $ C.Expr (node C..+= C.Index (C.Arrow node "offsets") (selectChunk (C.Ident "value") (fromIntegral totalBits) idx))
-            ],
-        C.Stmt $ C.Return (Just node)
-      ]
+ where
+  chunks = cielDiv width bitsPerLevel
+  totalBits = chunks * bitsPerLevel
+  idx = C.Ident "idx"
+  node = C.Ident "node"
+  name = "table_trie_driver_w" <> show chunks
+  body =
+    [ C.Decln $ C.VarDecln Nothing (C.TypeSpec $ C.TypedefName "size_t") "idx" Nothing
+    , C.Stmt $
+        C.For
+          (idx C..= C.LitInt 0)
+          (idx C..< C.LitInt (fromIntegral chunks))
+          ((C..++) idx)
+          [ C.Stmt $ C.Expr (node C..+= C.Index (C.Arrow node "offsets") (selectChunk (C.Ident "value") (fromIntegral totalBits) idx))
+          ]
+    , C.Stmt $ C.Return (Just node)
+    ]
 
 -- generate action options: the action name and required parameters
 -- generate structs and union with the required parameters
 
 data ProcessedAction = ProcessedAction
-  { id :: Int,
-    nExtraParams :: Int,
-    variantName :: Text,
-    paramCtor :: [C.Expr] -> C.Expr,
-    actionCode :: [C.BlockItem]
+  { id :: Int
+  , nExtraParams :: Int
+  , variantName :: Text
+  , paramCtor :: [C.Expr] -> C.Expr
+  , actionCode :: [C.BlockItem]
   }
   deriving stock (Generic)
 
@@ -301,12 +300,12 @@ generateActions t argsTable argsIndex = do
       <$> mapM
         ( \(a, i) -> do
             let name = a ^?! #expression . #method . _Typed @AST.PathExpression . #path . #name
-            let args = a ^. #expression . #arguments
+                args = a ^. #expression . #arguments
             action' <- fromJust <$> P.asks (findActionInScope name)
             let nExtraParams = length (action' ^. #parameters . #vec) - length args
-            let runtimeParams = drop (length args) (action' ^. #parameters . #vec)
-            let runtimeParamNames = runtimeParams ^.. traverse . #name
-            let variantName = "arg_table_" <> (t ^. #name) <> "_" <> name
+                runtimeParams = drop (length args) (action' ^. #parameters . #vec)
+                runtimeParamNames = runtimeParams ^.. traverse . #name
+                variantName = "arg_table_" <> (t ^. #name) <> "_" <> name
             ty <- simplifyType =<< structForRuntimeParams variantName runtimeParams
             let ctor params =
                   C.InitVal (C.TypeName . C.TypeSpec $ ty)
@@ -327,14 +326,13 @@ generateActions t argsTable argsIndex = do
                           $ AST.Path False (toText temp)
                     )
                     $ zip runtimeParams extraVars
-
-            let patchedExpr = (a ^. #expression) & #arguments <>~ extraVarExprs
+                patchedExpr = (a ^. #expression) & #arguments <>~ extraVarExprs
 
             extraVars' <-
               mapM
                 ( \(p, temp) -> do
-                    (ty, _) <- generateP4Type $ p ^. #type_
-                    makeVar (toText temp) (C.TypeSpec ty) (p ^. #type_) False
+                    (vty, _) <- generateP4Type $ p ^. #type_
+                    makeVar (toText temp) (C.TypeSpec vty) (p ^. #type_) False
                 )
                 $ zip runtimeParams extraVars
 
@@ -343,11 +341,11 @@ generateActions t argsTable argsIndex = do
             extraVarDecls <-
               mapM
                 ( \(p, temp) -> do
-                    (ty, _) <- generateP4Type $ p ^. #type_
+                    (vty, _) <- generateP4Type $ p ^. #type_
                     pure . C.Decln $
                       C.VarDecln
                         Nothing
-                        (C.TypeSpec ty)
+                        (C.TypeSpec vty)
                         temp
                         ( Just $
                             C.InitExpr
@@ -399,10 +397,10 @@ generateParamTable actions ty exprs =
 
 replaceActionRun :: AST.MapVec Text AST.StructField -> AST.MapVec Text AST.StructField
 replaceActionRun = fmap inner
-  where
-    inner :: AST.StructField -> AST.StructField
-    inner (AST.StructField "action_run" a _) = AST.StructField "action_run" a (AST.TypeBits'P4Type $ AST.TypeBits 8 False)
-    inner x = x
+ where
+  inner :: AST.StructField -> AST.StructField
+  inner (AST.StructField "action_run" a _) = AST.StructField "action_run" a (AST.TypeBits'P4Type $ AST.TypeBits 8 False)
+  inner x = x
 
 -- set the default action to have and ID of zeroy
 fixDefaultAction :: Maybe AST.MethodCallExpression -> HashMap Text ProcessedAction -> HashMap Text ProcessedAction
@@ -426,7 +424,7 @@ generateTableCall (AST.TypeTable table) rty = do
   (processedActions, paramUnion) <- generateActions table (C.Ident . toString $ argsTableName) (C.Arrow nodeVar "param_idx")
 
   let processedActions' = fixDefaultAction (table ^. #defaultAction) processedActions
-  let paramTable = generateParamTable processedActions' paramUnion (entries ^.. traverse . #action)
+      paramTable = generateParamTable processedActions' paramUnion (entries ^.. traverse . #action)
 
   P.modify . flip (<>) $
     defineStatic
@@ -478,8 +476,8 @@ generateTableCall (AST.TypeTable table) rty = do
     C.InitVal
       (C.TypeName $ C.TypeSpec rty'')
       ( fromList
-          [ C.InitItem (Just "hit") (C.InitExpr isHitVar),
-            C.InitItem (Just "miss") (C.InitExpr $ C.UnaryOp C.Not isHitVar),
-            C.InitItem (Just "action_run") (C.InitExpr $ C.Arrow nodeVar "action_idx")
+          [ C.InitItem (Just "hit") (C.InitExpr isHitVar)
+          , C.InitItem (Just "miss") (C.InitExpr $ C.UnaryOp C.Not isHitVar)
+          , C.InitItem (Just "action_run") (C.InitExpr $ C.Arrow nodeVar "action_idx")
           ]
       )

@@ -1,9 +1,9 @@
--- | A list and a map in one, stuff like ordered maps don't have nice interop so
--- I'll use this
-module P4Haskell.Types.AST.MapVec
-  ( MapVec (..),
-  )
-where
+{- | A list and a map in one, stuff like ordered maps don't have nice interop so
+ I'll use this
+-}
+module P4Haskell.Types.AST.MapVec (
+  MapVec (..),
+) where
 
 import Control.Lens
 import Data.Generics.Labels ()
@@ -11,8 +11,8 @@ import Relude
 import Text.Show
 
 data MapVec k v = MapVec
-  { map :: HashMap k v,
-    vec :: [v]
+  { map :: HashMap k v
+  , vec :: [v]
   }
   deriving stock (Generic, Eq)
   deriving anyclass (Hashable)

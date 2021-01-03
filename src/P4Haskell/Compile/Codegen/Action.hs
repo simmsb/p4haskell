@@ -1,9 +1,8 @@
 -- |
-module P4Haskell.Compile.Codegen.Action
-  ( LiftedAction (..),
-    liftAction,
-  )
-where
+module P4Haskell.Compile.Codegen.Action (
+  LiftedAction (..),
+  liftAction,
+) where
 
 import Control.Lens
 import qualified Data.HashMap.Lazy as LH
@@ -21,10 +20,10 @@ import qualified Polysemy.State as P
 import Relude
 
 data LiftedAction = LiftedAction
-  { nameExpr :: C.Expr,
-    liftedParams :: [AST.Parameter],
-    liftedParamExprs :: [AST.Expression],
-    originalParams :: [AST.Parameter]
+  { nameExpr :: C.Expr
+  , liftedParams :: [AST.Parameter]
+  , liftedParamExprs :: [AST.Expression]
+  , originalParams :: [AST.Parameter]
   }
   deriving stock (Generic)
 
@@ -32,26 +31,26 @@ interceptUnknownVars :: CompC r => P.Sem r a -> P.Sem r (Scope, a)
 interceptUnknownVars m = do
   parentScope <- P.ask
   P.runState emptyScope . P.intercept @ScopeLookup (inner parentScope) . P.raise . P.local (const emptyScope) $ m
-  where
-    inner :: (CompC r, P.Member (P.State Scope) r) => forall m x. Scope -> ScopeLookup m x -> P.Sem r x
-    inner parentScope (LookupVarInScope name p4ty) = do
-      val <- P.asks $ findVarInScope name
-      case val of
-        Just v -> pure (Just v)
-        Nothing -> do
-          val' <- P.gets $ findVarInScope name
-          case val' of
-            Just v -> pure (Just v)
-            Nothing -> do
-              case findVarInScope name parentScope of
-                Just _ -> do
-                  (ty, _) <- generateP4Type p4ty
-                  var <- makeVar name (C.TypeSpec ty) p4ty True
-                  P.modify $ addVarToScope var
-                  pure (Just var)
-                Nothing -> pure Nothing
-    inner _ (LookupActionInScope n) = lookupActionInScope n
-    inner _ FetchParserStateInfoInScope = fetchParserStateInfoInScope
+ where
+  inner :: (CompC r, P.Member (P.State Scope) r) => forall m x. Scope -> ScopeLookup m x -> P.Sem r x
+  inner parentScope (LookupVarInScope name p4ty) = do
+    val <- P.asks $ findVarInScope name
+    case val of
+      Just v -> pure (Just v)
+      Nothing -> do
+        val' <- P.gets $ findVarInScope name
+        case val' of
+          Just v -> pure (Just v)
+          Nothing -> do
+            case findVarInScope name parentScope of
+              Just _ -> do
+                (ty, _) <- generateP4Type p4ty
+                var <- makeVar name (C.TypeSpec ty) p4ty True
+                P.modify $ addVarToScope var
+                pure (Just var)
+              Nothing -> pure Nothing
+  inner _ (LookupActionInScope n) = lookupActionInScope n
+  inner _ FetchParserStateInfoInScope = fetchParserStateInfoInScope
 
 generateActionParams :: CompC r => AST.P4Action -> P.Sem r ([C.Param], [Var])
 generateActionParams a =
@@ -78,9 +77,9 @@ liftAction action = do
         unzip3 $
           map
             ( \v ->
-                ( C.Param (C.Ptr $ v ^. #varType) (toString $ v ^. #varOriginalName),
-                  AST.Parameter [] (AST.Direction True True) (v ^. #varOriginalName) (v ^. #varP4Type),
-                  AST.PathExpression'Expression $ AST.PathExpression (v ^. #varP4Type) (AST.Path False $ v ^. #varOriginalName)
+                ( C.Param (C.Ptr $ v ^. #varType) (toString $ v ^. #varOriginalName)
+                , AST.Parameter [] (AST.Direction True True) (v ^. #varOriginalName) (v ^. #varP4Type)
+                , AST.PathExpression'Expression $ AST.PathExpression (v ^. #varP4Type) (AST.Path False $ v ^. #varOriginalName)
                 )
             )
             (LH.elems $ extraVars ^. #scopeVarBindings)

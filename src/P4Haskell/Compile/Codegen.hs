@@ -1,9 +1,8 @@
 -- |
-module P4Haskell.Compile.Codegen
-  ( generateMain,
-    generateControl,
-  )
-where
+module P4Haskell.Compile.Codegen (
+  generateMain,
+  generateControl,
+) where
 
 import Control.Lens
 import Data.Generics.Sum
@@ -56,9 +55,9 @@ generateMain = do
     defineFunc
       "process"
       (C.TypeSpec C.Void)
-      [ C.Param (C.Ptr . C.Ptr . C.TypeSpec $ C.Char) "pkts",
-        C.Param (C.Ptr u64) "lengths",
-        C.Param u64 "pkt_count"
+      [ C.Param (C.Ptr . C.Ptr . C.TypeSpec $ C.Char) "pkts"
+      , C.Param (C.Ptr u64) "lengths"
+      , C.Param u64 "pkt_count"
       ]
       [ C.Decln $
           C.VarDecln
@@ -69,9 +68,9 @@ generateMain = do
                 (C.Ident "blockIdx" `C.Dot` "x")
                   C..* (C.Ident "blockDim" `C.Dot` "x")
                   C..+ (C.Ident "threadIdx" `C.Dot` "x")
-            ),
-        C.Stmt $ C.If (C.Ident "i" C..>= C.Ident "pkt_count") [C.Stmt $ C.Return Nothing],
-        C.Decln $
+            )
+      , C.Stmt $ C.If (C.Ident "i" C..>= C.Ident "pkt_count") [C.Stmt $ C.Return Nothing]
+      , C.Decln $
           C.VarDecln
             Nothing
             (C.TypeSpec packetStruct')
@@ -80,18 +79,18 @@ generateMain = do
                 C.InitVal
                   (C.TypeName (C.TypeSpec packetStruct'))
                   ( fromList
-                      [ C.InitItem (Just "offset") (C.InitExpr $ C.LitInt 0),
-                        C.InitItem (Just "base") (C.InitExpr $ C.LitInt 0),
-                        C.InitItem
+                      [ C.InitItem (Just "offset") (C.InitExpr $ C.LitInt 0)
+                      , C.InitItem (Just "base") (C.InitExpr $ C.LitInt 0)
+                      , C.InitItem
                           (Just "end")
-                          (C.InitExpr $ C.Index (C.Ident "lengths") (C.Ident "i")),
-                        C.InitItem
+                          (C.InitExpr $ C.Index (C.Ident "lengths") (C.Ident "i"))
+                      , C.InitItem
                           (Just "pkt")
                           (C.InitExpr $ C.Index (C.Ident "pkts") (C.Ident "i"))
                       ]
                   )
-            ),
-        C.Decln $
+            )
+      , C.Decln $
           C.VarDecln
             Nothing
             hdrStruct
@@ -100,8 +99,8 @@ generateMain = do
                 C.InitVal
                   (C.TypeName hdrStruct)
                   (fromList [C.InitItem Nothing (C.InitExpr $ C.LitInt 0)])
-            ),
-        C.Decln $
+            )
+      , C.Decln $
           C.VarDecln
             Nothing
             (C.TypeSpec ptrPacketStruct')
@@ -110,10 +109,10 @@ generateMain = do
                 C.InitVal
                   (C.TypeName (C.TypeSpec ptrPacketStruct'))
                   (fromList [C.InitItem (Just "ppkt") (C.InitExpr . C.ref $ C.Ident "pkt")])
-            ),
-        C.Stmt . C.Expr $ C.Funcall (C.Ident prsParser) [C.Ident "ppkt", C.ref $ C.Ident "hdr", C.Ident "NULL", C.Ident "NULL"],
-        C.Stmt . C.Expr $ C.Funcall (C.Ident pipeControl) [C.ref $ C.Ident "hdr", C.Ident "NULL", C.Ident "NULL"],
-        C.Stmt . C.Expr $ C.Funcall (C.Ident dprsControl) [C.Ident "ppkt", C.Ident "hdr"]
+            )
+      , C.Stmt . C.Expr $ C.Funcall (C.Ident prsParser) [C.Ident "ppkt", C.ref $ C.Ident "hdr", C.Ident "NULL", C.Ident "NULL"]
+      , C.Stmt . C.Expr $ C.Funcall (C.Ident pipeControl) [C.ref $ C.Ident "hdr", C.Ident "NULL", C.Ident "NULL"]
+      , C.Stmt . C.Expr $ C.Funcall (C.Ident dprsControl) [C.Ident "ppkt", C.Ident "hdr"]
       ]
   pure ()
 
@@ -152,30 +151,30 @@ generatePacketAdjust inPktSize newPktSize pkt = do
     defineFunc
       "adjust_packet"
       (C.TypeSpec C.Void)
-      [ C.Param (C.Ptr . C.TypeSpec $ packetStruct') "pkt",
-        C.Param (C.TypeSpec C.Int) "current_size",
-        C.Param (C.TypeSpec C.Int) "final_size"
+      [ C.Param (C.Ptr . C.TypeSpec $ packetStruct') "pkt"
+      , C.Param (C.TypeSpec C.Int) "current_size"
+      , C.Param (C.TypeSpec C.Int) "final_size"
       ]
-      [ C.Stmt . C.Expr $ (C.Arrow pktE "offset" C..= C.LitInt 0),
-        C.Stmt $
+      [ C.Stmt . C.Expr $ (C.Arrow pktE "offset" C..= C.LitInt 0)
+      , C.Stmt $
           C.If
             (currentSize C..== finalSize)
             [ C.Stmt $ C.Return Nothing
-            ],
-        C.Stmt $
+            ]
+      , C.Stmt $
           C.IfElse
             (finalSize C..< currentSize)
-            [ C.Stmt . C.Expr $ (C.Arrow pktE "base" C..= (currentSize C..- finalSize)),
-              C.Stmt . C.Expr $ (C.Arrow pktE "offset" C..= (currentSize C..- finalSize))
+            [ C.Stmt . C.Expr $ (C.Arrow pktE "base" C..= (currentSize C..- finalSize))
+            , C.Stmt . C.Expr $ (C.Arrow pktE "offset" C..= (currentSize C..- finalSize))
             ]
             [ C.Stmt . C.Expr $
                 C.Funcall
                   (C.Ident "memmove")
-                  [ C.Arrow pktE "pkt" C..+ finalSize,
-                    C.Arrow pktE "pkt" C..+ currentSize,
-                    C.Arrow pktE "end" C..- currentSize
-                  ],
-              C.Stmt . C.Expr $ C.Arrow pktE "end" C..+= (finalSize C..- currentSize)
+                  [ C.Arrow pktE "pkt" C..+ finalSize
+                  , C.Arrow pktE "pkt" C..+ currentSize
+                  , C.Arrow pktE "end" C..- currentSize
+                  ]
+            , C.Stmt . C.Expr $ C.Arrow pktE "end" C..+= (finalSize C..- currentSize)
             ]
       ]
 
@@ -183,15 +182,15 @@ generatePacketAdjust inPktSize newPktSize pkt = do
     [ C.Stmt . C.Expr $
         C.Funcall
           (C.Ident "adjust_packet")
-          [ pkt,
-            C.LitInt $ fromIntegral inPktSize,
-            C.LitInt $ fromIntegral newPktSize
+          [ pkt
+          , C.LitInt $ fromIntegral inPktSize
+          , C.LitInt $ fromIntegral newPktSize
           ]
     ]
-  where
-    currentSize = C.Ident "current_size"
-    finalSize = C.Ident "final_size"
-    pktE = C.Ident "pkt"
+ where
+  currentSize = C.Ident "current_size"
+  finalSize = C.Ident "final_size"
+  pktE = C.Ident "pkt"
 
 generateDeparse :: forall r. CompC r => Int -> AST.P4Control -> P.Sem r C.Ident
 generateDeparse inPktSize c = do

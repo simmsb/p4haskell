@@ -1,8 +1,7 @@
 -- |
-module P4Haskell.Compile.Codegen.Parser
-  ( generateParserStates,
-  )
-where
+module P4Haskell.Compile.Codegen.Parser (
+  generateParserStates,
+) where
 
 import Control.Lens
 import Data.Generics.Sum
@@ -35,8 +34,8 @@ generateParserStates n s = do
     let stateEnumVariant = si ^?! #states . ix sn
     pure $ C.Case stateEnumVariant body
   let extraCases =
-        [ C.Case (si ^?! #states . ix "accept") $ C.Block [C.Stmt $ C.Return (Just $ C.LitBool True)],
-          C.Case (si ^?! #states . ix "reject") $ C.Block [C.Stmt $ C.Return (Just $ C.LitBool False)]
+        [ C.Case (si ^?! #states . ix "accept") $ C.Block [C.Stmt $ C.Return (Just $ C.LitBool True)]
+        , C.Case (si ^?! #states . ix "reject") $ C.Block [C.Stmt $ C.Return (Just $ C.LitBool False)]
         ]
   pure (stateVarInit <> [C.Stmt $ C.ForInf [C.Stmt $ C.Switch stateVar (cases <> extraCases)]])
 
@@ -64,6 +63,6 @@ generateSelectExpr stateVar ps = do
   (deps, expr) <- P.runWriterAssocR $ inner ps
   let stateWrite = [C.Stmt . C.Expr $ C.AssignOp C.Assign stateVar expr]
   pure (deps <> stateWrite <> [C.Stmt C.Break])
-  where
-    inner (AST.SelectExpression'ParserSelect se) = generateP4Expression $ _Typed @AST.SelectExpression # se
-    inner (AST.PathExpression'ParserSelect pe) = generateP4Expression $ _Typed @AST.PathExpression # pe
+ where
+  inner (AST.SelectExpression'ParserSelect se) = generateP4Expression $ _Typed @AST.SelectExpression # se
+  inner (AST.PathExpression'ParserSelect pe) = generateP4Expression $ _Typed @AST.PathExpression # pe

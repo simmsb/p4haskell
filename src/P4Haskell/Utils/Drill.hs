@@ -1,8 +1,7 @@
 -- |
-module P4Haskell.Utils.Drill
-  ( gdrillField,
-  )
-where
+module P4Haskell.Utils.Drill (
+  gdrillField,
+) where
 
 import Control.Lens
 import Data.Generics.Product.Fields

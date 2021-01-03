@@ -1,23 +1,22 @@
 -- | Something for keeping track of scopes
-module P4Haskell.Compile.Scope
-  ( Scope (..),
-    Var (..),
-    ScopeLookup (..),
-    ParserStateInfo (..),
-    lookupVarInScope,
-    lookupActionInScope,
-    getParserStateInfoInScope,
-    runScopeLookupReader,
-    makeVar,
-    findVarInScope,
-    findActionInScope,
-    fetchParserStateInfoInScope,
-    addVarToScope,
-    addActionToScope,
-    emptyScope,
-    setParserStateInfoInScope,
-  )
-where
+module P4Haskell.Compile.Scope (
+  Scope (..),
+  Var (..),
+  ScopeLookup (..),
+  ParserStateInfo (..),
+  lookupVarInScope,
+  lookupActionInScope,
+  getParserStateInfoInScope,
+  runScopeLookupReader,
+  makeVar,
+  findVarInScope,
+  findActionInScope,
+  fetchParserStateInfoInScope,
+  addVarToScope,
+  addActionToScope,
+  emptyScope,
+  setParserStateInfoInScope,
+) where
 
 import Control.Lens
 import Data.Unique
@@ -34,11 +33,11 @@ newtype VarID = VarID Int
   deriving anyclass (Hashable)
 
 data Var = Var
-  { varOriginalName :: Text,
-    varID :: VarID,
-    varType :: C.Type,
-    varP4Type :: AST.P4Type,
-    needsDeref :: Bool
+  { varOriginalName :: Text
+  , varID :: VarID
+  , varType :: C.Type
+  , varP4Type :: AST.P4Type
+  , needsDeref :: Bool
   }
   deriving stock (Generic)
 
@@ -52,10 +51,10 @@ instance Hashable Var where
   hashWithSalt i a = hashWithSalt i (a ^. #varID)
 
 data ParserStateInfo = ParserStateInfo
-  { psid :: Int,
-    stateVar :: C.Expr,
-    enumTy :: C.TypeSpec,
-    states :: HashMap Text C.Expr
+  { psid :: Int
+  , stateVar :: C.Expr
+  , enumTy :: C.TypeSpec
+  , states :: HashMap Text C.Expr
   }
   deriving stock (Generic, Show)
 
@@ -66,13 +65,13 @@ instance Hashable ParserStateInfo where
   hashWithSalt i a = hashWithSalt i (a ^. #psid)
 
 data Scope = Scope
-  { scopeVarBindings :: HashMap VarID Var,
-    scopeVarBindingsO :: HashMap Text Var,
-    scopeKnownActions :: HashMap Text AST.P4Action,
-    scopeParserStateInfo :: Maybe ParserStateInfo
+  { scopeVarBindings :: HashMap VarID Var
+  , scopeVarBindingsO :: HashMap Text Var
+  , scopeKnownActions :: HashMap Text AST.P4Action
+  , scopeParserStateInfo :: Maybe ParserStateInfo
   }
   deriving stock (Show, Generic, Eq)
-  deriving anyclass ( Hashable )
+  deriving anyclass (Hashable)
 
 emptyScope :: Scope
 emptyScope = Scope mempty mempty mempty Nothing

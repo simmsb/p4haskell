@@ -1,5 +1,5 @@
-module P4Haskell.Types.AST
-  ( module P4Haskell.Types.AST.AST,
+module P4Haskell.Types.AST (
+    module P4Haskell.Types.AST.AST,
     module P4Haskell.Types.AST.ActionList,
     module P4Haskell.Types.AST.Expression,
     module P4Haskell.Types.AST.Annotation,
@@ -12,8 +12,7 @@ module P4Haskell.Types.AST
     module P4Haskell.Types.AST.MapVec,
     module P4Haskell.Types.AST.Statement,
     runDecompressor,
-  )
-where
+) where
 
 import P4Haskell.Types.AST.AST
 import P4Haskell.Types.AST.ActionList

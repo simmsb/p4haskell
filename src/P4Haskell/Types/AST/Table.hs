@@ -1,17 +1,16 @@
 -- |
-module P4Haskell.Types.AST.Table
-  ( P4Table (..),
-    parseP4Table,
-    Key (..),
-    parseKey,
-    KeyElement (..),
-    parseKeyElement,
-    ExpressionValue (..),
-    parseExpressionValue,
-    TableEntry (..),
-    parseTableEntry,
-  )
-where
+module P4Haskell.Types.AST.Table (
+  P4Table (..),
+  parseP4Table,
+  Key (..),
+  parseKey,
+  KeyElement (..),
+  parseKeyElement,
+  ExpressionValue (..),
+  parseExpressionValue,
+  TableEntry (..),
+  parseTableEntry,
+) where
 
 import Control.Lens
 import Control.Monad.Error.Class (MonadError, throwError)
@@ -30,15 +29,15 @@ import qualified Waargonaut.Decode as D
 import qualified Waargonaut.Decode.Error as D
 
 data P4Table = P4Table
-  { name :: Text,
-    annotations :: [Annotation],
-    keys :: [KeyElement],
-    actions :: ActionList,
-    defaultAction :: Maybe MethodCallExpression,
-    entries :: Maybe [TableEntry]
+  { name :: Text
+  , annotations :: [Annotation]
+  , keys :: [KeyElement]
+  , actions :: ActionList
+  , defaultAction :: Maybe MethodCallExpression
+  , entries :: Maybe [TableEntry]
   }
   deriving stock (Show, Generic, Eq)
-  deriving anyclass ( Hashable )
+  deriving anyclass (Hashable)
 
 ensure :: MonadError D.DecodeError m => Text -> Maybe a -> m a
 ensure msg = maybe (throwError $ D.ParseFailed msg) pure
@@ -78,7 +77,7 @@ data PropertyValue
   | PropertyValue'EntriesList EntriesList
   | PropertyValue'ExpressionValue ExpressionValue
   deriving stock (Show, Generic, Eq)
-  deriving anyclass ( Hashable )
+  deriving anyclass (Hashable)
 
 propertyValueDecoder :: DecompressC r => D.Decoder (Sem r) PropertyValue
 propertyValueDecoder = D.withCursor $ \c -> do
@@ -92,13 +91,13 @@ propertyValueDecoder = D.withCursor $ \c -> do
     _ -> throwError . D.ParseFailed $ "invalid node type for PropertyValue: " <> nodeType
 
 data Property = Property
-  { name :: Text,
-    annotations :: [Annotation],
-    value :: PropertyValue,
-    isConstant :: Bool
+  { name :: Text
+  , annotations :: [Annotation]
+  , value :: PropertyValue
+  , isConstant :: Bool
   }
   deriving stock (Show, Generic, Eq)
-  deriving anyclass ( Hashable )
+  deriving anyclass (Hashable)
 
 parseProperty :: DecompressC r => D.Decoder (Sem r) Property
 parseProperty = D.withCursor . tryParseVal $ \c -> do
@@ -113,7 +112,7 @@ newtype Key = Key
   { keyElements :: [KeyElement]
   }
   deriving stock (Show, Generic, Eq)
-  deriving anyclass ( Hashable )
+  deriving anyclass (Hashable)
 
 parseKey :: DecompressC r => D.Decoder (Sem r) Key
 parseKey = D.withCursor . tryParseVal $ \c -> do
@@ -122,12 +121,12 @@ parseKey = D.withCursor . tryParseVal $ \c -> do
   pure $ Key elems
 
 data KeyElement = KeyElement
-  { annotations :: [Annotation],
-    expression :: Expression,
-    matchType :: Path
+  { annotations :: [Annotation]
+  , expression :: Expression
+  , matchType :: Path
   }
   deriving stock (Show, Generic, Eq)
-  deriving anyclass ( Hashable )
+  deriving anyclass (Hashable)
 
 parseKeyElement :: DecompressC r => D.Decoder (Sem r) KeyElement
 parseKeyElement = D.withCursor . tryParseVal $ \c -> do
@@ -141,7 +140,7 @@ newtype ExpressionValue = ExpressionValue
   { value :: Expression
   }
   deriving stock (Show, Generic, Eq)
-  deriving anyclass ( Hashable )
+  deriving anyclass (Hashable)
 
 parseExpressionValue :: DecompressC r => D.Decoder (Sem r) ExpressionValue
 parseExpressionValue = D.withCursor . tryParseVal $ \c -> do
@@ -153,7 +152,7 @@ data EntriesList = EntriesList
   { entries :: [TableEntry]
   }
   deriving stock (Show, Generic, Eq)
-  deriving anyclass ( Hashable )
+  deriving anyclass (Hashable)
 
 parseEntriesList :: DecompressC r => D.Decoder (Sem r) EntriesList
 parseEntriesList = D.withCursor . tryParseVal $ \c -> do
@@ -162,12 +161,12 @@ parseEntriesList = D.withCursor . tryParseVal $ \c -> do
   pure $ EntriesList entries
 
 data TableEntry = TableEntry
-  { keys :: [SelectKey],
-    action :: MethodCallExpression,
-    type_ :: P4Type
+  { keys :: [SelectKey]
+  , action :: MethodCallExpression
+  , type_ :: P4Type
   }
   deriving stock (Show, Generic, Eq)
-  deriving anyclass ( Hashable )
+  deriving anyclass (Hashable)
 
 parseTableEntry :: DecompressC r => D.Decoder (Sem r) TableEntry
 parseTableEntry = D.withCursor . tryParseVal $ \c -> do

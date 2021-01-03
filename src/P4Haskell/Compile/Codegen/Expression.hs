@@ -1,8 +1,7 @@
 -- |
-module P4Haskell.Compile.Codegen.Expression
-  ( generateP4Expression,
-  )
-where
+module P4Haskell.Compile.Codegen.Expression (
+  generateP4Expression,
+) where
 
 import Control.Lens
 import Data.Generics.Sum

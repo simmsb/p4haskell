@@ -1,14 +1,13 @@
 -- | P4 Annotations
-module P4Haskell.Types.AST.Annotation
-  ( Annotation (..),
-    parseAnnotations,
-    parseAnnotation,
-    AnnotatedToken,
-    NamedExpression,
-    parseAnnotatedToken,
-    parseNamedExpression,
-  )
-where
+module P4Haskell.Types.AST.Annotation (
+  Annotation (..),
+  parseAnnotations,
+  parseAnnotation,
+  AnnotatedToken,
+  NamedExpression,
+  parseAnnotatedToken,
+  parseNamedExpression,
+) where
 
 import qualified Data.Text.Lazy as T
 import P4Haskell.Types.AST.Core
@@ -21,14 +20,14 @@ import qualified Waargonaut.Decode as D
 import qualified Waargonaut.Encode as E
 
 data Annotation = Annotation
-  { name :: Text,
-    body :: [AnnotatedToken],
-    needsParsing :: Bool,
-    expr :: [Expression],
-    kv :: MapVec Text NamedExpression
+  { name :: Text
+  , body :: [AnnotatedToken]
+  , needsParsing :: Bool
+  , expr :: [Expression]
+  , kv :: MapVec Text NamedExpression
   }
   deriving stock (Show, Generic, Eq)
-  deriving anyclass ( Hashable )
+  deriving anyclass (Hashable)
 
 parseAnnotations :: DecompressC r => D.Decoder (Sem r) [Annotation]
 parseAnnotations = D.withCursor . tryParseVal $ \c -> do

@@ -1,9 +1,8 @@
 -- |
-module P4Haskell.Compile.Eff
-  ( CompC,
-    runComp,
-  )
-where
+module P4Haskell.Compile.Eff (
+  CompC,
+  runComp,
+) where
 
 import Data.Unique
 import P4Haskell.Compile.Declared
@@ -21,16 +20,16 @@ import qualified Rock
 
 type CompC r =
   ( P.Members
-      [ Fetch Query,
-        P.State Declared,
-        P.Reader AST.P4Program,
-        ScopeLookup,
-        P.Reader Scope,
-        P.Fresh Unique,
-        P.Embed IO
+      [ Fetch Query
+      , P.State Declared
+      , P.Reader AST.P4Program
+      , ScopeLookup
+      , P.Reader Scope
+      , P.Fresh Unique
+      , P.Embed IO
       ]
-      r,
-    P.KnownRow r
+      r
+  , P.KnownRow r
   )
 
 runComp ::
