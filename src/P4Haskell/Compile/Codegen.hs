@@ -54,13 +54,15 @@ generateMain = do
   P.modify . flip (<>) $
     defineFunc
       "process"
+      (Just "__global__")
       (C.TypeSpec C.Void)
-      [ C.Param (C.Ptr . C.Ptr . C.TypeSpec $ C.Char) "pkts"
+      [ C.Param (C.Ptr . C.Ptr . C.TypeSpec $ uint8_t) "pkts"
       , C.Param (C.Ptr u64) "lengths"
       , C.Param u64 "pkt_count"
       ]
       [ C.Decln $
           C.VarDecln
+            Nothing
             Nothing
             u64
             "i"
@@ -72,6 +74,7 @@ generateMain = do
       , C.Stmt $ C.If (C.Ident "i" C..>= C.Ident "pkt_count") [C.Stmt $ C.Return Nothing]
       , C.Decln $
           C.VarDecln
+            Nothing
             Nothing
             (C.TypeSpec packetStruct')
             "pkt"
@@ -93,6 +96,7 @@ generateMain = do
       , C.Decln $
           C.VarDecln
             Nothing
+            Nothing
             hdrStruct
             "hdr"
             ( Just . C.InitExpr $
@@ -102,6 +106,7 @@ generateMain = do
             )
       , C.Decln $
           C.VarDecln
+            Nothing
             Nothing
             (C.TypeSpec ptrPacketStruct')
             "ppkt"
@@ -128,7 +133,7 @@ generateParser p = do
   let scopeUpdate scope = flipfoldl' addVarToScope scope vars
   (inPktSize, body) <- getPktSize . P.local scopeUpdate $ generateParserStates (p ^. #name) (p ^. #states)
   let body' = removeDeadExprs body
-  P.modify . flip (<>) $ defineFunc (p ^. #name) (C.TypeSpec C.Bool) params body'
+  P.modify . flip (<>) $ defineFunc (p ^. #name) (Just "__device__") (C.TypeSpec C.Bool) params body'
   pure (p ^. #name . unpacked, inPktSize, hdrType)
 
 generateControl :: CompC r => AST.P4Control -> P.Sem r C.Ident
@@ -141,7 +146,7 @@ generateControl c = do
          in flipfoldl' addActionToScope withVars actions
   body <- P.local scopeUpdate . generateStatements $ map injectTyped localVars <> (c ^. #body . #components)
   let body' = removeDeadExprs body
-  P.modify . flip (<>) $ defineFunc (c ^. #name) (C.TypeSpec C.Void) params body'
+  P.modify . flip (<>) $ defineFunc (c ^. #name) (Just "__device__") (C.TypeSpec C.Void) params body'
   pure $ c ^. #name . unpacked
 
 generatePacketAdjust :: CompC r => Int -> Int -> C.Expr -> P.Sem r [C.BlockItem]
@@ -150,6 +155,7 @@ generatePacketAdjust inPktSize newPktSize pkt = do
   P.modify . flip (<>) $
     defineFunc
       "adjust_packet"
+      (Just "__device__")
       (C.TypeSpec C.Void)
       [ C.Param (C.Ptr . C.TypeSpec $ packetStruct') "pkt"
       , C.Param (C.TypeSpec C.Int) "current_size"
@@ -169,7 +175,7 @@ generatePacketAdjust inPktSize newPktSize pkt = do
             ]
             [ C.Stmt . C.Expr $
                 C.Funcall
-                  (C.Ident "memmove")
+                  (C.Ident "p4_memmove")
                   [ C.Arrow pktE "pkt" C..+ finalSize
                   , C.Arrow pktE "pkt" C..+ currentSize
                   , C.Arrow pktE "end" C..- currentSize
@@ -211,7 +217,7 @@ generateDeparse inPktSize c = do
   adjustBody <- generatePacketAdjust inPktSize outPacketSize (C.Ident pktVarName `C.Dot` "ppkt")
 
   let body' = adjustBody <> removeDeadExprs body
-  P.modify . flip (<>) $ defineFunc (c ^. #name) (C.TypeSpec C.Void) params body'
+  P.modify . flip (<>) $ defineFunc (c ^. #name) (Just "__device__") (C.TypeSpec C.Void) params body'
   pure $ c ^. #name . unpacked
 
 generateParams :: CompC r => [AST.Parameter] -> P.Sem r ([C.Param], [Var])

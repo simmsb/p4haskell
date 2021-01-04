@@ -38,7 +38,7 @@ generateDV dv rM = do
   let initExpr = snd <$> initializer
   var <- makeVar (dv ^. #name) (C.TypeSpec ty) (dv ^. #type_) False
   r <- P.local (addVarToScope var) rM
-  let decln = C.Decln $ C.VarDecln Nothing (C.TypeSpec ty) (dv ^. #name . unpacked) (C.InitExpr <$> initExpr)
+  let decln = C.Decln $ C.VarDecln Nothing Nothing (C.TypeSpec ty) (dv ^. #name . unpacked) (C.InitExpr <$> initExpr)
   pure (deps <> (decln : r))
 
 generateAS :: CompC r => AST.AssignmentStatement -> P.Sem r [C.BlockItem]

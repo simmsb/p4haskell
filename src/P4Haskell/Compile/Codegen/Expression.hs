@@ -160,7 +160,7 @@ generateSE se = do
   tempVarName <- generateTempVar
   si <- fromJustNote "stateEnumInfo" <$> fetchParserStateInfoInScope
   let tempVar = C.Ident tempVarName
-  let tempVarInit = [C.Decln $ C.VarDecln Nothing (C.TypeSpec $ si ^. #enumTy) tempVarName Nothing]
+  let tempVarInit = [C.Decln $ C.VarDecln Nothing Nothing (C.TypeSpec $ si ^. #enumTy) tempVarName Nothing]
   let component = case se ^. #selectComponents of
         [c] -> c
         _ -> error "Select expressions only support one key"

@@ -34,13 +34,13 @@ processParam' (asRef, paramTy, e) = do
     then do
       tmpName <- generateTempVar
       P.tell
-        [ C.Decln $ C.VarDecln Nothing (C.Ptr paramTy) varName (Just . C.InitExpr $ C.ref expr)
-        , C.Decln $ C.VarDecln Nothing paramTy tmpName (Just . C.InitExpr . C.deref $ C.Ident varName)
+        [ C.Decln $ C.VarDecln Nothing Nothing (C.Ptr paramTy) varName (Just . C.InitExpr $ C.ref expr)
+        , C.Decln $ C.VarDecln Nothing Nothing paramTy tmpName (Just . C.InitExpr . C.deref $ C.Ident varName)
         ]
       let afterOp = C.Expr $ C.AssignOp C.Assign (C.deref . C.Ident $ varName) (C.Ident tmpName)
       pure (C.ref . C.Ident $ tmpName, Just afterOp)
     else do
-      P.tell [C.Decln $ C.VarDecln Nothing paramTy varName (Just . C.InitExpr $ expr)]
+      P.tell [C.Decln $ C.VarDecln Nothing Nothing paramTy varName (Just . C.InitExpr $ expr)]
       pure (C.Ident varName, Nothing)
 
 isCVoid :: C.Type -> Bool
@@ -62,7 +62,7 @@ generateCall (expr, resultTy) params = do
         pure $ C.LitInt 0
       else do
         resName <- generateTempVar
-        P.tell [C.Decln $ C.VarDecln Nothing resultTy resName (Just . C.InitExpr $ callExpr)]
+        P.tell [C.Decln $ C.VarDecln Nothing Nothing resultTy resName (Just . C.InitExpr $ callExpr)]
         pure $ C.Ident resName
 
   P.tell $ map C.Stmt postStmts'
@@ -83,7 +83,7 @@ generateCall' (name, resultTy) params = do
         pure $ C.LitInt 0
       else do
         resName <- generateTempVar
-        P.tell [C.Decln $ C.VarDecln Nothing resultTy resName (Just . C.InitExpr $ callExpr)]
+        P.tell [C.Decln $ C.VarDecln Nothing Nothing resultTy resName (Just . C.InitExpr $ callExpr)]
         pure $ C.Ident resName
 
   P.tell $ map C.Stmt postStmts'

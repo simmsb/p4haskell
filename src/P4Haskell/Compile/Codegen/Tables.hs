@@ -52,7 +52,7 @@ generateTableKeys =
         let p4ty = gdrillField @"type_" $ e ^. #expression
         (_, ty) <- generateP4Type p4ty
         expr <- generateP4Expression $ e ^. #expression
-        P.tell [C.Decln $ C.VarDecln Nothing (C.TypeSpec ty) tmpName (Just . C.InitExpr $ expr)]
+        P.tell [C.Decln $ C.VarDecln Nothing Nothing (C.TypeSpec ty) tmpName (Just . C.InitExpr $ expr)]
         pure (C.Ident tmpName, ty, matchKind, typeSize p4ty)
     )
 
@@ -217,7 +217,7 @@ generateTableTrie tableName pactions entries meta =
    in do
         treeNodeTy <- simplifyType matchTreeNodeType
         let arrayTy = C.Array (C.TypeSpec treeNodeTy) (Just . C.LitInt . fromIntegral $ length trieInits)
-        P.modify . flip (<>) $ defineStatic staticName Nothing arrayTy trieInit
+        P.modify . flip (<>) $ defineStatic staticName (Just "__device__") Nothing arrayTy trieInit
         pure (C.Ident . toString $ staticName, rootId)
 
 isDefaultAction :: ProcessedAction -> Bool
@@ -244,7 +244,7 @@ generateBitDriverFor ty width = do
         [ C.Param (C.Ptr . C.TypeSpec $ treeNodeTy) "node"
         , C.Param (C.TypeSpec ty) "value"
         ]
-  P.modify (<> defineFunc name (C.Ptr . C.TypeSpec $ treeNodeTy) params body)
+  P.modify (<> defineFunc name (Just "__device__") (C.Ptr . C.TypeSpec $ treeNodeTy) params body)
   pure . C.Ident $ toString name
  where
   chunks = cielDiv width bitsPerLevel
@@ -253,7 +253,7 @@ generateBitDriverFor ty width = do
   node = C.Ident "node"
   name = "table_trie_driver_w" <> show chunks
   body =
-    [ C.Decln $ C.VarDecln Nothing (C.TypeSpec $ C.TypedefName "size_t") "idx" Nothing
+    [ C.Decln $ C.VarDecln Nothing Nothing (C.TypeSpec $ C.TypedefName "size_t") "idx" Nothing
     , C.Stmt $
         C.For
           (idx C..= C.LitInt 0)
@@ -345,6 +345,7 @@ generateActions t argsTable argsIndex = do
                     pure . C.Decln $
                       C.VarDecln
                         Nothing
+                        Nothing
                         (C.TypeSpec vty)
                         temp
                         ( Just $
@@ -429,6 +430,7 @@ generateTableCall (AST.TypeTable table) rty = do
   P.modify . flip (<>) $
     defineStatic
       argsTableName
+      (Just "__device__")
       Nothing
       (C.Array (C.TypeSpec paramUnion) Nothing)
       (C.InitMultiple . fromList $ map (C.InitItem Nothing . C.InitExpr) (reverse paramTable))
@@ -441,6 +443,7 @@ generateTableCall (AST.TypeTable table) rty = do
   P.tell
     [ C.Decln $
         C.VarDecln
+          Nothing
           Nothing
           nodePtrTy
           nodeVarName
@@ -460,6 +463,7 @@ generateTableCall (AST.TypeTable table) rty = do
   P.tell
     [ C.Decln $
         C.VarDecln
+          Nothing
           Nothing
           (C.TypeSpec C.Bool)
           isHitVarName

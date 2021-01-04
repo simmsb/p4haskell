@@ -4,6 +4,7 @@ module P4Haskell.Compile.Codegen.Extern (
   getExternType,
   packetStruct,
   ptrPacketStruct,
+  uint8_t,
 ) where
 
 import Control.Lens
@@ -63,7 +64,7 @@ packetStruct =
         [ C.FieldDecln (C.TypeSpec uint16_t) "offset"
         , C.FieldDecln (C.TypeSpec uint16_t) "end"
         , C.FieldDecln (C.TypeSpec uint16_t) "base"
-        , C.FieldDecln (C.Ptr . C.TypeSpec $ C.Char) "pkt"
+        , C.FieldDecln (C.Ptr . C.TypeSpec $ uint8_t) "pkt"
         ]
     )
 
@@ -115,11 +116,11 @@ generatePacketInExtract instance_ [param] = do
     _ -> pure ()
 
   body <- generateInExtractBody (C.Dot (C.Ident "ppkt") "ppkt") (C.Ident "hdr") =<< resolveP4Type p4ty
-  packetStruct' <- simplifyType packetStruct
   ptrPacketStruct' <- simplifyType ptrPacketStruct
   P.modify . flip (<>) $
     defineFunc
       name
+      (Just "__device__")
       (C.TypeSpec C.Bool)
       [ C.Param (C.TypeSpec ptrPacketStruct') "ppkt"
       , C.Param (C.Ptr . C.TypeSpec $ ty) "hdr"
@@ -173,7 +174,7 @@ generateExtractionForByte :: CompC r => C.Expr -> C.Expr -> Int -> [(C.Expr -> C
 generateExtractionForByte packetBuf targetHdr byteIndex pieces = do
   let byte = C.Index packetBuf (C.LitInt $ fromIntegral byteIndex)
   tmpName <- generateTempVar
-  let declns = [C.Decln $ C.VarDecln Nothing (C.TypeSpec C.Char) tmpName (Just . C.InitExpr $ byte)]
+  let declns = [C.Decln $ C.VarDecln Nothing Nothing (C.TypeSpec uint8_t) tmpName (Just . C.InitExpr $ byte)]
   let tmp = C.Ident tmpName
   let piecesStmts = map (generatePieceLoad tmp targetHdr) pieces
   pure (declns <> piecesStmts)
@@ -208,9 +209,9 @@ generatePostProcessExtract targetExpr = concatMap inner
           Nothing -> []
   sizes =
     [ (8, Nothing)
-    , (16, Just "htons")
-    , (32, Just "htonl")
-    , (64, Just "htonll")
+    , (16, Just "p4_htons")
+    , (32, Just "p4_htonl")
+    , (64, Just "p4_htonll")
     ]
 
 generateInExtractBody :: forall r. CompC r => C.Expr -> C.Expr -> AST.P4Type -> P.Sem r [C.BlockItem]
@@ -274,6 +275,7 @@ defineWritePartial =
   P.modify . flip (<>) $
     defineFunc
       "write_partial"
+      (Just "__device__")
       (C.TypeSpec C.Void)
       [ C.Param (C.Ptr $ C.TypeSpec uint8_t) "addr"
       , C.Param (C.TypeSpec uint8_t) "width"
@@ -315,9 +317,9 @@ generateOutEmitBody ty = do
   pkt = C.Dot (C.Ident "ppkt") "ppkt"
   sizes =
     [ (8, Nothing)
-    , (16, Just "htons")
-    , (32, Just "htonl")
-    , (64, Just "htonll")
+    , (16, Just "p4_htons")
+    , (32, Just "p4_htonl")
+    , (64, Just "p4_htonll")
     ]
   generateWrite :: (C.Expr -> C.Expr, Int) -> P.Sem (P.State Int ': r) [C.BlockItem]
   generateWrite (acc, size) = do
@@ -344,13 +346,14 @@ generateOutEmitBody ty = do
           tmpName <- generateTempVar
           tmpRefName <- generateTempVar
           let declns =
-                [ C.Decln $ C.VarDecln Nothing tmpType tmpName (Just . C.InitExpr $ expr)
+                [ C.Decln $ C.VarDecln Nothing Nothing tmpType tmpName (Just . C.InitExpr $ expr)
                 , C.Decln $
                     C.VarDecln
                       Nothing
-                      (C.Ptr . C.TypeSpec $ C.Char)
+                      Nothing
+                      (C.Ptr . C.TypeSpec $ uint8_t)
                       tmpRefName
-                      (Just . C.InitExpr . C.Cast (C.TypeName . C.Ptr . C.TypeSpec $ C.Char) . C.ref $ tmpVar)
+                      (Just . C.InitExpr . C.Cast (C.TypeName . C.Ptr . C.TypeSpec $ uint8_t) . C.ref $ tmpVar)
                 ]
               tmpVar = C.Ident tmpName
               tmpRefVar = C.Ident tmpRefName
@@ -425,6 +428,7 @@ generatePacketOutEmit instance_ [param] = do
   P.modify . flip (<>) $
     defineFunc
       name
+      (Just "__device__")
       (C.TypeSpec C.Void)
       [ C.Param (C.TypeSpec ptrPacketStruct') "ppkt"
       , C.Param (C.Ptr . C.TypeSpec $ ty) "value"

@@ -27,7 +27,7 @@ generateParserStates n s = do
   let stateVar = C.Ident stateVarName
   si <- generateStateEnum n stateVar s
   let stateVarStart = si ^?! #states . ix "start"
-  let stateVarInit = [C.Decln $ C.VarDecln Nothing (C.TypeSpec $ si ^. #enumTy) stateVarName (Just . C.InitExpr $ stateVarStart)]
+  let stateVarInit = [C.Decln $ C.VarDecln Nothing Nothing (C.TypeSpec $ si ^. #enumTy) stateVarName (Just . C.InitExpr $ stateVarStart)]
   let stateMap = s ^. #map & sans "accept" & sans "reject"
   cases <- P.local (setParserStateInfoInScope si) $ forM (toPairs stateMap) \(sn, ps) -> do
     body <- generateParserState stateVar ps

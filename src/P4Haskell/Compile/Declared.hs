@@ -37,11 +37,11 @@ fixupBody :: [C.BlockItem] -> [C.BlockItem]
 fixupBody [] = [C.Stmt . C.Expr . C.LitInt $ 0]
 fixupBody xs = xs
 
-defineFunc :: Text -> C.Type -> [C.Param] -> [C.BlockItem] -> Declared
-defineFunc n ty params body = mempty & #declaredFuncs .~ O.singleton (n, C.FunDef ty (toString n) params (fixupBody body))
+defineFunc :: Text -> Maybe Text -> C.Type -> [C.Param] -> [C.BlockItem] -> Declared
+defineFunc n attrs ty params body = mempty & #declaredFuncs .~ O.singleton (n, C.FunDef (toString <$> attrs) ty (toString n) params (fixupBody body))
 
-defineStatic :: Text -> Maybe C.StorageSpec -> C.Type -> C.Init -> Declared
-defineStatic n sp ty ini = mempty & #declaredStatics .~ O.singleton (n, C.VarDecln sp ty (toString n) (Just ini))
+defineStatic :: Text -> Maybe Text -> Maybe C.StorageSpec -> C.Type -> C.Init -> Declared
+defineStatic n attrs sp ty ini = mempty & #declaredStatics .~ O.singleton (n, C.VarDecln (toString <$> attrs) sp ty (toString n) (Just ini))
 
 exportDeclared :: Declared -> C.TransUnit
 exportDeclared d =

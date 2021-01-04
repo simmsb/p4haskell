@@ -149,27 +149,27 @@ packages:
   original:
     url: https://github.com/nitros12/waargonaut/archive/0e206e947916f3c70b81524a2deced1fc795f456.tar.gz
 - completed:
-    size: 8299
-    url: https://github.com/nitros12/language-c99-simple/archive/178fafda9680278d49fe71304ab09d6b913cf3f1.tar.gz
+    size: 8358
+    url: https://github.com/nitros12/language-c99-simple/archive/19dd84bad38a3ac296aa77e512f03c0dc8432de8.tar.gz
     name: language-c99-simple
     version: 0.1.4
-    sha256: 12b0c1ab9686f95ae1be7464dceba9ee68f6f5ad0e9cad8f4b1f3d3432d41b95
+    sha256: 33245b6cc94186068a1d20b0ab3574f0d0c516bce00f5f8c751da8b54409a293
     pantry-tree:
       size: 574
-      sha256: 6274586bd14b80663f4ded21ce22847e470a20f7e965daf250f3806b38f09288
+      sha256: dcaa82167786e8dd631fad9e107b38d5345d89c0ada12b06a9301d1dbef2ddd2
   original:
-    url: https://github.com/nitros12/language-c99-simple/archive/178fafda9680278d49fe71304ab09d6b913cf3f1.tar.gz
+    url: https://github.com/nitros12/language-c99-simple/archive/19dd84bad38a3ac296aa77e512f03c0dc8432de8.tar.gz
 - completed:
-    size: 11220
-    url: https://github.com/fdedden/language-c99/archive/fa5d557a90b89c4e6d4d4ba983df045ce300882e.tar.gz
+    size: 11258
+    url: https://github.com/nitros12/language-c99/archive/c9582f4cedec59a8a6efd823a27100900e9c7ef3.tar.gz
     name: language-c99
     version: 0.1.2
-    sha256: b871eee5f718a3df5fe6482ffe8782ee66b282bfc28c90382133f6d42cc51b2c
+    sha256: 6002b7e35f66f5985b5b6006c49be986d084d379b588e67c8e202f7d88ea16d6
     pantry-tree:
       size: 399
-      sha256: f7e14a1e14e2947d4fdf7b9fcbe3c96975d6c81a087bfd1d3375ae7652fc370e
+      sha256: 25971faef17b8b0c3e00b8328daba4c0162e9559ff275e93112b460c963a0fdb
   original:
-    url: https://github.com/fdedden/language-c99/archive/fa5d557a90b89c4e6d4d4ba983df045ce300882e.tar.gz
+    url: https://github.com/nitros12/language-c99/archive/c9582f4cedec59a8a6efd823a27100900e9c7ef3.tar.gz
 - completed:
     size: 5020
     url: https://github.com/fdedden/language-c99-util/archive/e5a123b27867e5a235d6ab8ea5217b18b6faf621.tar.gz
@@ -194,7 +194,7 @@ packages:
     url: https://github.com/bgamari/monoidal-containers/archive/b63cf75b3cdf15234619b9347771b1dbd902bddc.tar.gz
 snapshots:
 - completed:
-    size: 558061
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2020/12/14.yaml
-    sha256: 0c80697b1db876c0ab31b43e42be53f886657a336eca59c73c361078e631d65b
-  original: nightly-2020-12-14
+    size: 560077
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2021/1/3.yaml
+    sha256: e680d24cd507f8c8659336a3c5d6fd87dc5a132a1eea1e8a053603249a17aa08
+  original: nightly-2021-01-03

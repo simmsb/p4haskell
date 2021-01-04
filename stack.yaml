@@ -1,4 +1,4 @@
-resolver: nightly-2020-12-14
+resolver: nightly-2021-01-03
 
 extra-deps:
   - dependent-sum-template-0.1.0.3@sha256:0bbbacdfbd3abf2a15aaf0cf2c27e5bdd159b519441fec39e1e6f2f54424adde,1682
@@ -23,9 +23,9 @@ extra-deps:
   - github: nitros12/waargonaut
     commit: 0e206e947916f3c70b81524a2deced1fc795f456
   - github: nitros12/language-c99-simple
-    commit: 178fafda9680278d49fe71304ab09d6b913cf3f1
-  - github: fdedden/language-c99
-    commit: fa5d557a90b89c4e6d4d4ba983df045ce300882e
+    commit: 19dd84bad38a3ac296aa77e512f03c0dc8432de8
+  - github: nitros12/language-c99
+    commit: c9582f4cedec59a8a6efd823a27100900e9c7ef3
   - github: fdedden/language-c99-util
     commit: e5a123b27867e5a235d6ab8ea5217b18b6faf621
   - github: bgamari/monoidal-containers
