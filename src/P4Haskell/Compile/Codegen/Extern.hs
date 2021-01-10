@@ -11,6 +11,7 @@ import Control.Lens
 import Control.Monad.Extra (concatMapM)
 import Data.List.Extra (groupOn)
 import qualified Language.C99.Simple as C
+import {-# SOURCE #-} P4Haskell.Compile.Codegen.Expression
 import {-# SOURCE #-} P4Haskell.Compile.Codegen.MethodCall
 import {-# SOURCE #-} P4Haskell.Compile.Codegen.Typegen
 import P4Haskell.Compile.Codegen.Utils
@@ -232,7 +233,7 @@ generateInExtractBody packet targetHdr ty = do
   let postProcessStep = generatePostProcessExtract (C.deref targetHdr) fields
   let lastStep =
         [ C.Stmt . C.Expr $ C.AssignOp C.AssignAdd (C.Arrow packet "offset") (C.LitInt packetSize)
-        , C.Stmt . C.Expr $ C.AssignOp C.Assign (C.Arrow targetHdr "valid") (C.LitBool True)
+        , C.Stmt . C.Expr $ C.AssignOp C.Assign (C.Arrow targetHdr "p4_valid") (C.LitBool True)
         , C.Stmt . C.Return . Just . C.LitBool $ True
         ]
   pure (checkStep <> extractStep <> postProcessStep <> lastStep)
@@ -418,10 +419,11 @@ generatePacketOutEmit instance_ [param] = do
   let name = "emit_packet_" <> getTypeName p4ty
   (ty, _rawTy) <- generateP4Type p4ty
 
+  outSize <- sum . map snd <$> findFields p4ty
+
   case P.tryMembership @(P.Tagged "packet-size" (P.Writer (Sum Int))) of
     Just pr ->
-      P.subsumeUsing pr $ do
-        outSize <- sum . map snd <$> findFields p4ty
+      P.subsumeUsing pr $
         P.tagged @"packet-size" $ P.tell $ Sum outSize
     _ -> pure ()
 
@@ -437,13 +439,25 @@ generatePacketOutEmit instance_ [param] = do
       , C.Param (C.Ptr . C.TypeSpec $ ty) "value"
       ]
       body
-  expr <-
-    generateCall'
-      (name, C.TypeSpec C.Void)
-      [ (False, C.TypeSpec ptrPacketStruct', instance_)
-      , (True, C.TypeSpec ty, param)
-      ]
-  pure (C.TypeSpec C.Void, expr)
+
+  pktExpr <- generateP4Expression param
+  let isValid = C.Dot pktExpr "p4_valid"
+
+  -- TODO: do we need to care about the buffer being too small?
+
+  (deps, call) <-
+    P.censor (const mempty) . P.listen $
+      generateCall'
+        (name, C.TypeSpec C.Void)
+        [ (False, C.TypeSpec ptrPacketStruct', instance_)
+        , (True, C.TypeSpec ty, param)
+        ]
+
+  let stmts =
+        [ C.Stmt $ C.If isValid (deps <> [C.Stmt . C.Expr $ call])
+        ]
+  P.tell stmts
+  pure (C.TypeSpec C.Void, C.LitInt 0)
 
 getExternType :: Text -> C.TypeSpec
 getExternType name = externs ^?! ix name . #type_

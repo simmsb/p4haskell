@@ -169,7 +169,7 @@ generateP4HeaderPure h = do
             pure $ C.FieldDecln (C.TypeSpec ty) (toString $ f ^. #name)
         )
   let ident = toString $ h ^. #name
-      validField = C.FieldDecln (C.TypeSpec C.Bool) "valid"
+      validField = C.FieldDecln (C.TypeSpec C.Bool) "p4_valid"
       struct = C.StructDecln (Just ident) (validField :| fields')
       deps' = (h ^. #name, struct) : deps
   pure (C.Struct ident, struct, deps')
