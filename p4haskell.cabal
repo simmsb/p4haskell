@@ -4,7 +4,7 @@ cabal-version: 1.18
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 9eb6ae137a2bbcc04c869b9f66bfa467b18af80366823590278c561a75d1e2b7
+-- hash: 0c7b12d44559e28356260f798ea22f8aafe51f797efaee90f0901516ddf52902
 
 name:           p4haskell
 version:        0.0.0
@@ -44,6 +44,7 @@ library
       P4Haskell.Compile.Declared
       P4Haskell.Compile.Eff
       P4Haskell.Compile.Fetch
+      P4Haskell.Compile.Opts
       P4Haskell.Compile.Query
       P4Haskell.Compile.Rules
       P4Haskell.Compile.Scope

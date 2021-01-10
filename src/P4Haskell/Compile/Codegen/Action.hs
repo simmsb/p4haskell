@@ -83,5 +83,7 @@ liftAction action = do
                 )
             )
             (LH.elems $ extraVars ^. #scopeVarBindings)
-  P.modify . flip (<>) $ defineFunc (action ^. #name) (Just "__device__") (C.TypeSpec C.Void) (params <> extraCParams) body'
+
+  devFnAttrs <- getDevFnAttrs
+  P.modify . flip (<>) $ defineFunc (action ^. #name) devFnAttrs (C.TypeSpec C.Void) (params <> extraCParams) body'
   pure $ LiftedAction (C.Ident . toString $ action ^. #name) extraP4Params paramExprs (action ^. #parameters . #vec)

@@ -3,17 +3,22 @@ module P4Haskell.Compile.Codegen.Utils (
   generateTempVar,
   removeDeadExprs,
   fromJustNote,
+  getDevFnAttrs,
+  getGlobalFnAttrs,
 ) where
 
 import Data.Unique
 import qualified Language.C99.Simple as C
-import Polysemy
-import Polysemy.Fresh
+import P4Haskell.Compile.Eff
+import P4Haskell.Compile.Opts
+import qualified Polysemy as P
+import qualified Polysemy.Fresh as P
+import qualified Polysemy.Reader as P
 import Relude
 
-generateTempVar :: Member (Fresh Unique) r => Sem r C.Ident
+generateTempVar :: P.Member (P.Fresh Unique) r => P.Sem r C.Ident
 generateTempVar = do
-  i <- hashUnique <$> fresh
+  i <- hashUnique <$> P.fresh
   pure $ "tmp_var_" <> show i
 
 -- HACK: we use (LitInt 0) to signal void expressions
@@ -26,3 +31,13 @@ removeDeadExprs = filter notDeadExpr
 fromJustNote :: Text -> Maybe a -> a
 fromJustNote _ (Just a) = a
 fromJustNote msg _ = error msg
+
+getDevFnAttrs :: CompC r => P.Sem r (Maybe Text)
+getDevFnAttrs = do
+  Opts{cpuMode} <- P.ask
+  pure $ if cpuMode then Nothing else Just "__device__"
+
+getGlobalFnAttrs :: CompC r => P.Sem r (Maybe Text)
+getGlobalFnAttrs = do
+  Opts{cpuMode} <- P.ask
+  pure $ if cpuMode then Nothing else Just "__global__"

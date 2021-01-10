@@ -217,7 +217,8 @@ generateTableTrie tableName pactions entries meta =
    in do
         treeNodeTy <- simplifyType matchTreeNodeType
         let arrayTy = C.Array (C.TypeSpec treeNodeTy) (Just . C.LitInt . fromIntegral $ length trieInits)
-        P.modify . flip (<>) $ defineStatic staticName (Just "__device__") Nothing arrayTy trieInit
+        devFnAttrs <- getDevFnAttrs
+        P.modify . flip (<>) $ defineStatic staticName devFnAttrs Nothing arrayTy trieInit
         pure (C.Ident . toString $ staticName, rootId)
 
 isDefaultAction :: ProcessedAction -> Bool
@@ -244,7 +245,8 @@ generateBitDriverFor ty width = do
         [ C.Param (C.Ptr . C.TypeSpec $ treeNodeTy) "node"
         , C.Param (C.TypeSpec ty) "value"
         ]
-  P.modify (<> defineFunc name (Just "__device__") (C.Ptr . C.TypeSpec $ treeNodeTy) params body)
+  devFnAttrs <- getDevFnAttrs
+  P.modify (<> defineFunc name devFnAttrs (C.Ptr . C.TypeSpec $ treeNodeTy) params body)
   pure . C.Ident $ toString name
  where
   chunks = cielDiv width bitsPerLevel
@@ -427,10 +429,12 @@ generateTableCall (AST.TypeTable table) rty = do
   let processedActions' = fixDefaultAction (table ^. #defaultAction) processedActions
       paramTable = generateParamTable processedActions' paramUnion (entries ^.. traverse . #action)
 
+  devFnAttrs <- getDevFnAttrs
+
   P.modify . flip (<>) $
     defineStatic
       argsTableName
-      (Just "__device__")
+      devFnAttrs
       Nothing
       (C.Array (C.TypeSpec paramUnion) Nothing)
       (C.InitMultiple . fromList $ map (C.InitItem Nothing . C.InitExpr) (reverse paramTable))

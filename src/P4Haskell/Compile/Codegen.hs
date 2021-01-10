@@ -16,6 +16,7 @@ import P4Haskell.Compile.Codegen.Utils
 import P4Haskell.Compile.Declared
 import P4Haskell.Compile.Eff
 import P4Haskell.Compile.Fetch
+import P4Haskell.Compile.Opts
 import P4Haskell.Compile.Query
 import P4Haskell.Compile.Scope
 import qualified P4Haskell.Types.AST as AST
@@ -51,74 +52,89 @@ generateMain = do
 
   let u64 = C.TypeSpec $ C.TypedefName "uint64_t"
 
+  globalFnAttrs <- getGlobalFnAttrs
+  Opts{cpuMode} <- P.ask
+
+  let declarePktI =
+        if cpuMode
+          then []
+          else
+            [ C.Decln $
+                C.VarDecln
+                  Nothing
+                  Nothing
+                  u64
+                  "i"
+                  ( Just . C.InitExpr $
+                      (C.Ident "blockIdx" `C.Dot` "x")
+                        C..* (C.Ident "blockDim" `C.Dot` "x")
+                        C..+ (C.Ident "threadIdx" `C.Dot` "x")
+                  )
+            ]
+
+  let pktIParam = if cpuMode then [C.Param u64 "i"] else []
+
   P.modify . flip (<>) $
     defineFunc
       "process"
-      (Just "__global__")
+      globalFnAttrs
       (C.TypeSpec C.Void)
-      [ C.Param (C.Ptr . C.Ptr . C.TypeSpec $ uint8_t) "pkts"
-      , C.Param (C.Ptr u64) "lengths"
-      , C.Param u64 "pkt_count"
-      ]
-      [ C.Decln $
-          C.VarDecln
-            Nothing
-            Nothing
-            u64
-            "i"
-            ( Just . C.InitExpr $
-                (C.Ident "blockIdx" `C.Dot` "x")
-                  C..* (C.Ident "blockDim" `C.Dot` "x")
-                  C..+ (C.Ident "threadIdx" `C.Dot` "x")
-            )
-      , C.Stmt $ C.If (C.Ident "i" C..>= C.Ident "pkt_count") [C.Stmt $ C.Return Nothing]
-      , C.Decln $
-          C.VarDecln
-            Nothing
-            Nothing
-            (C.TypeSpec packetStruct')
-            "pkt"
-            ( Just . C.InitExpr $
-                C.InitVal
-                  (C.TypeName (C.TypeSpec packetStruct'))
-                  ( fromList
-                      [ C.InitItem (Just "offset") (C.InitExpr $ C.LitInt 0)
-                      , C.InitItem (Just "base") (C.InitExpr $ C.LitInt 0)
-                      , C.InitItem
-                          (Just "end")
-                          (C.InitExpr $ C.Index (C.Ident "lengths") (C.Ident "i"))
-                      , C.InitItem
-                          (Just "pkt")
-                          (C.InitExpr $ C.Index (C.Ident "pkts") (C.Ident "i"))
-                      ]
+      ( [ C.Param (C.Ptr . C.Ptr . C.TypeSpec $ uint8_t) "pkts"
+        , C.Param (C.Ptr u64) "lengths"
+        , C.Param u64 "pkt_count"
+        ]
+          <> pktIParam
+      )
+      ( declarePktI
+          <> [ C.Stmt $ C.If (C.Ident "i" C..>= C.Ident "pkt_count") [C.Stmt $ C.Return Nothing]
+             , C.Decln $
+                C.VarDecln
+                  Nothing
+                  Nothing
+                  (C.TypeSpec packetStruct')
+                  "pkt"
+                  ( Just . C.InitExpr $
+                      C.InitVal
+                        (C.TypeName (C.TypeSpec packetStruct'))
+                        ( fromList
+                            [ C.InitItem (Just "offset") (C.InitExpr $ C.LitInt 0)
+                            , C.InitItem (Just "base") (C.InitExpr $ C.LitInt 0)
+                            , C.InitItem
+                                (Just "end")
+                                (C.InitExpr $ C.Index (C.Ident "lengths") (C.Ident "i"))
+                            , C.InitItem
+                                (Just "pkt")
+                                (C.InitExpr $ C.Index (C.Ident "pkts") (C.Ident "i"))
+                            ]
+                        )
                   )
-            )
-      , C.Decln $
-          C.VarDecln
-            Nothing
-            Nothing
-            hdrStruct
-            "hdr"
-            ( Just . C.InitExpr $
-                C.InitVal
-                  (C.TypeName hdrStruct)
-                  (fromList [C.InitItem Nothing (C.InitExpr $ C.LitInt 0)])
-            )
-      , C.Decln $
-          C.VarDecln
-            Nothing
-            Nothing
-            (C.TypeSpec ptrPacketStruct')
-            "ppkt"
-            ( Just . C.InitExpr $
-                C.InitVal
-                  (C.TypeName (C.TypeSpec ptrPacketStruct'))
-                  (fromList [C.InitItem (Just "ppkt") (C.InitExpr . C.ref $ C.Ident "pkt")])
-            )
-      , C.Stmt . C.Expr $ C.Funcall (C.Ident prsParser) [C.Ident "ppkt", C.ref $ C.Ident "hdr", C.Ident "NULL", C.Ident "NULL"]
-      , C.Stmt . C.Expr $ C.Funcall (C.Ident pipeControl) [C.ref $ C.Ident "hdr", C.Ident "NULL", C.Ident "NULL"]
-      , C.Stmt . C.Expr $ C.Funcall (C.Ident dprsControl) [C.Ident "ppkt", C.Ident "hdr"]
-      ]
+             , C.Decln $
+                C.VarDecln
+                  Nothing
+                  Nothing
+                  hdrStruct
+                  "hdr"
+                  ( Just . C.InitExpr $
+                      C.InitVal
+                        (C.TypeName hdrStruct)
+                        (fromList [C.InitItem Nothing (C.InitExpr $ C.LitInt 0)])
+                  )
+             , C.Decln $
+                C.VarDecln
+                  Nothing
+                  Nothing
+                  (C.TypeSpec ptrPacketStruct')
+                  "ppkt"
+                  ( Just . C.InitExpr $
+                      C.InitVal
+                        (C.TypeName (C.TypeSpec ptrPacketStruct'))
+                        (fromList [C.InitItem (Just "ppkt") (C.InitExpr . C.ref $ C.Ident "pkt")])
+                  )
+             , C.Stmt . C.Expr $ C.Funcall (C.Ident prsParser) [C.Ident "ppkt", C.ref $ C.Ident "hdr", C.Ident "NULL", C.Ident "NULL"]
+             , C.Stmt . C.Expr $ C.Funcall (C.Ident pipeControl) [C.ref $ C.Ident "hdr", C.Ident "NULL", C.Ident "NULL"]
+             , C.Stmt . C.Expr $ C.Funcall (C.Ident dprsControl) [C.Ident "ppkt", C.Ident "hdr"]
+             ]
+      )
   pure ()
 
 getPktSize :: P.Sem (P.Tagged "packet-size" (P.Writer (Sum Int)) ': r) a -> P.Sem r (Int, a)
@@ -133,7 +149,8 @@ generateParser p = do
   let scopeUpdate scope = flipfoldl' addVarToScope scope vars
   (inPktSize, body) <- getPktSize . P.local scopeUpdate $ generateParserStates (p ^. #name) (p ^. #states)
   let body' = removeDeadExprs body
-  P.modify . flip (<>) $ defineFunc (p ^. #name) (Just "__device__") (C.TypeSpec C.Bool) params body'
+  devFnAttrs <- getDevFnAttrs
+  P.modify . flip (<>) $ defineFunc (p ^. #name) devFnAttrs (C.TypeSpec C.Bool) params body'
   pure (p ^. #name . unpacked, inPktSize, hdrType)
 
 generateControl :: CompC r => AST.P4Control -> P.Sem r C.Ident
@@ -146,16 +163,18 @@ generateControl c = do
          in flipfoldl' addActionToScope withVars actions
   body <- P.local scopeUpdate . generateStatements $ map injectTyped localVars <> (c ^. #body . #components)
   let body' = removeDeadExprs body
-  P.modify . flip (<>) $ defineFunc (c ^. #name) (Just "__device__") (C.TypeSpec C.Void) params body'
+  devFnAttrs <- getDevFnAttrs
+  P.modify . flip (<>) $ defineFunc (c ^. #name) devFnAttrs (C.TypeSpec C.Void) params body'
   pure $ c ^. #name . unpacked
 
 generatePacketAdjust :: CompC r => Int -> Int -> C.Expr -> P.Sem r [C.BlockItem]
 generatePacketAdjust inPktSize newPktSize pkt = do
   packetStruct' <- simplifyType packetStruct
+  devFnAttrs <- getDevFnAttrs
   P.modify . flip (<>) $
     defineFunc
       "adjust_packet"
-      (Just "__device__")
+      devFnAttrs
       (C.TypeSpec C.Void)
       [ C.Param (C.Ptr . C.TypeSpec $ packetStruct') "pkt"
       , C.Param (C.TypeSpec C.Int) "current_size"
@@ -217,7 +236,8 @@ generateDeparse inPktSize c = do
   adjustBody <- generatePacketAdjust inPktSize outPacketSize (C.Ident pktVarName `C.Dot` "ppkt")
 
   let body' = adjustBody <> removeDeadExprs body
-  P.modify . flip (<>) $ defineFunc (c ^. #name) (Just "__device__") (C.TypeSpec C.Void) params body'
+  devFnAttrs <- getDevFnAttrs
+  P.modify . flip (<>) $ defineFunc (c ^. #name) devFnAttrs (C.TypeSpec C.Void) params body'
   pure $ c ^. #name . unpacked
 
 generateParams :: CompC r => [AST.Parameter] -> P.Sem r ([C.Param], [Var])

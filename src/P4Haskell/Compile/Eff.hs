@@ -7,6 +7,7 @@ module P4Haskell.Compile.Eff (
 import Data.Unique
 import P4Haskell.Compile.Declared
 import P4Haskell.Compile.Fetch
+import P4Haskell.Compile.Opts
 import P4Haskell.Compile.Query
 import P4Haskell.Compile.Scope
 import qualified P4Haskell.Types.AST as AST
@@ -23,6 +24,7 @@ type CompC r =
       [ Fetch Query
       , P.State Declared
       , P.Reader AST.P4Program
+      , P.Reader Opts
       , ScopeLookup
       , P.Reader Scope
       , P.Fresh Unique
@@ -36,22 +38,25 @@ runComp ::
   P.Member (P.Embed IO) r =>
   Rock.Rules Query ->
   AST.P4Program ->
+  Opts ->
   P.Sem
     ( Fetch Query
         ': P.State Declared
           ': P.Reader AST.P4Program
-            ': ScopeLookup
-              ': P.Reader Scope
-                ': P.Fresh Unique ': r
+            ': P.Reader Opts
+              ': ScopeLookup
+                ': P.Reader Scope
+                  ': P.Fresh Unique ': r
     )
     a ->
   P.Sem r (Declared, a)
-runComp rules program m = do
+runComp rules program opts m = do
   memoVar <- P.embed $ newIORef mempty
 
   P.freshToIO
     . P.runReader emptyScope
     . runScopeLookupReader
+    . P.runReader opts
     . P.runReader program
     . P.runState mempty
     . runFetchToIO (Rock.runTask (Rock.memoise memoVar rules))

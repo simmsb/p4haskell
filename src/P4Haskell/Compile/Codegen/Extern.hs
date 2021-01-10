@@ -117,10 +117,11 @@ generatePacketInExtract instance_ [param] = do
 
   body <- generateInExtractBody (C.Dot (C.Ident "ppkt") "ppkt") (C.Ident "hdr") =<< resolveP4Type p4ty
   ptrPacketStruct' <- simplifyType ptrPacketStruct
+  devFnAttrs <- getDevFnAttrs
   P.modify . flip (<>) $
     defineFunc
       name
-      (Just "__device__")
+      devFnAttrs
       (C.TypeSpec C.Bool)
       [ C.Param (C.TypeSpec ptrPacketStruct') "ppkt"
       , C.Param (C.Ptr . C.TypeSpec $ ty) "hdr"
@@ -271,11 +272,12 @@ generatePacketInLength instance_ params = do
   error "packetlength"
 
 defineWritePartial :: CompC r => P.Sem r ()
-defineWritePartial =
+defineWritePartial = do
+  devFnAttrs <- getDevFnAttrs
   P.modify . flip (<>) $
     defineFunc
       "write_partial"
-      (Just "__device__")
+      devFnAttrs
       (C.TypeSpec C.Void)
       [ C.Param (C.Ptr $ C.TypeSpec uint8_t) "addr"
       , C.Param (C.TypeSpec uint8_t) "width"
@@ -425,10 +427,11 @@ generatePacketOutEmit instance_ [param] = do
 
   body <- generateOutEmitBody =<< resolveP4Type p4ty
   ptrPacketStruct' <- simplifyType ptrPacketStruct
+  devFnAttrs <- getDevFnAttrs
   P.modify . flip (<>) $
     defineFunc
       name
-      (Just "__device__")
+      devFnAttrs
       (C.TypeSpec C.Void)
       [ C.Param (C.TypeSpec ptrPacketStruct') "ppkt"
       , C.Param (C.Ptr . C.TypeSpec $ ty) "value"
