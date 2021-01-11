@@ -111,7 +111,6 @@ main'' opts' t = do
           , "      d[i - 1] = s[i - 1];"
           , "  }"
           , "}"
-          , "int main(){}"
           ]
   let generated = fromString . TP.render . PC.pretty . C.translate . D.exportDeclared $ declared
       out = prelude <> "\n" <> generated
