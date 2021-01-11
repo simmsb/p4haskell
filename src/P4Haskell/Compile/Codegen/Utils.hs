@@ -4,6 +4,7 @@ module P4Haskell.Compile.Codegen.Utils (
   removeDeadExprs,
   fromJustNote,
   getDevFnAttrs,
+  getConstAttrs,
   getGlobalFnAttrs,
 ) where
 
@@ -36,6 +37,11 @@ getDevFnAttrs :: CompC r => P.Sem r (Maybe Text)
 getDevFnAttrs = do
   Opts{cpuMode} <- P.ask
   pure $ if cpuMode then Nothing else Just "__device__"
+
+getConstAttrs :: CompC r => P.Sem r (Maybe Text)
+getConstAttrs = do
+  Opts{cpuMode} <- P.ask
+  pure $ if cpuMode then Nothing else Just "__constant__"
 
 getGlobalFnAttrs :: CompC r => P.Sem r (Maybe Text)
 getGlobalFnAttrs = do

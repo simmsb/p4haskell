@@ -217,8 +217,8 @@ generateTableTrie tableName pactions entries meta =
    in do
         treeNodeTy <- simplifyType matchTreeNodeType
         let arrayTy = C.Array (C.TypeSpec treeNodeTy) (Just . C.LitInt . fromIntegral $ length trieInits)
-        devFnAttrs <- getDevFnAttrs
-        P.modify . flip (<>) $ defineStatic staticName devFnAttrs Nothing arrayTy trieInit
+        constAttrs <- getConstAttrs
+        P.modify . flip (<>) $ defineStatic staticName constAttrs Nothing arrayTy trieInit
         pure (C.Ident . toString $ staticName, rootId)
 
 isDefaultAction :: ProcessedAction -> Bool
@@ -429,12 +429,12 @@ generateTableCall (AST.TypeTable table) rty = do
   let processedActions' = fixDefaultAction (table ^. #defaultAction) processedActions
       paramTable = generateParamTable processedActions' paramUnion (entries ^.. traverse . #action)
 
-  devFnAttrs <- getDevFnAttrs
+  constAttrs <- getConstAttrs
 
   P.modify . flip (<>) $
     defineStatic
       argsTableName
-      devFnAttrs
+      constAttrs
       Nothing
       (C.Array (C.TypeSpec paramUnion) Nothing)
       (C.InitMultiple . fromList $ map (C.InitItem Nothing . C.InitExpr) (reverse paramTable))
