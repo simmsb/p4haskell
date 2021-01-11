@@ -70,7 +70,7 @@ matchTreeNodeType =
 makeNode :: Integer -> Integer -> [Integer] -> C.Expr
 makeNode actionIdx paramIdx offsets =
   C.InitVal
-    (C.TypeName . C.TypeSpec . C.Struct $ "match_tree_node")
+    (C.TypeName . C.Const . C.TypeSpec . C.Struct $ "match_tree_node")
     ( fromList
         [ C.InitItem (Just "param_idx") (C.InitExpr $ C.LitInt paramIdx)
         , C.InitItem (Just "action_idx") (C.InitExpr $ C.LitInt actionIdx)
@@ -216,7 +216,7 @@ generateTableTrie tableName pactions entries meta =
       staticName = tableName <> "_search_trie"
    in do
         treeNodeTy <- simplifyType matchTreeNodeType
-        let arrayTy = C.Array (C.TypeSpec treeNodeTy) (Just . C.LitInt . fromIntegral $ length trieInits)
+        let arrayTy = C.Array (C.Const $ C.TypeSpec treeNodeTy) (Just . C.LitInt . fromIntegral $ length trieInits)
         constAttrs <- getConstAttrs
         P.modify . flip (<>) $ defineStatic staticName constAttrs Nothing arrayTy trieInit
         pure (C.Ident . toString $ staticName, rootId)
@@ -242,11 +242,11 @@ generateBitDriverFor :: CompC r => C.TypeSpec -> Int -> P.Sem r C.Expr
 generateBitDriverFor ty width = do
   treeNodeTy <- simplifyType matchTreeNodeType
   let params =
-        [ C.Param (C.Ptr . C.TypeSpec $ treeNodeTy) "node"
+        [ C.Param (C.Const . C.Ptr . C.TypeSpec $ treeNodeTy) "node"
         , C.Param (C.TypeSpec ty) "value"
         ]
   devFnAttrs <- getDevFnAttrs
-  P.modify (<> defineFunc name devFnAttrs (C.Ptr . C.TypeSpec $ treeNodeTy) params body)
+  P.modify (<> defineFunc name devFnAttrs (C.Const . C.Ptr . C.TypeSpec $ treeNodeTy) params body)
   pure . C.Ident $ toString name
  where
   chunks = cielDiv width bitsPerLevel
@@ -310,7 +310,7 @@ generateActions t argsTable argsIndex = do
                 variantName = "arg_table_" <> (t ^. #name) <> "_" <> name
             ty <- simplifyType =<< structForRuntimeParams variantName runtimeParams
             let ctor params =
-                  C.InitVal (C.TypeName . C.TypeSpec $ ty)
+                  C.InitVal (C.TypeName . C.Const . C.TypeSpec $ ty)
                     . fromMaybe (C.InitItem (Just "unused") (C.InitExpr $ C.LitInt 0) :| [])
                     . nonEmpty
                     . map (\(e, n) -> C.InitItem (Just $ toString n) (C.InitExpr e))
@@ -394,7 +394,7 @@ generateParamTable actions ty exprs =
             params = drop (length (e ^. #arguments) - act ^. #nExtraParams) (e ^. #arguments)
             paramExprs :: [C.Expr] = map (evalConstantLit . (^. #expression)) params
             ctor = (act ^. #paramCtor) paramExprs
-         in C.InitVal (C.TypeName $ C.TypeSpec ty) (fromList [C.InitItem (Just . toString $ act ^. #variantName) (C.InitExpr ctor)])
+         in C.InitVal (C.TypeName . C.Const $ C.TypeSpec ty) (fromList [C.InitItem (Just . toString $ act ^. #variantName) (C.InitExpr ctor)])
     )
     exprs
 
@@ -436,13 +436,13 @@ generateTableCall (AST.TypeTable table) rty = do
       argsTableName
       constAttrs
       Nothing
-      (C.Array (C.TypeSpec paramUnion) Nothing)
+      (C.Array (C.Const $ C.TypeSpec paramUnion) Nothing)
       (C.InitMultiple . fromList $ map (C.InitItem Nothing . C.InitExpr) (reverse paramTable))
 
   (searchTrie, rootNode) <- generateTableTrie (table ^. #name) processedActions' entries (map (\(_, _, a, b) -> (b, a)) tableKeys)
 
   treeNodeTy <- simplifyType matchTreeNodeType
-  let nodePtrTy = C.Ptr . C.TypeSpec $ treeNodeTy
+  let nodePtrTy = C.Const . C.Ptr . C.TypeSpec $ treeNodeTy
 
   P.tell
     [ C.Decln $
