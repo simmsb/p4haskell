@@ -67,21 +67,6 @@ matchTreeNodeType =
         ]
     )
 
-makeNode :: Integer -> Integer -> [Integer] -> C.Expr
-makeNode actionIdx paramIdx offsets =
-  C.InitVal
-    (C.TypeName . C.Const . C.TypeSpec . C.Struct $ "match_tree_node")
-    ( fromList
-        [ C.InitItem (Just "param_idx") (C.InitExpr $ C.LitInt paramIdx)
-        , C.InitItem (Just "action_idx") (C.InitExpr $ C.LitInt actionIdx)
-        , C.InitItem
-            (Just "offsets")
-            ( C.InitMultiple . fromList . reverse $
-                map (C.InitItem Nothing . C.InitExpr . C.LitInt) offsets
-            )
-        ]
-    )
-
 -- TODO(optimisation): decide on the bits per level dynamically
 bitsPerLevel :: Num a => a
 bitsPerLevel = 4
@@ -133,18 +118,32 @@ isNode _ = False
 
 type TrieBuildC r = P.Members [P.State (HashMap Int ChunkTrie), P.State Int] r
 
-nodeToExpr :: Int -> ChunkTrie -> C.Expr
-nodeToExpr myId (ChunkTrieNode ns) =
-  let offsets = map (toInteger . maybe (- myId) (subtract myId)) ns
-   in makeNode 0 0 offsets
-nodeToExpr _ (ChunkTrieLeaf (aid, pid)) =
-  let offsets = replicate (2 ^ bitsPerLevel @Int) 0
-   in makeNode (toInteger aid) (toInteger pid) offsets
+makeNodeInit :: Integer -> Integer -> [Integer] -> C.Init
+makeNodeInit actionIdx paramIdx offsets =
+  C.InitMultiple
+    ( fromList
+        [ C.InitItem (Just "param_idx") (C.InitExpr $ C.LitInt paramIdx)
+        , C.InitItem (Just "action_idx") (C.InitExpr $ C.LitInt actionIdx)
+        , C.InitItem
+            (Just "offsets")
+            ( C.InitMultiple . fromList . reverse $
+                map (C.InitItem Nothing . C.InitExpr . C.LitInt) offsets
+            )
+        ]
+    )
 
-trieToExpr :: [(Int, ChunkTrie)] -> [C.Expr]
-trieToExpr t =
-  let nodes = map (\(nid, n) -> (nid, nodeToExpr nid n)) t
-      deadNode = (0, makeNode 0 0 $ replicate (2 ^ bitsPerLevel @Int) 0)
+nodeToCInit :: Int -> ChunkTrie -> C.Init
+nodeToCInit myId (ChunkTrieNode ns) =
+  let offsets = map (toInteger . maybe (- myId) (subtract myId)) ns
+   in makeNodeInit 0 0 offsets
+nodeToCInit _ (ChunkTrieLeaf (aid, pid)) =
+  let offsets = replicate (2 ^ bitsPerLevel @Int) 0
+   in makeNodeInit (toInteger aid) (toInteger pid) offsets
+
+trieToCInit :: [(Int, ChunkTrie)] -> [C.Init]
+trieToCInit t =
+  let nodes = map (\(nid, n) -> (nid, nodeToCInit nid n)) t
+      deadNode = (0, makeNodeInit 0 0 $ replicate (2 ^ bitsPerLevel @Int) 0)
    in -- sort in reverse since the C dsl orders arrays in reverse
       map snd $ sortOn (Down . fst) (deadNode : nodes)
 
@@ -211,8 +210,8 @@ generateTableTrie tableName pactions entries meta =
       paramIds = [0 ..]
       actionIds = map (\e -> pactions ^?! ix (e ^?! #action . #method . _Typed @AST.PathExpression . #path . #name) . #id) entries
       (trieNodes, rootId) = buildTrie $ zip chunks $ zip actionIds paramIds
-      trieInits = trieToExpr $ toPairs trieNodes
-      trieInit = C.InitMultiple . fromList . map (C.InitItem Nothing . C.InitExpr) $ trieInits
+      trieInits = trieToCInit $ toPairs trieNodes
+      trieInit = C.InitMultiple . fromList . map (C.InitItem Nothing) $ trieInits
       staticName = tableName <> "_search_trie"
    in do
         treeNodeTy <- simplifyType matchTreeNodeType
@@ -273,16 +272,19 @@ data ProcessedAction = ProcessedAction
   { id :: Int
   , nExtraParams :: Int
   , variantName :: Text
-  , paramCtor :: [C.Expr] -> C.Expr
-  , actionCode :: [C.BlockItem]
+  , -- | Given the static parameters of the action, generate an initialisationn
+    paramCtor :: [C.Expr] -> C.Init
+  , -- | The body of the action
+    actionCode :: [C.BlockItem]
   }
   deriving stock (Generic)
 
 fixEmptyFields :: [C.FieldDecln] -> NonEmpty C.FieldDecln
 fixEmptyFields = fromMaybe (C.FieldDecln (C.TypeSpec C.Char) "unused" :| []) . nonEmpty
 
-structForRuntimeParams :: CompC r => Text -> [AST.Parameter] -> P.Sem r C.TypeSpec
-structForRuntimeParams name params = do
+-- | Generate a struct with fields for all the static parameters of an action
+structForStaticActionParams :: CompC r => Text -> [AST.Parameter] -> P.Sem r C.TypeSpec
+structForStaticActionParams name params = do
   types <-
     mapM
       ( \p -> do
@@ -292,9 +294,12 @@ structForRuntimeParams name params = do
       params
   pure . C.StructDecln (Just . toString $ name) . fixEmptyFields . map (\(t, n) -> C.FieldDecln t $ toString n) $ types
 
+-- | Process the actions of a table, this emits the type of the static parameter
+-- union, and the processed actions
 generateActions :: CompC r => AST.P4Table -> C.Expr -> C.Expr -> P.Sem r (HashMap Text ProcessedAction, C.TypeSpec)
 generateActions t argsTable argsIndex = do
-  -- bit of a hack since we generate this later
+  -- we generate the union type later, until then just refer to it by name
+  -- bit of a hack
   let unionName = (t ^. #name) <> "_param_union"
 
   (actions, variants) <-
@@ -305,16 +310,16 @@ generateActions t argsTable argsIndex = do
                 args = a ^. #expression . #arguments
             action' <- fromJust <$> P.asks (findActionInScope name)
             let nExtraParams = length (action' ^. #parameters . #vec) - length args
-                runtimeParams = drop (length args) (action' ^. #parameters . #vec)
-                runtimeParamNames = runtimeParams ^.. traverse . #name
+                staticActionParams = drop (length args) (action' ^. #parameters . #vec)
+                staticActionParamNames = staticActionParams ^.. traverse . #name
                 variantName = "arg_table_" <> (t ^. #name) <> "_" <> name
-            ty <- simplifyType =<< structForRuntimeParams variantName runtimeParams
+            ty <- simplifyType =<< structForStaticActionParams variantName staticActionParams
             let ctor params =
-                  C.InitVal (C.TypeName . C.Const . C.TypeSpec $ ty)
+                  C.InitMultiple
                     . fromMaybe (C.InitItem (Just "unused") (C.InitExpr $ C.LitInt 0) :| [])
                     . nonEmpty
                     . map (\(e, n) -> C.InitItem (Just $ toString n) (C.InitExpr e))
-                    $ zip params runtimeParamNames
+                    $ zip params staticActionParamNames
 
             -- a bit spooky, create temp_vars and use them for the extra params
             extraVars <- replicateM nExtraParams generateTempVar
@@ -327,7 +332,7 @@ generateActions t argsTable argsIndex = do
                           . AST.PathExpression (p ^. #type_)
                           $ AST.Path False (toText temp)
                     )
-                    $ zip runtimeParams extraVars
+                    $ zip staticActionParams extraVars
                 patchedExpr = (a ^. #expression) & #arguments <>~ extraVarExprs
 
             extraVars' <-
@@ -336,7 +341,7 @@ generateActions t argsTable argsIndex = do
                     (vty, _) <- generateP4Type $ p ^. #type_
                     makeVar (toText temp) (C.TypeSpec vty) (p ^. #type_) False
                 )
-                $ zip runtimeParams extraVars
+                $ zip staticActionParams extraVars
 
             let updatedScope scope = foldl (flip addVarToScope) scope extraVars'
 
@@ -358,7 +363,7 @@ generateActions t argsTable argsIndex = do
                               )
                         )
                 )
-                $ zip runtimeParams extraVars
+                $ zip staticActionParams extraVars
 
             (stmts, expr) <-
               P.runWriterAssocR
@@ -385,8 +390,11 @@ evalConstantLit :: AST.Expression -> C.Expr
 evalConstantLit (AST.Constant'Expression c) = C.LitInt . fromIntegral $ c ^. #value
 evalConstantLit e = error $ show e <> " was not a constant expression"
 
-generateParamTable :: HashMap Text ProcessedAction -> C.TypeSpec -> [AST.MethodCallExpression] -> [C.Expr]
-generateParamTable actions ty exprs =
+{- | This is where we generate the table of parameters to actions that are
+ statically specified and not dynamic
+-}
+generateParamTable :: HashMap Text ProcessedAction -> [AST.MethodCallExpression] -> [C.Init]
+generateParamTable actions exprs =
   map
     ( \e ->
         let name = e ^?! #method . _Typed @AST.PathExpression . #path . #name
@@ -394,10 +402,12 @@ generateParamTable actions ty exprs =
             params = drop (length (e ^. #arguments) - act ^. #nExtraParams) (e ^. #arguments)
             paramExprs :: [C.Expr] = map (evalConstantLit . (^. #expression)) params
             ctor = (act ^. #paramCtor) paramExprs
-         in C.InitVal (C.TypeName . C.Const $ C.TypeSpec ty) (fromList [C.InitItem (Just . toString $ act ^. #variantName) (C.InitExpr ctor)])
+         in C.InitMultiple (fromList [C.InitItem (Just . toString $ act ^. #variantName) ctor])
     )
     exprs
 
+-- hack the action_run field of the table result struct to just contain the
+-- index
 replaceActionRun :: AST.MapVec Text AST.StructField -> AST.MapVec Text AST.StructField
 replaceActionRun = fmap inner
  where
@@ -405,7 +415,7 @@ replaceActionRun = fmap inner
   inner (AST.StructField "action_run" a _) = AST.StructField "action_run" a (AST.TypeBits'P4Type $ AST.TypeBits 8 False)
   inner x = x
 
--- set the default action to have and ID of zeroy
+-- set the default action to have and ID of zero
 fixDefaultAction :: Maybe AST.MethodCallExpression -> HashMap Text ProcessedAction -> HashMap Text ProcessedAction
 fixDefaultAction Nothing p = p
 fixDefaultAction (Just m) p =
@@ -427,7 +437,7 @@ generateTableCall (AST.TypeTable table) rty = do
   (processedActions, paramUnion) <- generateActions table (C.Ident . toString $ argsTableName) (C.Arrow nodeVar "param_idx")
 
   let processedActions' = fixDefaultAction (table ^. #defaultAction) processedActions
-      paramTable = generateParamTable processedActions' paramUnion (entries ^.. traverse . #action)
+      paramTable = generateParamTable processedActions' (entries ^.. traverse . #action)
 
   constAttrs <- getConstAttrs
 
@@ -437,7 +447,7 @@ generateTableCall (AST.TypeTable table) rty = do
       constAttrs
       Nothing
       (C.Array (C.Const $ C.TypeSpec paramUnion) Nothing)
-      (C.InitMultiple . fromList $ map (C.InitItem Nothing . C.InitExpr) (reverse paramTable))
+      (C.InitMultiple . fromList $ map (C.InitItem Nothing) (reverse paramTable))
 
   (searchTrie, rootNode) <- generateTableTrie (table ^. #name) processedActions' entries (map (\(_, _, a, b) -> (b, a)) tableKeys)
 
