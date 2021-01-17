@@ -81,6 +81,8 @@ generateMain = do
       (C.TypeSpec C.Void)
       ( [ C.Param (C.Ptr . C.Ptr . C.TypeSpec $ uint8_t) "pkts"
         , C.Param (C.Ptr u64) "lengths"
+        , C.Param (C.Ptr u64) "out_lengths"
+        , C.Param (C.Ptr u64) "out_offsets"
         , C.Param u64 "pkt_count"
         ]
           <> pktIParam
@@ -133,6 +135,8 @@ generateMain = do
              , C.Stmt . C.Expr $ C.Funcall (C.Ident prsParser) [C.Ident "ppkt", C.ref $ C.Ident "hdr", C.Ident "NULL", C.Ident "NULL"]
              , C.Stmt . C.Expr $ C.Funcall (C.Ident pipeControl) [C.ref $ C.Ident "hdr", C.Ident "NULL", C.Ident "NULL"]
              , C.Stmt . C.Expr $ C.Funcall (C.Ident dprsControl) [C.Ident "ppkt", C.Ident "hdr"]
+             , C.Stmt . C.Expr $ C.Index (C.Ident "out_lengths") (C.Ident "i") C..= (C.Ident "pkt" `C.Dot` "end")
+             , C.Stmt . C.Expr $ C.Index (C.Ident "out_offsets") (C.Ident "i") C..= (C.Ident "pkt" `C.Dot` "base")
              ]
       )
   pure ()
