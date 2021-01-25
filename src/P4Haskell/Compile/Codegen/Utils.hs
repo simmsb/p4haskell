@@ -36,7 +36,7 @@ fromJustNote msg _ = error msg
 getDevFnAttrs :: CompC r => P.Sem r (Maybe Text)
 getDevFnAttrs = do
   Opts{cpuMode} <- P.ask
-  pure $ if cpuMode then Nothing else Just "__device__"
+  pure $ if cpuMode then Just "static" else Just "__device__ static"
 
 getConstAttrs :: CompC r => P.Sem r (Maybe Text)
 getConstAttrs = do
