@@ -154,31 +154,31 @@ generatePacketInExtract instance_ [param] = do
  returns list of tuples of [[(accessor, (read start, read end), (write start, write end), field size)])]
  where each consecutive list is the reads from each consecutive byte
 -}
-mapBytesToFields :: [(C.Expr -> C.Expr, Int)] -> [[(C.Expr -> C.Expr, (Int, Int), (Int, Int), Int)]]
+mapBytesToFields :: [(a, Int)] -> [[(a, (Int, Int), (Int, Int), Int)]]
 mapBytesToFields = map (map snd) . groupOn fst . go 0 0 0
  where
-  go :: Int -> Int -> Int -> [(C.Expr -> C.Expr, Int)] -> [(Int, (C.Expr -> C.Expr, (Int, Int), (Int, Int), Int))]
+  go :: Int -> Int -> Int -> [(a, Int)] -> [(Int, (a, (Int, Int), (Int, Int), Int))]
   go byteIndex byteOffset fieldOffset l@((f, width) : xs) =
     let remaining = width - fieldOffset
         (byteIndex', byteOffset', readEnd) =
-          if (remaining + byteOffset) > 8
+          if (remaining + byteOffset) >= 8
             then (byteIndex + 1, 0, 8)
             else (byteIndex, remaining + byteOffset, remaining + byteOffset)
         writeEnd = fieldOffset + (readEnd - byteOffset)
         fieldOffset' = if writeEnd == width then 0 else writeEnd
         e = (byteIndex, (f, (byteOffset, readEnd), (fieldOffset, writeEnd), width))
      in if fieldOffset' == 0
-          then e : go byteIndex' byteOffset' fieldOffset' xs
+          then e : go byteIndex' byteOffset' 0 xs
           else e : go byteIndex' byteOffset' fieldOffset' l
   go _ _ _ _ = []
 
 generateExtractionForByte :: CompC r => C.Expr -> C.Expr -> Int -> [(C.Expr -> C.Expr, (Int, Int), (Int, Int), Int)] -> P.Sem r [C.BlockItem]
-generateExtractionForByte packetBuf targetHdr byteIndex pieces = do
-  let byte = C.Index packetBuf (C.LitInt $ fromIntegral byteIndex)
+generateExtractionForByte packet targetHdr byteIndex pieces = do
   tmpName <- generateTempVar
-  let declns = [C.Decln $ C.VarDecln Nothing Nothing (C.TypeSpec uint8_t) tmpName (Just . C.InitExpr $ byte)]
-  let tmp = C.Ident tmpName
-  let piecesStmts = map (generatePieceLoad tmp targetHdr) pieces
+  let byte = C.Index (C.Arrow packet "pkt") (C.Arrow packet "offset" C..+ C.LitInt (fromIntegral byteIndex))
+      declns = [C.Decln $ C.VarDecln Nothing Nothing (C.TypeSpec uint8_t) tmpName (Just . C.InitExpr $ byte)]
+      tmp = C.Ident tmpName
+      piecesStmts = map (generatePieceLoad tmp targetHdr) pieces
   pure (declns <> piecesStmts)
  where
   uint64_t1 = C.Cast (C.TypeName $ C.TypeSpec uint64_t) (C.LitInt 1)
@@ -199,44 +199,45 @@ generateExtractionForByte packetBuf targetHdr byteIndex pieces = do
           writeExpr = (accessor hdr C..& writeMask) C..| (read C..<< writeShift)
        in C.Stmt . C.Expr $ accessor hdr C..= writeExpr
 
-generatePostProcessExtract :: C.Expr -> [(C.Expr -> C.Expr, Int)] -> [C.BlockItem]
-generatePostProcessExtract targetExpr = concatMap inner
- where
-  inner (accessor, width) =
-    let swapFn = case find ((width <=) . fst) sizes of
-          Just (_, fn) -> fn
-          Nothing -> error $ "unsupported byte width: " <> show width
-     in case swapFn of
-          Just fn -> [C.Stmt . C.Expr $ accessor targetExpr C..= C.Funcall (C.Ident fn) [accessor targetExpr]]
-          Nothing -> []
-  sizes =
-    [ (8, Nothing)
-    , (16, Just "p4_htons")
-    , (32, Just "p4_htonl")
-    , (64, Just "p4_htonll")
-    ]
+-- generatePostProcessExtract :: C.Expr -> [(C.Expr -> C.Expr, Int)] -> [C.BlockItem]
+-- generatePostProcessExtract targetExpr = concatMap inner
+--  where
+--   inner (accessor, width) =
+--     let swapFn = case find ((width <=) . fst) sizes of
+--           Just (_, fn) -> fn
+--           Nothing -> error $ "unsupported byte width: " <> show width
+--      in case swapFn of
+--           Just fn -> [C.Stmt . C.Expr $ accessor targetExpr C..= C.Funcall (C.Ident fn) [accessor targetExpr]]
+--           Nothing -> []
+--   sizes =
+--     [ (8, Nothing)
+--     , (16, Just "p4_htons")
+--     , (32, Just "p4_htonl")
+--     , (64, Just "p4_htonll")
+--     ]
 
 generateInExtractBody :: forall r. CompC r => C.Expr -> C.Expr -> AST.P4Type -> P.Sem r [C.BlockItem]
 generateInExtractBody packet targetHdr ty = do
   fields <- findFields ty
-  let packetSize = fromIntegral . sum $ map snd fields
-  let mapped = mapBytesToFields fields
-  let doExtract = uncurry $ generateExtractionForByte (C.Arrow packet "pkt") (C.deref targetHdr)
-  let checkStep =
+  let packetSizeBits = fromIntegral . sum $ map snd fields
+      packetSize = packetSizeBits `div` 8
+      mapped = mapBytesToFields fields
+      doExtract = uncurry $ generateExtractionForByte packet (C.deref targetHdr)
+      checkStep =
         [ C.Stmt $
             C.If
               (C.Arrow packet "end" C..< (C.Arrow packet "offset" C..+ C.LitInt packetSize))
               [ C.Stmt . C.Return . Just . C.LitBool $ False
               ]
         ]
+  -- print (map (map (\(e, a, b, c) -> (e packet, a, b, c))) mapped)
   extractStep <- concat <$> forM (zip [0 ..] mapped) doExtract
-  let postProcessStep = generatePostProcessExtract (C.deref targetHdr) fields
   let lastStep =
         [ C.Stmt . C.Expr $ C.AssignOp C.AssignAdd (C.Arrow packet "offset") (C.LitInt packetSize)
         , C.Stmt . C.Expr $ C.AssignOp C.Assign (C.Arrow targetHdr "p4_valid") (C.LitBool True)
         , C.Stmt . C.Return . Just . C.LitBool $ True
         ]
-  pure (checkStep <> extractStep <> postProcessStep <> lastStep)
+  pure (checkStep <> extractStep <> lastStep)
 
 --      0      1       2       3       4       5       6
 -- [--------++++++++--------++++++++--------++++++++--------]
@@ -314,8 +315,13 @@ findFields t = error $ "unknown type for findFields: " <> show t
 
 generateOutEmitBody :: forall r. CompC r => AST.P4Type -> P.Sem r [C.BlockItem]
 generateOutEmitBody ty = do
+  bitOffsetName <- generateTempVar
+  let bitOffsetVar = C.Ident bitOffsetName
+      declns = [C.Decln $ C.VarDecln Nothing Nothing (C.TypeSpec uint64_t) bitOffsetName (Just . C.InitExpr . C.LitInt $ 0)]
+      after = [C.Stmt $ C.Expr (C.Arrow pkt "offset" C..= (bitOffsetVar C../ C.LitInt 8))]
   defineWritePartial
-  (P.evalState @Int 0 . concatMapM generateWrite) =<< findFields ty
+  body <- (P.evalState @Int 0 . concatMapM (generateWrite bitOffsetVar)) =<< findFields ty
+  pure (declns <> body <> after)
  where
   pkt = C.Dot (C.Ident "ppkt") "ppkt"
   sizes =
@@ -324,13 +330,13 @@ generateOutEmitBody ty = do
     , (32, Just "p4_htonl")
     , (64, Just "p4_htonll")
     ]
-  generateWrite :: (C.Expr -> C.Expr, Int) -> P.Sem (P.State Int ': r) [C.BlockItem]
-  generateWrite (acc, size) = do
+  generateWrite :: C.Expr -> (C.Expr -> C.Expr, Int) -> P.Sem (P.State Int ': r) [C.BlockItem]
+  generateWrite bitOffsetVar (acc, size) = do
     align <- P.get @Int
     P.put $ (align + size) `mod` 8
-    generateWrite' (acc, size) align
-  generateWrite' :: (C.Expr -> C.Expr, Int) -> Int -> P.Sem (P.State Int ': r) [C.BlockItem]
-  generateWrite' (acc, size) align =
+    generateWrite' bitOffsetVar (acc, size) align
+  generateWrite' :: C.Expr -> (C.Expr -> C.Expr, Int) -> Int -> P.Sem (P.State Int ': r) [C.BlockItem]
+  generateWrite' bitOffsetVar (acc, size) align =
     let (loadSize, swapFn) = case find ((size <=) . fst) sizes of
           Just ls -> ls
           Nothing -> error $ "unsupported bit width: " <> show size
@@ -360,12 +366,12 @@ generateOutEmitBody ty = do
                 ]
               tmpVar = C.Ident tmpName
               tmpRefVar = C.Ident tmpRefName
-              writes = generateIndividualWrites (fromIntegral size) (fromIntegral numBytes) shiftAmt tmpRefVar (fromIntegral align)
-              after = [C.Stmt $ C.Expr (C.Arrow pkt "offset" C..+= C.LitInt (fromIntegral size))]
+              writes = generateIndividualWrites bitOffsetVar (fromIntegral size) (fromIntegral numBytes) shiftAmt tmpRefVar (fromIntegral align)
+              after = [C.Stmt $ C.Expr (bitOffsetVar C..+= C.LitInt (fromIntegral size))]
            in pure $ declns <> writes <> after
 
-  loadPacketWOffset i = C.deref (C.Arrow pkt "pkt" C..+ (C.Arrow pkt "offset" C..* C.LitInt 8) C..+ C.LitInt i)
-  generateIndividualWrites size numBytes shiftAmt tmpRefVar align = go 0 shiftAmt size align
+  loadPacketWOffset bitOffsetVar i = C.deref (C.Arrow pkt "pkt" C..+ (bitOffsetVar C../ C.LitInt 8) C..+ C.LitInt i)
+  generateIndividualWrites bitOffsetVar size numBytes shiftAmt tmpRefVar align = go 0 shiftAmt size align
    where
     go i shift left align
       | i < numBytes =
@@ -375,7 +381,7 @@ generateOutEmitBody ty = do
             toWrite = if bitsInCurrentByte' > freeBits then freeBits else bitsInCurrentByte'
             (firstWrite, shift') =
               if align == 0 && toWrite == 8
-                then (C.Stmt . C.Expr $ (loadPacketWOffset i C..= val), shift)
+                then (C.Stmt . C.Expr $ (loadPacketWOffset bitOffsetVar i C..= val), shift)
                 else
                   let shift'' = 8 - align - toWrite
                       rshift = case (size > freeBits, align == 0) of
@@ -385,7 +391,7 @@ generateOutEmitBody ty = do
                    in ( C.Stmt . C.Expr $
                           C.Funcall
                             (C.Ident "write_partial")
-                            [C.ref (loadPacketWOffset i), C.LitInt toWrite, C.LitInt shift'', val C..>> C.LitInt rshift]
+                            [C.ref (loadPacketWOffset bitOffsetVar i), C.LitInt toWrite, C.LitInt shift'', val C..>> C.LitInt rshift]
                       , shift''
                       )
             left' = left - toWrite
@@ -397,12 +403,12 @@ generateOutEmitBody ty = do
                 then
                   let write =
                         if toWrite' == 8
-                          then [C.Stmt . C.Expr $ ((C.ref (loadPacketWOffset i) C..+ C.LitInt 1) C..= (val C..<< C.LitInt (8 - align' `mod` 8)))]
+                          then [C.Stmt . C.Expr $ ((C.ref (loadPacketWOffset bitOffsetVar i) C..+ C.LitInt 1) C..= (val C..<< C.LitInt (8 - align' `mod` 8)))]
                           else
                             [ C.Stmt . C.Expr $
                                 C.Funcall
                                   (C.Ident "write_partial")
-                                  [C.ref (loadPacketWOffset i) C..+ C.LitInt 1, C.LitInt toWrite', C.LitInt (8 + align' - toWrite'), val]
+                                  [C.ref (loadPacketWOffset bitOffsetVar i) C..+ C.LitInt 1, C.LitInt toWrite', C.LitInt (8 + align' - toWrite'), val]
                             ]
                    in (write, left' - toWrite')
                 else ([], left')
