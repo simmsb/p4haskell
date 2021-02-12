@@ -76,7 +76,7 @@ generateMain = do
 
   P.modify . flip (<>) $
     defineFunc
-      "process"
+      "p4_process"
       globalFnAttrs
       (C.TypeSpec C.Void)
       ( [ C.Param (C.Ptr . C.Ptr . C.TypeSpec $ uint8_t) "pkts"
