@@ -1,4 +1,4 @@
-resolver: nightly-2021-01-20
+resolver: nightly-2021-02-12
 
 extra-deps:
   - df1-0.4@sha256:b430ee7e0abda6ce9ef03b9fbe532a7384e6de1b4873357cc116db9f614ce398,1104

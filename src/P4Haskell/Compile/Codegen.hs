@@ -38,6 +38,9 @@ generateMain = do
   parsers <- fetch GetTopLevelParser
   controls <- fetch GetTopLevelControl
 
+  stdmeta <- fromJustNote "standard_metadata didn't exist" <$> (fetch $ FetchType "standard_metadata")
+  (stdmeta', _) <- generateP4Type stdmeta
+
   let prsAST = parsers ^?! ix parseName
   (prsParser, inPktSize, hdrStruct) <- generateParser prsAST
 
@@ -84,11 +87,27 @@ generateMain = do
         , C.Param (C.Ptr u64) "out_lengths"
         , C.Param (C.Ptr u64) "out_offsets"
         , C.Param u64 "pkt_count"
+        , C.Param u64 "port"
         ]
           <> pktIParam
       )
       ( declarePktI
           <> [ C.Stmt $ C.If (C.Ident "i" C..>= C.Ident "pkt_count") [C.Stmt $ C.Return Nothing]
+             , C.Decln $
+                C.VarDecln
+                  Nothing
+                  Nothing
+                  (C.TypeSpec stdmeta')
+                  "std_meta"
+                  ( Just . C.InitExpr $
+                      C.InitVal
+                        (C.TypeName (C.TypeSpec stdmeta'))
+                        ( fromList
+                            [ C.InitItem (Just "packet_length") (C.InitExpr $ C.Index (C.Ident "lengths") (C.Ident "i"))
+                            , C.InitItem (Just "input_port") (C.InitExpr $ C.Ident "port")
+                            ]
+                        )
+                  )
              , C.Decln $
                 C.VarDecln
                   Nothing
@@ -132,8 +151,8 @@ generateMain = do
                         (C.TypeName (C.TypeSpec ptrPacketStruct'))
                         (fromList [C.InitItem (Just "ppkt") (C.InitExpr . C.ref $ C.Ident "pkt")])
                   )
-             , C.Stmt . C.Expr $ C.Funcall (C.Ident prsParser) [C.Ident "ppkt", C.ref $ C.Ident "hdr", C.Ident "NULL", C.Ident "NULL"]
-             , C.Stmt . C.Expr $ C.Funcall (C.Ident pipeControl) [C.ref $ C.Ident "hdr", C.Ident "NULL", C.Ident "NULL"]
+             , C.Stmt . C.Expr $ C.Funcall (C.Ident prsParser) [C.Ident "ppkt", C.ref $ C.Ident "hdr", C.Ident "NULL", C.ref $ C.Ident "std_meta"]
+             , C.Stmt . C.Expr $ C.Funcall (C.Ident pipeControl) [C.ref $ C.Ident "hdr", C.Ident "NULL", C.ref $ C.Ident "std_meta"]
              , C.Stmt . C.Expr $ C.Funcall (C.Ident dprsControl) [C.Ident "ppkt", C.Ident "hdr"]
              , C.Stmt . C.Expr $ C.Index (C.Ident "out_lengths") (C.Ident "i") C..= (C.Ident "pkt" `C.Dot` "end")
              , C.Stmt . C.Expr $ C.Index (C.Ident "out_offsets") (C.Ident "i") C..= (C.Ident "pkt" `C.Dot` "base")

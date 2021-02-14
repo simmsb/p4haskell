@@ -201,7 +201,7 @@ packages:
     url: https://github.com/bgamari/monoidal-containers/archive/b63cf75b3cdf15234619b9347771b1dbd902bddc.tar.gz
 snapshots:
 - completed:
-    size: 563098
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2021/1/20.yaml
-    sha256: 97841a28b47a29e798aefda350785c31823f64f31c43ba057fc6c707dfb7ead3
-  original: nightly-2021-01-20
+    size: 566734
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2021/2/12.yaml
+    sha256: 838a3e0214e7b678cf91930e9cd820060a4f459ddeb3a8751b2715e1d5b6df85
+  original: nightly-2021-02-12
