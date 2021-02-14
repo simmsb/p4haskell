@@ -31,3 +31,6 @@ extra-deps:
     commit: e5a123b27867e5a235d6ab8ea5217b18b6faf621
   - github: bgamari/monoidal-containers
     commit: b63cf75b3cdf15234619b9347771b1dbd902bddc
+
+ghc-options:
+  "$locals": -fwrite-ide-info -hiedir=.hie

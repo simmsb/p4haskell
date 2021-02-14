@@ -44,7 +44,7 @@ dependencies:
   - polysemy-plugin ^>= 0.2
   - text ^>= 1.2
   - pretty
-#  - pretty-simple ^>= 3.3
+  - pretty-simple ^>= 4.0
   - bytestring ^>= 0.10
   - attoparsec ^>= 0.13
   - dependent-sum-template ^>= 0.1
@@ -80,8 +80,6 @@ executables:
       - -Wmissing-export-lists
       - -Wmissing-deriving-strategies
       - -Wpartial-fields
-      - -fwrite-ide-info
-      - -hiedir=.hie
       - -Wunused-packages
       - -haddock
     dependencies:
@@ -104,8 +102,6 @@ library:
       - -Wmissing-export-lists
       - -Wmissing-deriving-strategies
       - -Wpartial-fields
-      - -fwrite-ide-info
-      - -hiedir=.hie
       - -Wunused-packages
       - -haddock
     source-dirs: src

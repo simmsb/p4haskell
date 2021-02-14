@@ -237,6 +237,14 @@ selectChunk e totalWidth n =
   (e C..>> (C.LitInt totalWidth C..- (n C..* C.LitInt bitsPerLevel)))
     C..& ((C.LitInt 1 C..<< C.LitInt bitsPerLevel) C..- C.LitInt 1)
 
+-- | generates a function that reads each chunk of bits from the value, and uses
+-- each chunk to decide which child node of the search trie to take.
+--
+-- for value width of 16 bits, and a chunk size of 4 (bitsPerLevel)
+-- this reads: (value >> 12) & 0b1111
+--             (value >> 8)  & 0b1111
+--             (value >> 4)  & 0b1111
+--             (value >> 0)  & 0b1111
 generateBitDriverFor :: CompC r => C.TypeSpec -> Int -> P.Sem r C.Expr
 generateBitDriverFor ty width = do
   treeNodeTy <- simplifyType matchTreeNodeType
@@ -257,8 +265,8 @@ generateBitDriverFor ty width = do
     [ C.Decln $ C.VarDecln Nothing Nothing (C.TypeSpec $ C.TypedefName "size_t") "idx" Nothing
     , C.Stmt $
         C.For
-          (idx C..= C.LitInt 0)
-          (idx C..< C.LitInt (fromIntegral chunks))
+          (idx C..= C.LitInt 1)
+          (idx C..<= C.LitInt (fromIntegral chunks))
           ((C..++) idx)
           [ C.Stmt $ C.Expr (node C..+= C.Index (C.Arrow node "offsets") (selectChunk (C.Ident "value") (fromIntegral totalBits) idx))
           ]
