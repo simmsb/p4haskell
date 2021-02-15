@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 -- | Some monad to operate in while compiling
 module P4Haskell.Compile.Fetch (
   Fetch (..),

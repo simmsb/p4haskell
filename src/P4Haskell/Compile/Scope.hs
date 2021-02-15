@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 -- | Something for keeping track of scopes
 module P4Haskell.Compile.Scope (
   Scope (..),

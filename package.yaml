@@ -106,32 +106,11 @@ library:
       - -haddock
     source-dirs: src
 
-tests:
-  p4haskell-test:
-    main: Spec.hs
-    source-dirs: test
-    ghc-options:
-      - -fplugin=Polysemy.Plugin
-      - -Wall
-      - -threaded
-      - -rtsopts
-      - -with-rtsopts=-N
-      - -Wincomplete-uni-patterns
-      - -Wincomplete-record-updates
-      - -Wcompat
-      - -Widentities
-      - -Wredundant-constraints
-      - -fhide-source-paths
-      - -Wmissing-export-lists
-      - -Wpartial-fields
-    dependencies:
-      - p4haskell
-
 default-extensions:
   - StrictData
   - NoImplicitPrelude # remove when stack/5077 is ok
   - IncoherentInstances
-  - TemplateHaskell
+    # - TemplateHaskell
   - RecursiveDo
   - AllowAmbiguousTypes
   - BlockArguments

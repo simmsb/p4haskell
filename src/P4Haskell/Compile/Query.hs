@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 -- | Queries
 module P4Haskell.Compile.Query (
   Query (..),

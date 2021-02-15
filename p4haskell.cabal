@@ -4,7 +4,7 @@ cabal-version: 1.18
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: beec5128c5dcdcc2e4006f7fff06050546978c8be6a2b7fe0b234960cf7d7719
+-- hash: a85c144177c62ed0e3f53844dafaaf4eb332e3347080501aae0ac9a350817fca
 
 name:           p4haskell
 version:        0.0.0
@@ -68,7 +68,7 @@ library
       Paths_p4haskell
   hs-source-dirs:
       src
-  default-extensions: StrictData NoImplicitPrelude IncoherentInstances TemplateHaskell RecursiveDo AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
+  default-extensions: StrictData NoImplicitPrelude IncoherentInstances RecursiveDo AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
   ghc-options: -fplugin=Polysemy.Plugin -O2 -fexpose-all-unfoldings -fspecialise-aggressively -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wmissing-deriving-strategies -Wpartial-fields -Wunused-packages -haddock
   build-depends:
       attoparsec >=0.13 && <0.14
@@ -105,7 +105,7 @@ executable p4haskell
       Paths_p4haskell
   hs-source-dirs:
       app
-  default-extensions: StrictData NoImplicitPrelude IncoherentInstances TemplateHaskell RecursiveDo AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
+  default-extensions: StrictData NoImplicitPrelude IncoherentInstances RecursiveDo AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
   ghc-options: -fplugin=Polysemy.Plugin -O2 -fexpose-all-unfoldings -fspecialise-aggressively -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wmissing-deriving-strategies -Wpartial-fields -Wunused-packages -haddock
   build-depends:
       attoparsec >=0.13 && <0.14
@@ -122,45 +122,6 @@ executable p4haskell
     , lens >=4.18 && <4.20
     , mtl
     , optparse-applicative
-    , ordered-containers >=0.2 && <0.3
-    , p4haskell
-    , polysemy >=1.4 && <1.5
-    , polysemy-plugin >=0.2 && <0.3
-    , polysemy-zoo >=0.7 && <0.8
-    , pretty
-    , pretty-simple >=4.0 && <4.1
-    , relude >=0.7 && <0.8
-    , rock >=0.3 && <0.4
-    , some >=1.0 && <1.1
-    , text >=1.2 && <1.3
-    , unordered-containers >=0.2 && <0.3
-    , vector >=0.12 && <0.13
-    , waargonaut >=0.8 && <0.9
-  default-language: Haskell2010
-
-test-suite p4haskell-test
-  type: exitcode-stdio-1.0
-  main-is: Spec.hs
-  other-modules:
-      Paths_p4haskell
-  hs-source-dirs:
-      test
-  default-extensions: StrictData NoImplicitPrelude IncoherentInstances TemplateHaskell RecursiveDo AllowAmbiguousTypes BlockArguments NoMonomorphismRestriction BangPatterns BinaryLiterals UndecidableInstances ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DoAndIfThenElse EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs DerivingVia StandaloneDeriving DeriveAnyClass InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PartialTypeSignatures PatternGuards PolyKinds RankNTypes RecordWildCards ScopedTypeVariables TupleSections TypeFamilies TypeSynonymInstances ViewPatterns DuplicateRecordFields TypeOperators TypeApplications RoleAnnotations PatternSynonyms
-  ghc-options: -fplugin=Polysemy.Plugin -Wall -threaded -rtsopts -with-rtsopts=-N -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
-  build-depends:
-      attoparsec >=0.13 && <0.14
-    , base >=4.12 && <5
-    , bitvec >=1.0 && <1.1
-    , bytestring >=0.10 && <0.11
-    , dependent-sum-template >=0.1 && <0.2
-    , extra >=1.7 && <1.8
-    , generic-lens >=2 && <2.1
-    , generics-sop >=0.5 && <0.6
-    , hashable >=1.3 && <1.4
-    , language-c99 >=0.1 && <0.2
-    , language-c99-simple >=0.1 && <0.2
-    , lens >=4.18 && <4.20
-    , mtl
     , ordered-containers >=0.2 && <0.3
     , p4haskell
     , polysemy >=1.4 && <1.5
