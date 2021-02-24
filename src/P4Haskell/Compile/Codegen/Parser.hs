@@ -44,7 +44,7 @@ generateStateEnum parserName stateVar s =
   let states = keys (s ^. #map)
       nameGen n = "parser_state_" <> parserName <> "_" <> n
       enumName = "parser_states_" <> parserName
-      enumVariants = map (toString . nameGen) states
+      enumVariants = zipWith C.VariantDecln (map (toString . nameGen) states) (map Just [0..])
       stateMap = fromList [(n, C.Ident . toString . nameGen $ n) | n <- states]
       stateEnum = C.EnumDecln (Just . toString $ enumName) (fromList enumVariants)
    in do

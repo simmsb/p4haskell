@@ -181,16 +181,19 @@ generateP4HeaderPure h = do
 --    in -- we don't know the name so use the full version everywhere
 --       pure (enum', enum', [])
 
+withSpecifiedEnumVariants :: [C.Ident] -> [C.VariantDecln]
+withSpecifiedEnumVariants l = zipWith C.VariantDecln l (map Just [0..])
+
 generateP4EnumPure :: Rock.MonadFetch Query m => AST.TypeEnum -> m (C.TypeSpec, C.TypeSpec, [(Text, C.TypeSpec)])
 generateP4EnumPure e =
   let values = e ^.. #members . #vec . traverse . #name . unpacked
       ident = toString $ e ^. #name
-      enum' = C.EnumDecln (Just ident) (fromList values)
+      enum' = C.EnumDecln (Just ident) (fromList . withSpecifiedEnumVariants $ values)
    in pure (C.Enum ident, enum', [(e ^. #name, enum')])
 
 generateP4ErrorPure :: Rock.MonadFetch Query m => AST.TypeError -> m (C.TypeSpec, C.TypeSpec, [(Text, C.TypeSpec)])
 generateP4ErrorPure e =
   let values = e ^.. #members . #vec . traverse . #name . unpacked
       ident = toString $ e ^. #name
-      enum' = C.EnumDecln (Just ident) (fromList values)
+      enum' = C.EnumDecln (Just ident) (fromList . withSpecifiedEnumVariants $ values)
    in pure (C.Enum ident, enum', [(e ^. #name, enum')])

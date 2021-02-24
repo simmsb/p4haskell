@@ -72,11 +72,14 @@ generateBLE ble = pure . C.LitInt $ if ble ^. #value then 1 else 0
 generateSLE :: CompC r => AST.StringLiteral -> P.Sem r C.Expr
 generateSLE sle = pure . C.LitString $ sle ^. #value . unpacked
 
+isMemberOfEnum :: Foldable f => String -> f C.VariantDecln -> Bool
+isMemberOfEnum i v = elem i [i' | C.VariantDecln i' _ <- toList v]
+
 generateME :: (CompC r, P.Member (P.Writer [C.BlockItem]) r) => AST.Member -> P.Sem r C.Expr
 generateME (AST.Member _ (AST.TypeNameExpression'Expression tn) n) = do
   (_, ty) <- generateP4Type (tn ^. #type_)
   case ty of
-    C.EnumDecln _ (elem $ toString n -> True) -> pure . C.Ident $ toString n
+    C.EnumDecln _ (isMemberOfEnum $ toString n -> True) -> pure . C.Ident $ toString n
     _ -> error $ "member " <> n <> " not found in: " <> show (tn ^. #typeName)
 generateME me = do
   expr <- generateP4Expression $ me ^. #expr

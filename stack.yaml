@@ -24,7 +24,7 @@ extra-deps:
   - github: nitros12/waargonaut
     commit: 0e206e947916f3c70b81524a2deced1fc795f456
   - github: nitros12/language-c99-simple
-    commit: 19dd84bad38a3ac296aa77e512f03c0dc8432de8
+    commit: 2416651981b972f599489c5565e19f82ba0e8d2d
   - github: nitros12/language-c99
     commit: c9582f4cedec59a8a6efd823a27100900e9c7ef3
   - github: fdedden/language-c99-util

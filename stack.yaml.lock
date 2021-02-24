@@ -156,16 +156,16 @@ packages:
   original:
     url: https://github.com/nitros12/waargonaut/archive/0e206e947916f3c70b81524a2deced1fc795f456.tar.gz
 - completed:
-    size: 8358
-    url: https://github.com/nitros12/language-c99-simple/archive/19dd84bad38a3ac296aa77e512f03c0dc8432de8.tar.gz
+    size: 8429
+    url: https://github.com/nitros12/language-c99-simple/archive/2416651981b972f599489c5565e19f82ba0e8d2d.tar.gz
     name: language-c99-simple
     version: 0.1.4
-    sha256: 33245b6cc94186068a1d20b0ab3574f0d0c516bce00f5f8c751da8b54409a293
+    sha256: 83762711ee24045484e1a9b1398289ca1aacff3bcbb78c5679f03cdbf95b35ab
     pantry-tree:
       size: 574
-      sha256: dcaa82167786e8dd631fad9e107b38d5345d89c0ada12b06a9301d1dbef2ddd2
+      sha256: fab9ffcd19baa1e16cf436d6fa27b22d6541001374a77b9e9b4c4fb5ed5b6c51
   original:
-    url: https://github.com/nitros12/language-c99-simple/archive/19dd84bad38a3ac296aa77e512f03c0dc8432de8.tar.gz
+    url: https://github.com/nitros12/language-c99-simple/archive/2416651981b972f599489c5565e19f82ba0e8d2d.tar.gz
 - completed:
     size: 11258
     url: https://github.com/nitros12/language-c99/archive/c9582f4cedec59a8a6efd823a27100900e9c7ef3.tar.gz
