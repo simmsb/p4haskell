@@ -1,5 +1,5 @@
 #include <core.p4>
-#include <ubpf_model.p4>
+#include <gpu_model.p4>
 
 typedef bit<48> EthernetAddress;
 typedef bit<32>     IPv4Address;
@@ -64,7 +64,7 @@ control pipe(inout Headers_t hdr, inout metadata meta, inout standard_metadata s
     action mod_nw_tos(inout bit<8> x, bit<32> out_port) {
         x = x + 1;
         hdr.ipv4.diffserv = x;
-        std_meta.output_action = ubpf_action.REDIRECT;
+        std_meta.output_action = gpu_action.REDIRECT;
         std_meta.output_port = out_port;
     }
 
@@ -100,4 +100,4 @@ control dprs(packet_out packet, in Headers_t hdr) {
     }
 }
 
-ubpf(prs(), pipe(), dprs()) main;
+gpu(prs(), pipe(), dprs()) main;

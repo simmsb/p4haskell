@@ -42,7 +42,7 @@ generateMain = do
   (stdmeta', _) <- generateP4Type stdmeta
 
   let prsAST = parsers ^?! ix parseName
-  (prsParser, inPktSize, hdrStruct) <- generateParser prsAST
+  (prsParser, inPktSize, hdrStruct, metaStruct) <- generateParser prsAST
 
   let pipeAST = controls ^?! ix pipeName
   pipeControl <- generateControl pipeAST
@@ -83,6 +83,7 @@ generateMain = do
       globalFnAttrs
       (C.TypeSpec C.Void)
       ( [ C.Param (C.Ptr . C.Ptr . C.TypeSpec $ uint8_t) "pkts"
+        , C.Param (C.Ptr . C.TypeSpec $ stdmeta') "std_meta"
         , C.Param (C.Ptr u64) "lengths"
         , C.Param (C.Ptr u64) "out_lengths"
         , C.Param (C.Ptr u64) "out_offsets"
@@ -97,14 +98,13 @@ generateMain = do
                 C.VarDecln
                   Nothing
                   Nothing
-                  (C.TypeSpec stdmeta')
-                  "std_meta"
+                  metaStruct
+                  "meta"
                   ( Just . C.InitExpr $
                       C.InitVal
-                        (C.TypeName (C.TypeSpec stdmeta'))
+                        (C.TypeName metaStruct)
                         ( fromList
-                            [ C.InitItem (Just "packet_length") (C.InitExpr $ C.Index (C.Ident "lengths") (C.Ident "i"))
-                            , C.InitItem (Just "input_port") (C.InitExpr $ C.Ident "port")
+                            [ C.InitItem Nothing (C.InitExpr $ C.LitInt 0)
                             ]
                         )
                   )
@@ -151,9 +151,27 @@ generateMain = do
                         (C.TypeName (C.TypeSpec ptrPacketStruct'))
                         (fromList [C.InitItem (Just "ppkt") (C.InitExpr . C.ref $ C.Ident "pkt")])
                   )
-             , C.Stmt . C.Expr $ C.Funcall (C.Ident prsParser) [C.Ident "ppkt", C.ref $ C.Ident "hdr", C.Ident "NULL", C.ref $ C.Ident "std_meta"]
-             , C.Stmt . C.Expr $ C.Funcall (C.Ident pipeControl) [C.ref $ C.Ident "hdr", C.Ident "NULL", C.ref $ C.Ident "std_meta"]
-             , C.Stmt . C.Expr $ C.Funcall (C.Ident dprsControl) [C.Ident "ppkt", C.Ident "hdr"]
+             , C.Stmt . C.Expr $
+                C.Funcall
+                  (C.Ident prsParser)
+                  [ C.Ident "ppkt"
+                  , C.ref $ C.Ident "hdr"
+                  , C.ref $ C.Ident "meta"
+                  , C.ref $ C.Index (C.Ident "std_meta") (C.Ident "i")
+                  ]
+             , C.Stmt . C.Expr $
+                C.Funcall
+                  (C.Ident pipeControl)
+                  [ C.ref $ C.Ident "hdr"
+                  , C.ref $ C.Ident "meta"
+                  , C.ref $ C.Index (C.Ident "std_meta") (C.Ident "i")
+                  ]
+             , C.Stmt . C.Expr $
+                C.Funcall
+                  (C.Ident dprsControl)
+                  [ C.Ident "ppkt"
+                  , C.Ident "hdr"
+                  ]
              , C.Stmt . C.Expr $ C.Index (C.Ident "out_lengths") (C.Ident "i") C..= (C.Ident "pkt" `C.Dot` "end")
              , C.Stmt . C.Expr $ C.Index (C.Ident "out_offsets") (C.Ident "i") C..= (C.Ident "pkt" `C.Dot` "base")
              ]
@@ -163,18 +181,19 @@ generateMain = do
 getPktSize :: P.Sem (P.Tagged "packet-size" (P.Writer (Sum Int)) ': r) a -> P.Sem r (Int, a)
 getPktSize = ((_1 %~ getSum) <$>) . P.runWriter @(Sum Int) . P.untag @"packet-size"
 
-generateParser :: CompC r => AST.P4Parser -> P.Sem r (C.Ident, Int, C.Type)
+generateParser :: CompC r => AST.P4Parser -> P.Sem r (C.Ident, Int, C.Type, C.Type)
 generateParser p = do
   (params, vars) <- generateParams $ p ^. #type_ . #applyParams . #vec
 
   let hdrType = vars ^?! ix 1 . #varType
+  let metaType = vars ^?! ix 2 . #varType
 
   let scopeUpdate scope = flipfoldl' addVarToScope scope vars
   (inPktSize, body) <- getPktSize . P.local scopeUpdate $ generateParserStates (p ^. #name) (p ^. #states)
   let body' = removeDeadExprs body
   devFnAttrs <- getDevFnAttrs
   P.modify . flip (<>) $ defineFunc (p ^. #name) devFnAttrs (C.TypeSpec C.Bool) params body'
-  pure (p ^. #name . unpacked, inPktSize, hdrType)
+  pure (p ^. #name . unpacked, inPktSize, hdrType, metaType)
 
 generateControl :: CompC r => AST.P4Control -> P.Sem r C.Ident
 generateControl c = do
