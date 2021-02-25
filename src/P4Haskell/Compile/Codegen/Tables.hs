@@ -493,7 +493,7 @@ generateTableCall (AST.TypeTable table) rty = do
     ]
 
   let cases =
-        [C.Default $ C.Block [setHitVariableCode isHitVar False]]
+        [C.Default $ C.Block [setHitVariableCode isHitVar False, C.Stmt C.Break]]
           <> map (makeCase isHitVar) (elems processedActions')
 
   P.tell [C.Stmt $ C.Switch (C.Arrow nodeVar "action_idx") cases]
