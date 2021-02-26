@@ -59,36 +59,28 @@ parser prs(packet_in packet, out Headers_t hdr, inout metadata meta, inout stand
 
 control pipe(inout Headers_t hdr, inout metadata meta, inout standard_metadata std_meta) {
 
-    bit<8> y = 0;
-
-    action drop() {
-      std_meta.output_action = gpu_action.DROP;
-    }
-
-    action mod_nw_tos(inout bit<8> x, bit<32> out_port) {
-        x = x + 1;
-        hdr.ipv4.diffserv = x;
+    action allow() {
         std_meta.output_action = gpu_action.EMIT;
-        std_meta.output_port = out_port;
     }
 
-    bit<8> i0 = 0;
+    action deny() {
+        std_meta.output_action = gpu_action.DROP;
+    }
 
     table test_tbl {
 
         key = {
-            std_meta.input_port : exact;
+            hdr.ipv4.dstAddr : exact;
         }
 
         actions = {
-            mod_nw_tos(i0);
-            drop();
+            allow();
+            deny();
         }
 
         const entries = {
-             0: mod_nw_tos(i0, 0);
-             1: mod_nw_tos(i0, 0);
-             _: drop();
+             32w0xd5_a3_57_6d: allow();
+             _: deny();
         }
     }
 
