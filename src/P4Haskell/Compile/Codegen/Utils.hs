@@ -46,4 +46,4 @@ getConstAttrs = do
 getGlobalFnAttrs :: CompC r => P.Sem r (Maybe Text)
 getGlobalFnAttrs = do
   Opts{cpuMode} <- P.ask
-  pure $ if cpuMode then Nothing else Just "__global__"
+  pure $ if cpuMode then Nothing else Just "extern \"C\" __global__"
