@@ -87,7 +87,7 @@ control pipe(inout Headers_t hdr, inout metadata meta, inout standard_metadata s
 
         const entries = {
              0: mod_nw_tos(i0, 0);
-             1: mod_nw_tos(i0, 0);
+             1: mod_nw_tos(i0, 1);
              _: drop();
         }
     }

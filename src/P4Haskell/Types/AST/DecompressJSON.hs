@@ -43,10 +43,14 @@ getNode k = do
       let Just x = H.lookup k es
         in pure x
 
+{-# INLINABLE getNode #-}
+
 isReferenceNode :: Monad m => D.JCurs -> D.DecodeResult m Bool
 isReferenceNode curs = do
   ty <- D.fromKeyOptional "Node_Type" D.text curs
   pure $ isNothing ty
+
+{-# INLINABLE isReferenceNode #-}
 
 currentNodeType :: DecompressC r => D.JCurs -> D.DecodeResult (P.Sem r) Text
 currentNodeType curs = do
@@ -62,9 +66,13 @@ currentNodeType curs = do
       pure ty
     else D.fromKey "Node_Type" D.text o
 
+{-# INLINABLE currentNodeType #-}
+
 fromJustMsg :: Text -> Maybe a -> a
 fromJustMsg _ (Just a) = a
 fromJustMsg msg _ = error msg
+
+{-# INLINABLE fromJustMsg #-}
 
 tryParseVal
   :: forall r b. (Typeable b, DecompressC r)
@@ -88,12 +96,16 @@ tryParseVal f curs = do
       lift $ addNode id' (toDyn b, ty)
       pure b
 
+{-# INLINABLE tryParseVal #-}
+
 tryDecoder
   :: forall r b. (Typeable b, DecompressC r)
   => D.Decoder (P.Sem r) b
   -> D.JCurs
   -> D.DecodeResult (P.Sem r) b
 tryDecoder = tryParseVal . D.focus
+
+{-# INLINABLE tryDecoder #-}
 
 runDecompressor
   :: forall a.

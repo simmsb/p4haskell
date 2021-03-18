@@ -21,8 +21,7 @@ extra-deps:
   - dependent-sum-0.7.1.0@sha256:5599aa89637db434431b1dd3fa7c34bc3d565ee44f0519bfbc877be1927c2531,2068
   - rock-0.3.0.0@sha256:62acd56010ea6669a7c110153c262a4b29c0dae049d3dc5028e6dd9cf20dc49f,3591
   - some-1.0.1@sha256:26e5bab7276f48b25ea8660d3fd1166c0f20fd497dac879a40f408e23211f93e,2055
-  - github: nitros12/waargonaut
-    commit: 0e206e947916f3c70b81524a2deced1fc795f456
+  - waargonaut-0.8.0.2@sha256:e133c63a3fd7ea869712676ea2a007b8b591b0f239cea22260ab57733402f032,7868
   - github: nitros12/language-c99-simple
     commit: 2416651981b972f599489c5565e19f82ba0e8d2d
   - github: nitros12/language-c99

@@ -30,7 +30,7 @@ dependencies:
     # add back when stack/5077 is ok
     # mixin:
     #   - (Relude as Prelude, Relude, Relude.Debug, Relude.Extra.Map, Relude.Extra, Relude.Unsafe)
-  - waargonaut ^>= 0.8
+  - waargonaut ^>= 0.8.0.2
   - lens >= 4.18 && < 4.20
   - generic-lens ^>= 2
 #  - generic-monoid ^>= 0.1

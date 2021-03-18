@@ -104,8 +104,8 @@ generateBitChunks meta (AST.TableEntry keys _ _) = concatMap (uncurry inner) (zi
     replicate (cielDiv width bitsPerLevel) AcceptAll
 
 data ChunkTrie
-  = ChunkTrieLeaf (Int, Int)
-  | ChunkTrieNode [Maybe Int]
+  = ChunkTrieLeaf !(Int, Int)
+  | ChunkTrieNode ![Maybe Int]
   deriving stock (Show, Generic)
 
 -- isLeaf :: ChunkTrie -> Bool

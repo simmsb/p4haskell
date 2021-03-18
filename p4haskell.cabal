@@ -4,7 +4,7 @@ cabal-version: 1.18
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a85c144177c62ed0e3f53844dafaaf4eb332e3347080501aae0ac9a350817fca
+-- hash: 4b579fb10ada18673548fd66820f876f092e8df43a7b8430d4b70f44d8fc60d7
 
 name:           p4haskell
 version:        0.0.0
@@ -96,7 +96,7 @@ library
     , text >=1.2 && <1.3
     , unordered-containers >=0.2 && <0.3
     , vector >=0.12 && <0.13
-    , waargonaut >=0.8 && <0.9
+    , waargonaut >=0.8.0.2 && <0.9
   default-language: Haskell2010
 
 executable p4haskell
@@ -135,5 +135,5 @@ executable p4haskell
     , text >=1.2 && <1.3
     , unordered-containers >=0.2 && <0.3
     , vector >=0.12 && <0.13
-    , waargonaut >=0.8 && <0.9
+    , waargonaut >=0.8.0.2 && <0.9
   default-language: Haskell2010

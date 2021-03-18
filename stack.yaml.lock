@@ -145,16 +145,12 @@ packages:
   original:
     hackage: some-1.0.1@sha256:26e5bab7276f48b25ea8660d3fd1166c0f20fd497dac879a40f408e23211f93e,2055
 - completed:
-    size: 176491
-    url: https://github.com/nitros12/waargonaut/archive/0e206e947916f3c70b81524a2deced1fc795f456.tar.gz
-    name: waargonaut
-    version: 0.8.0.2
-    sha256: 3acb28ddc6c48d2e6a1395af4cab6e84d50fddaaf5588c78990c68f0fd972c21
+    hackage: waargonaut-0.8.0.2@sha256:e133c63a3fd7ea869712676ea2a007b8b591b0f239cea22260ab57733402f032,7868
     pantry-tree:
-      size: 7426
-      sha256: 41ce6c547c844db1a028fcc6fb47207c263692cfb6c77f5b3e393d342469b194
+      size: 5705
+      sha256: aa337cbcf357037bd58310633556d2a50baf882b71c71756e9a46974f938199b
   original:
-    url: https://github.com/nitros12/waargonaut/archive/0e206e947916f3c70b81524a2deced1fc795f456.tar.gz
+    hackage: waargonaut-0.8.0.2@sha256:e133c63a3fd7ea869712676ea2a007b8b591b0f239cea22260ab57733402f032,7868
 - completed:
     size: 8429
     url: https://github.com/nitros12/language-c99-simple/archive/2416651981b972f599489c5565e19f82ba0e8d2d.tar.gz

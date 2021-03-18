@@ -151,14 +151,18 @@ generateMain = do
                         (C.TypeName (C.TypeSpec ptrPacketStruct'))
                         (fromList [C.InitItem (Just "ppkt") (C.InitExpr . C.ref $ C.Ident "pkt")])
                   )
-             , C.Stmt . C.Expr $
-                C.Funcall
-                  (C.Ident prsParser)
-                  [ C.Ident "ppkt"
-                  , C.ref $ C.Ident "hdr"
-                  , C.ref $ C.Ident "meta"
-                  , C.ref $ C.Index (C.Ident "std_meta") (C.Ident "i")
-                  ]
+             , C.Stmt $
+                C.If
+                  ( (C..!) $
+                      C.Funcall
+                        (C.Ident prsParser)
+                        [ C.Ident "ppkt"
+                        , C.ref $ C.Ident "hdr"
+                        , C.ref $ C.Ident "meta"
+                        , C.ref $ C.Index (C.Ident "std_meta") (C.Ident "i")
+                        ]
+                  )
+                  [C.Stmt $ C.Return Nothing]
              , C.Stmt . C.Expr $
                 C.Funcall
                   (C.Ident pipeControl)
